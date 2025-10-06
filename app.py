@@ -88,12 +88,12 @@ def build_query_with_conditions(table_name: str, conditions: list, order_by: str
     sql_parts = [f"SELECT * FROM {table_name}"]
     where_clauses = []
     
-    # 条件の構築ロジック（前回の実装を維持）
     for cond in conditions:
         column = cond['column']
         operator = cond['operator']
         value = cond['value']
         
+        # 演算子の実装
         if operator == "含む":
             query = query.ilike(column, f"%{value}%")
             where_clauses.append(f"{column} ILIKE '%{value}%'")
@@ -188,7 +188,7 @@ st.set_page_config(page_title="Supabase CRUDマネージャー", layout="wide", 
 st.title("🗄️ Supabase CRUDマネージャー")
 st.caption("テーブル管理（作成・削除）機能は、データ整合性と安全性の観点から除外しています。")
 
----
+# ---
 
 ## 🎛️ サイドバーとテーブル選択
 
@@ -207,7 +207,6 @@ if st.session_state.last_mode != mode:
     if mode != "📊 検索・閲覧":
         st.session_state.conditions = []
     st.session_state.last_mode = mode
-    # st.rerun() # リロードは不要な場合は避ける
 
 st.sidebar.markdown("---")
 
@@ -228,6 +227,7 @@ default_index = 0
 if st.session_state.selected_table in tables:
     default_index = tables.index(st.session_state.selected_table)
 elif default_table_name in tables:
+    # ユーザーの要望により t_machinecode をデフォルトで選択
     default_index = tables.index(default_table_name)
     
 selected_table = st.sidebar.selectbox(
@@ -255,7 +255,7 @@ else:
     column_names = list(table_columns.keys())
     st.sidebar.caption(f"✅ **`{selected_table}`** は{len(column_names)}列のテーブルです。")
 
----
+# ---
 
 ## 📊 検索・閲覧モード
 
@@ -373,7 +373,7 @@ if mode == "📊 検索・閲覧":
         else:
             st.info("👈 左のサイドバーで条件を設定し、「🚀 検索実行」ボタンを押してください。")
 
----
+# ---
 
 ## ➕ データの新規追加モード
 
@@ -428,7 +428,7 @@ elif mode == "➕ データの新規追加":
             else:
                 st.warning("⚠️ 少なくとも1つの項目を入力してください")
 
----
+# ---
 
 ## ✏️ データの編集モード
 
@@ -540,7 +540,7 @@ elif mode == "✏️ データの編集":
                     else:
                         st.error(message)
 
----
+# ---
 
 ## 🗑️ データの削除モード
 
