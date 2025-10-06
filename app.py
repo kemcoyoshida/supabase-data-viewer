@@ -3,6 +3,7 @@ from supabase import create_client, Client
 import pandas as pd
 from datetime import datetime
 import time
+import dateutil.parser
 
 # ========================================
 # 接続情報と初期設定
@@ -42,29 +43,20 @@ if 'last_search_executed' not in st.session_state:
 def get_table_structure(table_name: str):
     """テーブルの構造（列名とデータ型）を取得"""
     try:
-        # 構造を把握するため、データがなくても列情報が取れるよう少し工夫
-        response = supabase.rpc('get_table_columns', {'table_name': table_name}).execute()
+        # LIMIT 0でメタデータのみ取得を試みる (最も推奨される方法)
+        response = supabase.table(table_name).select("*").limit(0).execute()
         
-        # NOTE: get_table_columns RPCが用意されていないSupabase環境では失敗する可能性があります
-        # その場合は、以前の「LIMIT 1でデータ型を推測」ロジックに戻してください。
-        if response.data:
-            columns = {}
-            for col in response.data:
-                # 簡易的な型マッピング
-                pg_type = col.get('data_type', 'text')
-                if pg_type in ['integer', 'smallint', 'bigint', 'numeric']:
-                    columns[col['column_name']] = 'integer'
-                elif pg_type in ['double precision', 'real']:
-                    columns[col['column_name']] = 'number'
-                elif pg_type == 'boolean':
-                    columns[col['column_name']] = 'boolean'
-                elif pg_type in ['timestamp with time zone', 'timestamp without time zone', 'date']:
-                    columns[col['column_name']] = 'datetime'
-                else:
-                    columns[col['column_name']] = 'text'
-            return columns
+        # 成功してもデータは空だが、カラム情報（キー）が取れる
+        if response.data is not None and len(response.data) == 0:
+            # カラム情報がない場合は、構造を空と判断
+            if not response.data:
+                return {} 
             
-        # RPC失敗時、LIMIT 1でフォールバック
+            # ここではカラム型を推測できないため、最も保守的なテキスト型として処理
+            columns = {key: 'text' for key in response.data[0].keys()}
+            return columns
+        
+        # LIMIT 1でデータ型を推測するフォールバック
         response = supabase.table(table_name).select("*").limit(1).execute()
         if response.data and len(response.data) > 0:
             sample_data = response.data[0]
@@ -77,26 +69,28 @@ def get_table_structure(table_name: str):
                 elif isinstance(value, float):
                     columns[key] = 'number'
                 elif isinstance(value, str):
-                    if 'date' in key.lower() or 'time' in key.lower() or 'at' in key.lower() or (len(value) > 10 and '-' in value and 'T' in value):
+                    # 日付/時刻文字列を判定
+                    try:
+                        dateutil.parser.parse(value)
                         columns[key] = 'datetime'
-                    else:
+                    except (ValueError, OverflowError):
                         columns[key] = 'text'
                 else:
                     columns[key] = 'text' 
             return columns
         return {}
     except Exception:
-        # 構造が取れない場合は空の辞書を返す
         return {}
 
 
 @st.cache_data(ttl=300)
 def get_all_tables_cached():
     """テーブル一覧を pg_tables から取得し、エラーメッセージを抑制する"""
-    fallback_table = 't_machinecode'
+    # 接続自体に問題がある場合に備え、最低限のフォールバックを用意
+    DEFAULT_FALLBACK_TABLES = ['t_machinecode', 'example_table'] 
     
     try:
-        # 成功実績のある pg_tables からテーブル一覧を取得
+        # pg_tables からテーブル一覧を取得
         response = supabase.from_('pg_tables').select('tablename').eq('schemaname', 'public').execute()
         
         if response.data:
@@ -110,20 +104,21 @@ def get_all_tables_cached():
             if tables:
                 return tables
         
-        # pg_tablesからのデータが空の場合、フォールバックテーブルの構造が取れれば含める
-        if get_table_structure(fallback_table):
-            return [fallback_table]
-        return []
-    
     except Exception:
-        # エラーが発生しても st.error() を呼ばず、静かにフォールバック処理を行う
-        if get_table_structure(fallback_table):
-            return [fallback_table]
-        return []
+        # 接続エラーや権限エラーの場合、エラーメッセージを出さずに静かにフォールバック
+        pass 
+        
+    # pg_tablesが失敗した場合、フォールバックテーブルの構造が取れるか試す
+    valid_fallbacks = [t for t in DEFAULT_FALLBACK_TABLES if get_table_structure(t)]
+    
+    if valid_fallbacks:
+        return valid_fallbacks
+        
+    return []
+
 
 def build_query_with_conditions(table_name: str, conditions: list, order_by: str, order_direction: str, limit: int):
     """条件からクエリとSQL文を構築"""
-    # ... (この関数は変更なし。以前のロジックをそのまま使用) ...
     query = supabase.table(table_name).select("*")
     sql_parts = [f"SELECT * FROM {table_name}"]
     where_clauses = []
@@ -133,6 +128,7 @@ def build_query_with_conditions(table_name: str, conditions: list, order_by: str
         operator = cond['operator']
         value = cond['value']
         
+        # 演算子の実装
         if operator == "含む":
             query = query.ilike(column, f"%{value}%")
             where_clauses.append(f"{column} ILIKE '%{value}%'")
@@ -183,11 +179,10 @@ def execute_query(query):
         if response.data:
             df = pd.DataFrame(response.data)
             for col in df.columns:
-                # 日付/時刻型の変換を強化
+                # 日付/時刻型の変換
                 if 'date' in col.lower() or 'time' in col.lower() or 'at' in col.lower():
                     try:
-                        # タイムゾーン情報を考慮して変換
-                        df[col] = pd.to_datetime(df[col], utc=True)
+                        df[col] = pd.to_datetime(df[col], utc=True, errors='coerce')
                     except:
                         pass
             return df
@@ -259,11 +254,11 @@ with st.spinner("テーブル一覧を読み込み中..."):
 
 # テーブルが存在しない場合はエラーで停止
 if not tables:
-    st.sidebar.error("⚠️ データベースにテーブルが見つかりません。Supabaseコンソールを確認してください。")
+    st.sidebar.error("⚠️ データベースにテーブルが見つかりません。**`service_role`キー**を確認してください。")
     st.stop()
     
 # デフォルト選択インデックスの決定
-default_table_name = 't_machinecode'
+default_table_name = 't_machinecode' # ユーザーの既存のテーブル名
 default_index = 0
 if st.session_state.selected_table in tables:
     default_index = tables.index(st.session_state.selected_table)
@@ -290,7 +285,7 @@ if st.session_state.selected_table != selected_table:
 table_columns = get_table_structure(selected_table)
 
 if not table_columns:
-    st.sidebar.error(f"❌ `{selected_table}` のテーブル構造を取得できません。データが存在しないか、キーの権限が不足しています。")
+    st.sidebar.error(f"❌ `{selected_table}` のテーブル構造を取得できません。権限を確認してください。")
     column_names = []
 else:
     column_names = list(table_columns.keys())
@@ -333,7 +328,6 @@ if mode == "📊 検索・閲覧":
                 elif col_type == 'number':
                     new_value = st.number_input("値 (小数)", value=None, step=0.01, format="%.2f", key="search_val_float")
                 elif col_type == 'datetime':
-                    # 日付入力は datetime.date型で取得
                     new_value = st.date_input("日付", value="today", key="search_val_date")
                 else:
                     new_value = st.text_input("値 (テキスト)", key="search_val_text")
@@ -342,13 +336,12 @@ if mode == "📊 検索・閲覧":
             with col_a:
                 if st.button("➕ この条件を追加", use_container_width=True, key="add_condition_btn"):
                     if new_operator in ["空でない", "空"] or (new_value is not None and new_value != ""):
-                        # 日付やブール値は文字列に変換して保存
                         st.session_state.conditions.append({
                             'column': new_column,
                             'operator': new_operator,
                             'value': str(new_value) if new_value is not None else ""
                         })
-                        st.session_state.last_search_executed = False # 条件変更時は再検索が必要
+                        st.session_state.last_search_executed = False
                         st.rerun()
                     else:
                         st.warning("値を入力するか、空/空でないの演算子を選択してください")
@@ -394,13 +387,13 @@ if mode == "📊 検索・閲覧":
         
         with st.spinner("📥 データを取得中..."):
             df = execute_query(query)
-            st.session_state.last_search_executed = True # 検索実行フラグを立てる
+            st.session_state.last_search_executed = True
 
         with st.expander("💡 生成されたSQL文"):
             st.code(sql_text, language="sql")
         
         if df is not None and len(df) > 0:
-            st.session_state.current_data = df # 検索結果をセッションに保存
+            st.session_state.current_data = df
             st.metric("📊 取得件数", f"{len(df):,} 件")
             st.markdown("---")
             st.subheader(f"📋 検索結果：`{selected_table}`")
@@ -410,7 +403,7 @@ if mode == "📊 検索・閲覧":
             st.download_button("📥 CSVでダウンロード", csv, f"{selected_table}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", "text/csv", use_container_width=True)
             
         elif df is not None:
-            st.session_state.current_data = pd.DataFrame() # データが見つからない場合もクリア
+            st.session_state.current_data = pd.DataFrame()
             st.warning("⚠️ 条件に一致するデータが見つかりませんでした")
         else:
             st.session_state.current_data = None
@@ -445,7 +438,7 @@ elif mode == "➕ データの新規追加":
                     st.caption(f"🕐 **{col_name}**（自動設定を想定しスキップ）")
                     continue
                 
-                # 入力ウィジェットの改善
+                # 入力ウィジェット
                 if col_type == 'boolean':
                     new_data[col_name] = st.checkbox(f"**{col_name}**", key=f"add_{col_name}", value=False)
                 elif col_type == 'integer':
@@ -453,13 +446,12 @@ elif mode == "➕ データの新規追加":
                 elif col_type == 'number':
                     new_data[col_name] = st.number_input(f"**{col_name}** (小数)", value=None, step=0.01, format="%.2f", key=f"add_{col_name}_float")
                 elif col_type == 'datetime':
-                    # 日付と時刻を分離して入力し、結合
                     col_date, col_time = st.columns(2)
                     with col_date:
                         date_val = st.date_input(f"**{col_name}** (日付)", key=f"add_{col_name}_date", value=datetime.today().date())
                     with col_time:
                         time_val = st.time_input(f"**{col_name}** (時刻)", key=f"add_{col_name}_time", value=datetime.now().time())
-                    # PostgreSQLのタイムスタンプ形式に結合
+                    
                     new_data[col_name] = f"{date_val} {time_val}"
                 else:
                     new_data[col_name] = st.text_input(f"**{col_name}** (テキスト)", key=f"add_{col_name}_text")
@@ -468,7 +460,6 @@ elif mode == "➕ データの新規追加":
         submitted = st.form_submit_button("✅ データを追加する", type="primary", use_container_width=True)
         
         if submitted:
-            # Noneや空文字列を除外
             filtered_data = {k: v for k, v in new_data.items() if v is not None and v != "" and k not in ['created_at', 'updated_at']}
             
             if filtered_data:
@@ -477,9 +468,10 @@ elif mode == "➕ データの新規追加":
                 if success:
                     st.success(message)
                     st.balloons()
-                    st.session_state.last_search_executed = False # データをリフレッシュさせる
-                    time.sleep(1) # メッセージ表示のため少し待つ
-                    st.rerun() # 即時反映
+                    # 即時反映のためリフレッシュ
+                    st.session_state.last_search_executed = False
+                    time.sleep(1) 
+                    st.rerun()
                 else:
                     st.error(message)
             else:
@@ -528,7 +520,6 @@ elif mode == "✏️ データの編集":
         df = st.session_state.current_data
         st.dataframe(df, use_container_width=True, height=250)
         
-        # 編集対象のIDを選択
         selected_id = st.selectbox(
             f"編集するデータのID (列: `{id_column}`)",
             df[id_column].tolist(),
@@ -538,7 +529,6 @@ elif mode == "✏️ データの編集":
         
         selected_row = df[df[id_column] == selected_id].iloc[0]
         
-        # **直感的な改善: 選択した行の内容表示**
         with st.expander(f"選択中のデータ ({selected_id})", expanded=True):
             st.json(selected_row.to_dict())
             
@@ -572,7 +562,6 @@ elif mode == "✏️ データの編集":
                         updated_data[col_name] = st.number_input(f"**{col_name}** (小数)", value=initial_value, step=0.01, format="%.2f", key=f"edit_{col_name}_float")
 
                     elif col_type == 'datetime':
-                        # 日付と時刻を分離して表示・編集
                         dt_value = pd.to_datetime(current_value, errors='coerce') if not is_na else datetime.now()
                         
                         col_date, col_time = st.columns(2)
@@ -591,20 +580,23 @@ elif mode == "✏️ データの編集":
             submitted = st.form_submit_button("💾 変更を保存する", type="primary", use_container_width=True)
             
             if submitted:
-                # 変更がないキーは除外
                 data_to_update = {}
                 for k, v in updated_data.items():
                     current_val = selected_row.get(k)
-                    # NaN, None, 空文字列の比較を適切に行う
-                    if current_val is None or (isinstance(current_val, str) and current_val.strip() == ""):
-                        is_same = (v is None or (isinstance(v, str) and v.strip() == ""))
+                    
+                    is_current_empty = current_val is None or (isinstance(current_val, str) and current_val.strip() == "")
+                    is_new_empty = v is None or (isinstance(v, str) and v.strip() == "")
+                    
+                    if is_current_empty and is_new_empty:
+                        is_same = True
+                    elif str(v) == str(current_val):
+                        is_same = True
                     else:
-                        is_same = str(v) == str(current_val)
+                        is_same = False
                         
                     if not is_same:
                          data_to_update[k] = v
                 
-                # updated_at は通常Supabase側で更新されるため、明示的に含めない
                 if 'updated_at' in data_to_update:
                     del data_to_update['updated_at']
 
@@ -615,9 +607,10 @@ elif mode == "✏️ データの編集":
                     
                     if success:
                         st.success(message)
-                        st.session_state.current_data = None # 検索結果をクリアしてリフレッシュを促す
+                        # 即時反映のためリフレッシュ
+                        st.session_state.current_data = None
                         time.sleep(1) 
-                        st.rerun() # 即時反映
+                        st.rerun()
                     else:
                         st.error(message)
 
@@ -665,7 +658,6 @@ elif mode == "🗑️ データの削除":
         df = st.session_state.current_data
         st.dataframe(df, use_container_width=True, height=250)
         
-        
         selected_id = st.selectbox(
             f"削除するデータのID (列: `{id_column}`)",
             df[id_column].tolist(),
@@ -678,7 +670,6 @@ elif mode == "🗑️ データの削除":
         st.markdown("---")
         st.markdown("#### ステップ3: 削除の最終確認")
         
-        # **直感的な改善: 選択した行の内容表示**
         with st.expander(f"🔴 削除対象データの詳細 ({selected_id}) を確認", expanded=True):
             st.json(selected_row.to_dict())
         
@@ -692,10 +683,11 @@ elif mode == "🗑️ データの削除":
                 
                 if success:
                     st.success(message)
-                    st.session_state.current_data = None # 検索結果をクリアしてリフレッシュ
+                    # 即時反映のためリフレッシュ
+                    st.session_state.current_data = None
                     st.session_state.last_search_executed = False
                     time.sleep(1)
-                    st.rerun() # 即時反映
+                    st.rerun()
                 else:
                     st.error(message)
         
