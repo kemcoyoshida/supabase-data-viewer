@@ -11,6 +11,7 @@ import time
 # ここはご自身のSupabase URLに置き換えてください
 SUPABASE_URL = "https://uevlguozshzwywzqtsvr.supabase.co"
 
+# secrets.tomlからキーを取得することを想定
 if "SUPABASE_KEY" in st.secrets:
     SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 else:
@@ -37,7 +38,8 @@ if 'last_mode' not in st.session_state:
 
 @st.cache_data(ttl=300)
 def get_all_tables_cached():
-    """最初の成功ロジック: pg_tables からテーブル名を取得 (成功実績あり)"""
+    """テーブル一覧を pg_tables から取得 (成功実績のあるロジック)"""
+    fallback_table = 't_machinecode'
     try:
         # pg_tables ビューから public スキーマのテーブル一覧を取得
         response = supabase.from_('pg_tables').select('tablename').eq('schemaname', 'public').execute()
@@ -50,30 +52,30 @@ def get_all_tables_cached():
                 if table['tablename'] not in system_tables_to_exclude and not table['tablename'].startswith('rls_')
             ])
             
-            if not tables and 't_machinecode' in st.session_state.get('tables_fallback', []):
-                 return ['t_machinecode']
-                 
+            # テーブルが一つも見つからなかった場合、指定テーブルを強制的に含める
+            if not tables:
+                return [fallback_table] if get_table_structure(fallback_table) else []
+                
             return tables
         
-        # 取得できたテーブルが空の場合でも t_machinecode が存在する可能性を考慮
-        return ['t_machinecode']
+        # データが空の場合
+        return [fallback_table] if get_table_structure(fallback_table) else []
     
     except Exception as e:
-        # エラーが発生した場合も t_machinecode をフォールバックとして返す
+        # エラーが発生した場合も指定テーブルをフォールバックとして返す
         st.error(f"❌ テーブル一覧取得に失敗しました。キーまたは接続設定を確認してください。エラー: {e}")
-        return ['t_machinecode']
-
+        return [fallback_table] if get_table_structure(fallback_table) else []
 
 @st.cache_data(ttl=300)
 def get_table_structure(table_name: str):
-    """テーブルの構造（列名とデータ型）を取得 (より安全に型を推測)"""
+    """テーブルの構造（列名とデータ型）を取得"""
     try:
+        # 1行だけ取得し、データ型を推測
         response = supabase.table(table_name).select("*").limit(1).execute()
         
         if response.data and len(response.data) > 0:
             sample_data = response.data[0]
             columns = {}
-            
             for key, value in sample_data.items():
                 if isinstance(value, bool):
                     columns[key] = 'boolean'
@@ -93,9 +95,8 @@ def get_table_structure(table_name: str):
     except Exception:
         return {}
 
-# 以下のDML（データ操作言語）やクエリ構築の関数は前回のコードをそのまま使用します
 def build_query_with_conditions(table_name: str, conditions: list, order_by: str, order_direction: str, limit: int):
-    # (省略: 前回のコードの定義をそのまま使用)
+    """条件からクエリとSQL文を構築"""
     query = supabase.table(table_name).select("*")
     sql_parts = [f"SELECT * FROM {table_name}"]
     where_clauses = []
@@ -148,9 +149,9 @@ def build_query_with_conditions(table_name: str, conditions: list, order_by: str
     
     sql_text = "\n".join(sql_parts)
     return query, sql_text
-    
+
 def execute_query(query):
-    # (省略: 前回のコードの定義をそのまま使用)
+    """クエリを実行し、DataFrameを返す"""
     try:
         response = query.execute()
         if response.data:
@@ -168,7 +169,7 @@ def execute_query(query):
         return None
 
 def insert_data(table_name: str, data: dict):
-    # (省略: 前回のコードの定義をそのまま使用)
+    """データを追加"""
     try:
         response = supabase.table(table_name).insert(data).execute()
         return True, "✅ データを追加しました！", response
@@ -176,7 +177,7 @@ def insert_data(table_name: str, data: dict):
         return False, f"❌ エラー: {e}", None
 
 def update_data(table_name: str, row_id: any, data: dict, id_column: str = 'id'):
-    # (省略: 前回のコードの定義をそのまま使用)
+    """データを更新"""
     try:
         response = supabase.table(table_name).update(data).eq(id_column, row_id).execute()
         return True, "✅ データを更新しました！", response
@@ -184,7 +185,7 @@ def update_data(table_name: str, row_id: any, data: dict, id_column: str = 'id')
         return False, f"❌ エラー: {e}", None
 
 def delete_data(table_name: str, row_id: any, id_column: str = 'id'):
-    # (省略: 前回のコードの定義をそのまま使用)
+    """データを削除"""
     try:
         response = supabase.table(table_name).delete().eq(id_column, row_id).execute()
         return True, "✅ データを削除しました！", response
@@ -228,19 +229,21 @@ st.sidebar.subheader("📁 対象テーブル")
 with st.spinner("テーブル一覧を読み込み中..."):
     tables = get_all_tables_cached()
 
-# エラー時の表示を修正し、t_machinecode が選択されるようにする
-if not tables or (len(tables) == 1 and tables[0] == 't_machinecode'):
-    st.sidebar.warning("💡 テーブル一覧の取得でエラーが発生した可能性がありますが、**`t_machinecode`** が存在するとして処理を続行します。")
-    if 't_machinecode' not in tables:
-        tables = ['t_machinecode']
-    if not st.session_state.selected_table:
-         st.session_state.selected_table = 't_machinecode'
-
-    
-# テーブルが存在する場合の選択
+# テーブル一覧の表示処理
 default_table_name = 't_machinecode'
-default_index = 0
 
+if not tables or (len(tables) == 1 and tables[0] == default_table_name and not get_table_structure(default_table_name)):
+    st.sidebar.error("⚠️ データベースにテーブルが見つからないか、接続エラーが発生しています。**`service_role`キー**を使っていますか？")
+    if default_table_name not in tables:
+        tables.append(default_table_name)
+    if not st.session_state.selected_table:
+         st.session_state.selected_table = default_table_name
+elif len(tables) == 1 and tables[0] == default_table_name:
+    st.sidebar.warning(f"💡 テーブル一覧の取得でエラーが発生した可能性がありますが、**`{default_table_name}`** を強制的に選択しています。")
+
+
+# デフォルト選択インデックスの決定
+default_index = 0
 if st.session_state.selected_table in tables:
     default_index = tables.index(st.session_state.selected_table)
 elif default_table_name in tables:
@@ -282,7 +285,7 @@ if mode == "📊 検索・閲覧":
     st.sidebar.markdown("---")
     st.sidebar.subheader("🔍 フィルタリング条件")
     
-    # --- 条件設定 UI (省略: 前回のコードをそのまま使用) ---
+    # --- 条件設定 UI ---
     with st.sidebar.expander("➕ 新しい条件を追加", expanded=len(st.session_state.conditions) == 0):
         if not column_names:
             st.warning("テーブルの列情報が取得できませんでした。")
