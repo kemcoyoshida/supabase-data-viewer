@@ -50,11 +50,7 @@ def get_all_tables_cached():
             return tables
         return []
     except Exception as e:
-        # 接続エラーが発生した場合の代替処理: t_machinecodeが存在すると仮定して返す
         st.error(f"❌ テーブル一覧取得に失敗しました。接続設定を確認してください。エラー: {e}")
-        # t_machinecodeをリストに含め、ユーザーに表示できるようにする
-        if 't_machinecode' in st.session_state.get('tables_fallback', []):
-            return st.session_state.tables_fallback
         return []
 
 @st.cache_data(ttl=300)
@@ -87,21 +83,44 @@ def get_table_structure(table_name: str):
         return {}
 
 def build_query_with_conditions(table_name: str, conditions: list, order_by: str, order_direction: str, limit: int):
-    """条件からクエリとSQL文を構築（前回のロジックを維持）"""
+    """条件からクエリとSQL文を構築"""
     query = supabase.table(table_name).select("*")
     sql_parts = [f"SELECT * FROM {table_name}"]
     where_clauses = []
     
+    # 条件の構築ロジック（前回の実装を維持）
     for cond in conditions:
         column = cond['column']
         operator = cond['operator']
         value = cond['value']
         
-        # 演算子の実装（簡略化のため一つのみ記載）
         if operator == "含む":
             query = query.ilike(column, f"%{value}%")
             where_clauses.append(f"{column} ILIKE '%{value}%'")
-        # ... 他の演算子も同様に実装 ...
+        elif operator == "等しい":
+            query = query.eq(column, value)
+            where_clauses.append(f"{column} = '{value}'")
+        elif operator == "含まない":
+            query = query.not_.ilike(column, f"%{value}%")
+            where_clauses.append(f"{column} NOT ILIKE '%{value}%'")
+        elif operator == "以上":
+            query = query.gte(column, value)
+            where_clauses.append(f"{column} >= {value}")
+        elif operator == "以下":
+            query = query.lte(column, value)
+            where_clauses.append(f"{column} <= {value}")
+        elif operator == "より大きい":
+            query = query.gt(column, value)
+            where_clauses.append(f"{column} > {value}")
+        elif operator == "より小さい":
+            query = query.lt(column, value)
+            where_clauses.append(f"{column} < {value}")
+        elif operator == "空でない":
+            query = query.not_.is_('null', column)
+            where_clauses.append(f"{column} IS NOT NULL")
+        elif operator == "空":
+            query = query.is_('null', column)
+            where_clauses.append(f"{column} IS NULL")
 
     if where_clauses:
         sql_parts.append("WHERE " + " AND ".join(where_clauses))
@@ -188,6 +207,7 @@ if st.session_state.last_mode != mode:
     if mode != "📊 検索・閲覧":
         st.session_state.conditions = []
     st.session_state.last_mode = mode
+    # st.rerun() # リロードは不要な場合は避ける
 
 st.sidebar.markdown("---")
 
@@ -208,7 +228,6 @@ default_index = 0
 if st.session_state.selected_table in tables:
     default_index = tables.index(st.session_state.selected_table)
 elif default_table_name in tables:
-    # ユーザーの要望により t_machinecode をデフォルトで選択
     default_index = tables.index(default_table_name)
     
 selected_table = st.sidebar.selectbox(
@@ -231,7 +250,6 @@ table_columns = get_table_structure(selected_table)
 
 if not table_columns:
     st.sidebar.warning("❌ テーブル構造を取得できませんでした。テーブルにデータがない可能性があります。")
-    # 構造が取得できなくても、CRUD操作は可能な限り続行
     column_names = []
 else:
     column_names = list(table_columns.keys())
@@ -248,7 +266,7 @@ if mode == "📊 検索・閲覧":
     st.sidebar.markdown("---")
     st.sidebar.subheader("🔍 フィルタリング条件")
     
-    # --- 条件設定 UI (前回コードから再掲) ---
+    # --- 条件設定 UI ---
     with st.sidebar.expander("➕ 新しい条件を追加", expanded=len(st.session_state.conditions) == 0):
         if not column_names:
             st.warning("テーブルの列情報が取得できませんでした。")
@@ -296,7 +314,7 @@ if mode == "📊 検索・閲覧":
                     st.session_state.conditions = []
                     st.rerun()
 
-    # 現在の条件を表示 (前回コードから再掲)
+    # 現在の条件を表示
     if st.session_state.conditions:
         st.sidebar.markdown("**📋 現在適用中のフィルタ:**")
         for idx, cond in enumerate(st.session_state.conditions):
@@ -323,7 +341,7 @@ if mode == "📊 検索・閲覧":
     
     search_button = st.sidebar.button("🚀 検索実行", type="primary", use_container_width=True, key="main_search_btn")
     
-    # メインエリア (前回コードから再掲)
+    # メインエリア
     if search_button:
         query, sql_text = build_query_with_conditions(selected_table, st.session_state.conditions, order_by, order_direction, limit)
         
@@ -364,7 +382,6 @@ elif mode == "➕ データの新規追加":
     st.subheader(f"➕ `{selected_table}` に新しいデータを追加")
     st.markdown("**以下のフォームに必要な情報を入力してください**")
     
-    # ... データ追加フォームのロジック（前回コードから再掲） ...
     with st.form("add_form"):
         new_data = {}
         cols = st.columns(2)
