@@ -92,24 +92,3 @@ elif st.button("🔄 データを取得して表示", use_container_width=True):
             
     else:
         st.info(f"テーブル '{table_name}' にデータが見つからなかったか、エラーが発生しました。")
-
-
-
----
-
-## ✅ 次に実行すべきこと
-
-`app.py`ファイルを保存した後は、以下の2つのステップが必要です。
-
-1.  **`requirements.txt`ファイルの作成:** Streamlitアプリの実行に必要なライブラリをリスト化したファイルも保存します。
-2.  **Streamlitアプリの起動:** `app.py`ファイルを使ってWebアプリを起動します。
-
-以下の2つのセルを順番に実行してください。
-
-### 1. `requirements.txt`の作成
-
-```python
-%%writefile requirements.txt
-streamlit
-pandas
-supabase
