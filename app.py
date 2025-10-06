@@ -627,11 +627,3 @@ elif mode == "🗑️ データを削除":
             if st.button("❌ キャンセル", use_container_width=True):
                 st.session_state.current_data = None
                 st.rerun()
-
-# ========================================
-# フッター
-# ========================================
-
-st.sidebar.markdown("---")
-st.sidebar.caption("🗄️ データベース管理システム v2.0")
-st.sidebar.caption("💡 IT知識不要で誰でも使えます")
