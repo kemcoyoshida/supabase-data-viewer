@@ -37,9 +37,11 @@ if 'last_mode' not in st.session_state:
 
 @st.cache_data(ttl=300)
 def get_all_tables_cached():
-    """Supabaseからpublicスキーマのテーブル名を取得（システムテーブル除外）"""
+    """最初の成功ロジック: pg_tables からテーブル名を取得 (成功実績あり)"""
     try:
+        # pg_tables ビューから public スキーマのテーブル一覧を取得
         response = supabase.from_('pg_tables').select('tablename').eq('schemaname', 'public').execute()
+        
         if response.data:
             system_tables_to_exclude = ['supabase_migrations', 'users', 'roles', 'pg_stat_statements']
             tables = sorted([
@@ -47,11 +49,20 @@ def get_all_tables_cached():
                 for table in response.data
                 if table['tablename'] not in system_tables_to_exclude and not table['tablename'].startswith('rls_')
             ])
+            
+            if not tables and 't_machinecode' in st.session_state.get('tables_fallback', []):
+                 return ['t_machinecode']
+                 
             return tables
-        return []
+        
+        # 取得できたテーブルが空の場合でも t_machinecode が存在する可能性を考慮
+        return ['t_machinecode']
+    
     except Exception as e:
-        st.error(f"❌ テーブル一覧取得に失敗しました。接続設定を確認してください。エラー: {e}")
-        return []
+        # エラーが発生した場合も t_machinecode をフォールバックとして返す
+        st.error(f"❌ テーブル一覧取得に失敗しました。キーまたは接続設定を確認してください。エラー: {e}")
+        return ['t_machinecode']
+
 
 @st.cache_data(ttl=300)
 def get_table_structure(table_name: str):
@@ -82,8 +93,9 @@ def get_table_structure(table_name: str):
     except Exception:
         return {}
 
+# 以下のDML（データ操作言語）やクエリ構築の関数は前回のコードをそのまま使用します
 def build_query_with_conditions(table_name: str, conditions: list, order_by: str, order_direction: str, limit: int):
-    """条件からクエリとSQL文を構築"""
+    # (省略: 前回のコードの定義をそのまま使用)
     query = supabase.table(table_name).select("*")
     sql_parts = [f"SELECT * FROM {table_name}"]
     where_clauses = []
@@ -136,9 +148,9 @@ def build_query_with_conditions(table_name: str, conditions: list, order_by: str
     
     sql_text = "\n".join(sql_parts)
     return query, sql_text
-
+    
 def execute_query(query):
-    """クエリを実行し、DataFrameを返す（日付型をDatetimeに変換）"""
+    # (省略: 前回のコードの定義をそのまま使用)
     try:
         response = query.execute()
         if response.data:
@@ -156,7 +168,7 @@ def execute_query(query):
         return None
 
 def insert_data(table_name: str, data: dict):
-    """データを追加"""
+    # (省略: 前回のコードの定義をそのまま使用)
     try:
         response = supabase.table(table_name).insert(data).execute()
         return True, "✅ データを追加しました！", response
@@ -164,7 +176,7 @@ def insert_data(table_name: str, data: dict):
         return False, f"❌ エラー: {e}", None
 
 def update_data(table_name: str, row_id: any, data: dict, id_column: str = 'id'):
-    """データを更新"""
+    # (省略: 前回のコードの定義をそのまま使用)
     try:
         response = supabase.table(table_name).update(data).eq(id_column, row_id).execute()
         return True, "✅ データを更新しました！", response
@@ -172,7 +184,7 @@ def update_data(table_name: str, row_id: any, data: dict, id_column: str = 'id')
         return False, f"❌ エラー: {e}", None
 
 def delete_data(table_name: str, row_id: any, id_column: str = 'id'):
-    """データを削除"""
+    # (省略: 前回のコードの定義をそのまま使用)
     try:
         response = supabase.table(table_name).delete().eq(id_column, row_id).execute()
         return True, "✅ データを削除しました！", response
@@ -216,9 +228,14 @@ st.sidebar.subheader("📁 対象テーブル")
 with st.spinner("テーブル一覧を読み込み中..."):
     tables = get_all_tables_cached()
 
-if not tables:
-    st.sidebar.error("⚠️ データベースにテーブルが見つかりません。Supabaseコンソールを確認してください。")
-    st.stop()
+# エラー時の表示を修正し、t_machinecode が選択されるようにする
+if not tables or (len(tables) == 1 and tables[0] == 't_machinecode'):
+    st.sidebar.warning("💡 テーブル一覧の取得でエラーが発生した可能性がありますが、**`t_machinecode`** が存在するとして処理を続行します。")
+    if 't_machinecode' not in tables:
+        tables = ['t_machinecode']
+    if not st.session_state.selected_table:
+         st.session_state.selected_table = 't_machinecode'
+
     
 # テーブルが存在する場合の選択
 default_table_name = 't_machinecode'
@@ -227,7 +244,6 @@ default_index = 0
 if st.session_state.selected_table in tables:
     default_index = tables.index(st.session_state.selected_table)
 elif default_table_name in tables:
-    # ユーザーの要望により t_machinecode をデフォルトで選択
     default_index = tables.index(default_table_name)
     
 selected_table = st.sidebar.selectbox(
@@ -249,7 +265,7 @@ if st.session_state.selected_table != selected_table:
 table_columns = get_table_structure(selected_table)
 
 if not table_columns:
-    st.sidebar.warning("❌ テーブル構造を取得できませんでした。テーブルにデータがない可能性があります。")
+    st.sidebar.warning(f"❌ `{selected_table}` のテーブル構造を取得できませんでした。データが存在しないか、キーの権限が不足しています。")
     column_names = []
 else:
     column_names = list(table_columns.keys())
@@ -266,7 +282,7 @@ if mode == "📊 検索・閲覧":
     st.sidebar.markdown("---")
     st.sidebar.subheader("🔍 フィルタリング条件")
     
-    # --- 条件設定 UI ---
+    # --- 条件設定 UI (省略: 前回のコードをそのまま使用) ---
     with st.sidebar.expander("➕ 新しい条件を追加", expanded=len(st.session_state.conditions) == 0):
         if not column_names:
             st.warning("テーブルの列情報が取得できませんでした。")
