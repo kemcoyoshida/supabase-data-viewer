@@ -223,31 +223,49 @@ st.markdown("""
 # データベース関数
 # ========================================
 
-# テーブルの存在確認をキャッシュし、パフォーマンスを向上させる
 @st.cache_data(ttl=3600) # 1時間に1回のみテーブルリストを更新
 def get_available_tables():
     """
-    Supabaseのテーブル一覧を取得します。
-    Supabase Python SDKではテーブル一覧取得が困難なため、
-    PostgreSQLのメタデータ取得RPC/Viewが存在しない場合、テーブル名をここにリストします。
-    新しいテーブルを追加した場合、手動で追記してください。
+    Supabaseのテーブル一覧を動的に取得します。
+    pg_catalog.pg_tablesをクエリし、publicスキーマ内の非システムテーブルを返します。
+    RLSなどの設定により失敗する可能性があるため、その場合はフォールバックリストを使用します。
     """
     try:
-        # 既存のテーブル名リスト。新しいテーブルを追加した場合、ここに追加してください。
-        known_tables = ['t_machinecode', 'T_Expense', 'T_AcceptOrder', 'T_NewTable'] # 例として他のテーブル名を追加
-        existing = []
-        for table in known_tables:
-            try:
-                # 存在確認のため1レコード取得を試みる
-                supabase.table(table).select("*").limit(1).execute()
-                existing.append(table)
-            except:
-                # 存在しないテーブル名の場合はスキップ
-                pass
-        return existing
-    except:
-        # Supabase接続自体に問題がある場合
-        return []
+        # 修正点: pg_catalog.pg_tablesをクエリしてpublicスキーマのテーブル名を動的に取得
+        response = (
+            supabase.from_("pg_catalog.pg_tables")
+            .select("tablename")
+            .eq("schemaname", "public")
+            # システムテーブルやビューを除外
+            .not_ilike("tablename", 'pg_%') 
+            .not_ilike("tablename", 'sql_%')
+            .not_ilike("tablename", 'storage%') 
+            .not_ilike("tablename", 'supabase%') 
+            .execute()
+        )
+        
+        if response.data:
+            # table_nameはpg_tablesの列名
+            tables = [item['tablename'] for item in response.data if item.get('tablename')]
+            return sorted(tables)
+
+    except Exception:
+        # 動的な取得が失敗した場合（例: RLSによる制限）は、警告を表示しフォールバック
+        st.warning("⚠️ テーブル一覧の動的取得に失敗しました。ハードコードされたリストで確認します。SupabaseのDB設定を確認してください。") 
+        pass
+
+    # フォールバック: ハードコードされたテーブル名が存在するかをチェック
+    fall_back_tables = ['t_machinecode', 'T_Expense', 'T_AcceptOrder', 'T_NewTable'] 
+    existing = []
+    for table in fall_back_tables:
+        try:
+            # 存在確認のため1レコード取得を試みる
+            supabase.table(table).select("*").limit(1).execute()
+            existing.append(table)
+        except:
+            pass
+    
+    return sorted(existing)
 
 @st.cache_data(ttl=300) # 5分間データをキャッシュ
 def get_table_columns(table_name):
@@ -267,7 +285,6 @@ def get_table_data(table_name, limit=1000):
             return pd.DataFrame(response.data)
         return pd.DataFrame()
     except Exception as e:
-        #st.error(f"テーブルデータ取得エラー: {e}")
         return pd.DataFrame()
 
 @st.cache_data(ttl=3600) # 1時間に1回のみカウントを更新
@@ -342,7 +359,6 @@ with st.sidebar:
     st.markdown("# 📊 データベース管理")
     st.markdown("---")
     
-    # セッションステートからページ遷移を読み取る（ダッシュボードのボタンからの遷移用）
     if 'goto_page' in st.session_state:
         initial_page_index = ["🏠 ダッシュボード", "📋 データ管理", "🔍 検索", "📊 集計分析", "🔧 SQLビルダー"].index(st.session_state.goto_page)
         del st.session_state.goto_page
@@ -363,7 +379,6 @@ with st.sidebar:
     
     # テーブル選択のロジック
     if available_tables:
-        # セッションステートにテーブル選択を保存し、ページ遷移しても維持
         if 'selected_table' not in st.session_state or st.session_state.selected_table not in available_tables:
              st.session_state.selected_table = available_tables[0]
              
@@ -378,7 +393,7 @@ with st.sidebar:
         st.session_state.selected_table = selected_table
     else:
         selected_table = None
-        st.warning("利用可能なテーブルがありません。`get_available_tables`に関数内にテーブル名を追加してください。")
+        st.warning("利用可能なテーブルがありません。SupabaseのRLS設定を確認するか、`get_available_tables`関数にテーブル名を追加してください。")
         
     st.markdown("---")
     if st.button("🔄 テーブルリストを更新"):
@@ -391,8 +406,9 @@ with st.sidebar:
 # 🏠 ダッシュボード
 # ========================================
 if page == "🏠 ダッシュボード":
-    st.markdown('<div class="page-title">📊 ダッシュボード</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-subtitle">データベース概要</div>', unsafe_allow_html=True)
+    # 修正点1: タイトルを冗長にならないように修正
+    st.markdown('<div class="page-title">🏠 ホーム</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">データベースの全体概要</div>', unsafe_allow_html=True)
     
     if available_tables:
         # サマリーカード
@@ -436,17 +452,17 @@ if page == "🏠 ダッシュボード":
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    # ボタンの配置とロジック（セッションステートでページ遷移を制御）
+                    # ボタンの配置とロジック
                     col_a, col_b = st.columns(2)
                     with col_a:
                         if st.button("📋 データ表示", key=f"data_{table}", use_container_width=True):
                             st.session_state.goto_page = "📋 データ管理"
-                            st.session_state.selected_table = table # 遷移先で選択するテーブルを保存
+                            st.session_state.selected_table = table 
                             st.rerun()
                     with col_b:
                         if st.button("🔍 検索", key=f"search_{table}", use_container_width=True):
                             st.session_state.goto_page = "🔍 検索"
-                            st.session_state.selected_table = table # 遷移先で選択するテーブルを保存
+                            st.session_state.selected_table = table 
                             st.rerun()
         
         with col2:
@@ -491,7 +507,7 @@ if page == "🏠 ダッシュボード":
             <div class="card-header">
                 <span>👋 ようこそ</span>
             </div>
-            <p style="color:#718096;margin:0;">Supabaseのデータベースにテーブルを作成し、`get_available_tables`関数にテーブル名を追記してください。</p>
+            <p style="color:#718096;margin:0;">Supabaseのデータベースにテーブルを作成し、RLS設定を確認してください。</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -722,7 +738,6 @@ elif page == "📋 データ管理":
 # 🔍 検索
 # ========================================
 elif page == "🔍 検索":
-    # 修正点1: unsafe_handle_html -> unsafe_allow_html に修正
     st.markdown('<div class="page-title">🔍 検索</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-subtitle">キーワードや条件でレコードを検索</div>', unsafe_allow_html=True)
     
@@ -744,26 +759,19 @@ elif page == "🔍 検索":
                 # 全てのカラムに対してILike検索を実行
                 with st.spinner(f"テーブル '{selected_table}' の全 {len(columns)} カラムを検索中..."):
                     for col in columns:
-                        # ID、タイムスタンプ系のカラムは検索から除外することが望ましいが、ここでは提供されたロジックに従い実行
                         try:
-                            # ilikeで部分一致、大文字小文字を区別しない検索
                             response = supabase.table(selected_table).select("*").ilike(col, f"%{search_text}%").limit(100).execute()
                             if response.data:
                                 all_results.extend(response.data)
                         except:
-                            # ilikeに対応しない型のカラム（例: 数字型）でエラーが発生した場合、スキップ
                             continue
                 
                 if all_results:
-                    # 修正点2: 重複排除をDataFrameで行うことで、IDに基づいて確実に一意なレコードを抽出
                     df = pd.DataFrame(all_results)
                     
-                    # 'id'列があればそれを使って重複排除。なければ全ての列で排除。
                     if 'id' in df.columns:
-                        # IDが重複しているレコードを最初に見つかったもので残す
                         df_unique = df.drop_duplicates(subset=['id'], keep='first')
                     else:
-                        # IDがない場合は、全列の組み合わせで重複排除
                         df_unique = df.drop_duplicates(keep='first')
                         
                     st.success(f"✅ {len(df_unique):,}件見つかりました")
@@ -803,17 +811,14 @@ elif page == "🔍 検索":
         if st.session_state.search_conditions:
             st.markdown("**検索条件:**")
             
-            # 条件のリスト表示と削除ボタン
             conditions_to_keep = []
             for idx, cond in enumerate(st.session_state.search_conditions):
                 col1, col2 = st.columns([9, 1])
                 with col1:
                     st.info(f"{cond['column']} が {cond['operator']} 「{cond['value']}」")
-                    conditions_to_keep.append(cond) # 削除ボタンが押されなかった条件を保持
+                    conditions_to_keep.append(cond) 
                 with col2:
-                    # Streamlitのボタンクリックは一度のリランでしか保持されないため、ここでは削除ロジックを簡略化
                     if st.button("❌", key=f"del_{idx}"):
-                        # 削除されたインデックスを特定
                         st.session_state.search_conditions.pop(idx)
                         st.rerun()
                         
@@ -824,7 +829,6 @@ elif page == "🔍 検索":
                 for cond in st.session_state.search_conditions:
                     col, op, val = cond['column'], cond['operator'], cond['value']
                     
-                    # 数値として扱えるかチェック
                     is_numeric = False
                     try:
                         float(val)
@@ -837,14 +841,12 @@ elif page == "🔍 検索":
                     elif op == "含む":
                         query = query.ilike(col, f"%{val}%")
                     elif op == "より大きい":
-                        # 数値型として比較
                         if is_numeric:
                              query = query.gt(col, float(val))
                         else:
                              st.warning(f"フィールド '{col}' の演算子 '{op}' は、数値型の値でのみ機能します。")
                              st.stop()
                     elif op == "より小さい":
-                         # 数値型として比較
                         if is_numeric:
                              query = query.lt(col, float(val))
                         else:
@@ -921,7 +923,7 @@ elif page == "📊 集計分析":
             st.warning("⚠️ 計算するフィールドを選択してください")
         else:
             with st.spinner("集計中..."):
-                df = get_table_data(selected_table, 10000) # 念のため最大10000件取得
+                df = get_table_data(selected_table, 10000) 
                 
                 if df is not None and len(df) > 0:
                     try:
@@ -929,7 +931,6 @@ elif page == "📊 集計分析":
                             result = df.groupby(group_cols).size().reset_index(name='件数')
                             result_col_name = '件数'
                         else:
-                            # 計算対象の列を数値に変換 (エラーはNaNとして扱う)
                             df[calc_col] = pd.to_numeric(df[calc_col], errors='coerce')
                             
                             if calc_type == "合計":
@@ -966,7 +967,6 @@ elif page == "📊 集計分析":
                             st.markdown("### 📈 グラフ表示")
                             
                             try:
-                                # グラフ用のデータセットを作成 (インデックスをグループの最初の列に設定)
                                 chart_data = result.set_index(group_cols[0])[result_col_name]
                                 
                                 col1, col2 = st.columns(2)
@@ -1012,7 +1012,6 @@ elif page == "🔧 SQLビルダー":
     with col1:
         table_options = available_tables
         
-        # 選択中のテーブルが存在しない場合は最初のテーブルを選択
         initial_index = table_options.index(config['from_table']) if config['from_table'] in table_options else (0 if table_options else -1)
         
         if table_options:
@@ -1057,7 +1056,6 @@ elif page == "🔧 SQLビルダー":
         if config['select_fields']:
             st.markdown("**表示する項目:**")
             
-            new_select_fields = []
             for idx, field in enumerate(config['select_fields']):
                 col1, col2 = st.columns([9, 1])
                 with col1:
@@ -1065,13 +1063,10 @@ elif page == "🔧 SQLビルダー":
                     if field.get('alias'):
                         display += f" → 「{field['alias']}」として表示"
                     st.success(display)
-                    new_select_fields.append(field)
                 with col2:
                     if st.button("❌", key=f"del_select_{idx}"):
                         config['select_fields'].pop(idx)
                         st.rerun()
-            
-            # config['select_fields'] = new_select_fields # 削除ロジックをボタンに委譲
 
     st.markdown("---")
 
@@ -1085,7 +1080,6 @@ elif page == "🔧 SQLビルダー":
         with col2:
             join_table = st.selectbox("結合するテーブル", [""] + available_tables, key="join_table_name")
         with col3:
-            # 結合条件の例を表示
             on_condition = st.text_input("結合条件 (ON)", key="join_on_condition", placeholder="例: T_Expense.ID = T_Detail.ExpenseID")
         with col4:
             st.write("")
@@ -1116,12 +1110,10 @@ elif page == "🔧 SQLビルダー":
     st.markdown("### ステップ4: 絞り込み条件（WHERE）（省略可）")
     
     with st.expander("📍 絞り込み条件を指定する", expanded=len(config['where_conditions']) > 0):
-        # 結合テーブルを含めた利用可能なテーブルリスト
         all_tables = [config['from_table']] + [j['table'] for j in config['joins']]
         
         col1, col2, col3, col4, col5 = st.columns([2, 3, 2, 3, 1])
         with col1:
-            # どのテーブルのフィールドかを選択できるようにする
             cond_table = st.selectbox("テーブル", all_tables, key="cond_table")
         with col2:
             cond_field_options = get_table_columns(cond_table)
@@ -1129,7 +1121,6 @@ elif page == "🔧 SQLビルダー":
         with col3:
             cond_op = st.selectbox("演算子", ["=", "LIKE", ">=", "<=", "IS NULL", "IS NOT NULL"], key="cond_op")
         with col4:
-            # IS NULL/IS NOT NULL の場合は値を不要にする
             disabled_val = cond_op in ["IS NULL", "IS NOT NULL"]
             cond_value = st.text_input("値", key="cond_value", disabled=disabled_val, placeholder="例: 100 または '未完了'")
         with col5:
@@ -1137,7 +1128,6 @@ elif page == "🔧 SQLビルダー":
             st.write("")
             if st.button("➕ 条件を追加", key="add_where"):
                 if cond_field and (cond_value or disabled_val):
-                    # IS NULL/IS NOT NULL の場合は値をNoneにする
                     value_to_add = None if disabled_val else cond_value
                     config['where_conditions'].append({
                         'table': cond_table,
@@ -1203,23 +1193,8 @@ elif page == "🔧 SQLビルダー":
     
     if st.button("▶️ クエリを実行", type="primary", use_container_width=True):
         
-        # Supabase Python SDKの簡易的なクエリ実行は、基本的にFROM句で指定されたテーブルに対する操作に限定される
-        # JOINや複雑なWHERE句を含む生のSQLクエリは、SupabaseのRPC機能を使って実行する必要があるが、
-        # ここでは簡易的にFROM句のクエリとして実行を試みる。
-        
-        # 簡易実行のため、SQL文字列からテーブル名、WHERE句、LIMITなどを抽出する (非常に危険で推奨されないが、Streamlitの制限上)
         try:
-            # 実行結果は表示するが、生のSQL実行はRPC/PostgRESTのRaw SQL機能がないため、エラーになる可能性が高い
-            
             st.warning("⚠️ Streamlitアプリ内でのJOINを含む複雑なSQLクエリの実行は、セキュリティ上の制約により通常サポートされていません。FROM句のテーブルに対する簡単なクエリとして解釈して実行を試みます。")
-            
-            # FROM句のテーブルデータ全体を取得し、Python側でフィルタリングする方が現実的
-            # ただし、ここでは元の意図通り、生成されたSQLをそのまま表示します。
-            
-            # 実行ロジックは実装しない（SQLビルダーの意図はクエリ生成までと判断）
-            # もし実行したい場合は、PostgRESTのAPIの制限に準拠したクエリを手動で構築してください。
-            
-            # 代替案: 実行せず、成功メッセージのみを表示
             st.success("✅ SQLが生成されました！このSQLをSupabaseのSQL Editorで実行してください。")
             
         except Exception as e:
