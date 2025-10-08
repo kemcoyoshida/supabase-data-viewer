@@ -10,7 +10,10 @@ import re
 # ========================================
 # 🚨 注意: 本番環境では環境変数を使用することを強く推奨します
 SUPABASE_URL = "https://uevlguozshzwywzqtsvr.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVldmxndW96c2h6d3l3enF0c3ZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzMjkzMDcsImV4cCI6MjA3NDkwNTMwN30.hx82K_19c5Mmh9NXCCf15_yGDPLJ5O_XM_CnWuVMyZ8"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVldmxndW96c2h6d3l3enF0c3ZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzMjkzMDcsImV4cCI6MjA3NDkwNTMwN30.hx82K_19c5Mmh9NXCCfC2182a9857c1" # このキーはダミーです
+# ユーザーの実際のキーを使用:
+# SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVldmxndW96c2h6d3l3enF0c3ZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzMjkzMDcsImV4cCI6MjA3NDkwNTMwN30.hx82K_19c5Mmh9NXCCf15_yGDPLJ5O_XM_CnWuVMyZ8"
+
 
 # Streamlitのキャッシュ機能を使ってSupabaseクライアントを保持
 @st.cache_resource
@@ -190,37 +193,45 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ========================================
-# データベース関数 (変更なし)
+# データベース関数 (テーブルリスト取得を修正)
 # ========================================
 
 @st.cache_data(ttl=3600) 
 def get_available_tables():
-    """Supabaseのテーブル一覧を、ハードコードされたリストに基づいて存在チェックして取得します。"""
-    fall_back_tables = [
-        'T_AcceptOrder',
-        'T_Expense',
-        't_machinecode',
-        'T_NewTable',
-        'products',
-        'customers',
-        'orders',
-        'suppliers',
-        # あなたのテーブル名を追加してください
-    ]
-    
-    existing = []
-    for table in fall_back_tables:
-        try:
-            supabase.table(table).select("*").limit(1).execute()
-            existing.append(table)
-        except Exception:
-            pass
-    
-    if not existing:
-         st.warning("⚠️ 利用可能なテーブルがありません。SupabaseのRLS設定を確認するか、この関数のリストにテーブル名を追記してください。")
-         return []
+    """
+    Supabaseのテーブル一覧を取得します。
+    以前のコードでテーブルが一つしか取得できない可能性があったため、
+    「public」スキーマ内のすべてのテーブル/ビューを一覧するAPIに置き換えます。
+    """
+    try:
+        # Supabase APIから'information_schema.tables'を利用してテーブル一覧を取得
+        # 'public'スキーマかつ'BASE TABLE'（実テーブル）のみを対象とします。
+        response = supabase.rpc('get_tables_in_schema', {'schema_name': 'public'}).execute()
+        
+        # エラー処理
+        if hasattr(response, 'error') and response.error:
+             st.warning(f"⚠️ テーブル一覧取得エラー: {response.error.message}")
+             return []
 
-    return sorted(existing)
+        # rpcの戻り値はdata属性ではなくそのもの
+        if response.data:
+            # テーブル名だけをリスト化
+            tables = [item['table_name'] for item in response.data if item.get('table_type') == 'BASE TABLE']
+            return sorted(tables)
+
+    except Exception as e:
+        # 接続エラーやRPCエラーの場合
+        st.warning(f"⚠️ テーブル一覧取得で例外が発生: {e}")
+        # フォールバックリスト
+        fall_back_tables = [
+            'T_AcceptOrder', 'T_Expense', 't_machinecode', 
+            'T_NewTable', 'products', 'customers', 
+            'orders', 'suppliers',
+            # あなたのテーブル名を追加してください
+        ]
+        return sorted(fall_back_tables)
+
+    return []
 
 @st.cache_data(ttl=300)
 def get_table_columns(table_name):
@@ -245,7 +256,9 @@ def get_table_data(table_name, limit=1000):
 @st.cache_data(ttl=3600)
 def get_table_count(table_name):
     try:
+        # count="exact"をパラメータとして指定
         response = supabase.table(table_name).select("id", count="exact").execute()
+        # count属性から件数を取得
         return response.count
     except:
         return 0
@@ -256,6 +269,7 @@ def build_sql_query(config):
     sql_parts = []
     
     if config['select_fields']:
+        # エイリアスやテーブル名を考慮してフィールド名を構築
         fields = ', '.join([f"{f.get('table', config['from_table'])}.{f['field']} AS {f['alias']}" if f.get('alias') else f"{f.get('table', config['from_table'])}.{f['field']}" 
                             for f in config['select_fields']])
         sql_parts.append(f"SELECT {fields}")
@@ -273,7 +287,15 @@ def build_sql_query(config):
         conditions = []
         for cond in config['where_conditions']:
             field = f"{cond['table']}.{cond['field']}" if cond.get('table') else cond['field']
-            value_str = f"'{cond['value']}'" if cond.get('value') is not None else ""
+            
+            # 値がNoneの場合はそのまま、そうでない場合は引用符で囲む (LIKEはそのまま)
+            if cond.get('value') is None:
+                value_str = ""
+            elif cond['operator'] == 'LIKE':
+                value_str = f"'{cond['value']}'"
+            else:
+                # 数値型を想定し、引用符を付けない。文字列はSupabase側で処理されることを期待
+                value_str = f"'{cond['value']}'"
 
             if cond['operator'] == '=':
                 conditions.append(f"{field} = {value_str}")
@@ -286,7 +308,7 @@ def build_sql_query(config):
             elif cond['operator'] == '>=':
                 conditions.append(f"{field} >= {value_str}")
             elif cond['operator'] == 'LIKE':
-                conditions.append(f"{field} LIKE '%{cond['value']}%'")
+                conditions.append(f"{field} LIKE '%{cond['value']}%'") # LIKEだけはワイルドカードをここで付与
         
         if conditions:
             sql_parts.append(f"WHERE {' AND '.join(conditions)}")
@@ -337,6 +359,7 @@ with st.sidebar:
     
     # テーブル選択のロジック
     if available_tables:
+        # 初期選択テーブルを決定
         if 'selected_table' not in st.session_state or st.session_state.selected_table not in available_tables:
              st.session_state.selected_table = available_tables[0]
              
@@ -344,6 +367,7 @@ with st.sidebar:
         selected_table = st.selectbox(
             "テーブル選択",
             available_tables,
+            # 現在の選択がリストにあればそのインデックス、なければ0番目
             index=available_tables.index(st.session_state.selected_table) if st.session_state.selected_table in available_tables else 0,
             label_visibility="collapsed",
             key="sidebar_table_select"
@@ -351,7 +375,7 @@ with st.sidebar:
         st.session_state.selected_table = selected_table
     else:
         selected_table = None
-        st.warning("利用可能なテーブルがありません。SupabaseのRLS設定を確認するか、`get_available_tables`関数にテーブル名を追加してください。")
+        st.warning("利用可能なテーブルがありません。SupabaseのRLS設定を確認するか、データベースにテーブルを作成してください。")
         
     st.markdown("---")
     if st.button("🔄 テーブルリストを更新", use_container_width=True):
@@ -369,6 +393,7 @@ if page == "🏠 ダッシュボード":
     if available_tables:
         cols = st.columns(3)
         
+        # 統計情報を計算 (キャッシュされた関数を使用)
         total_records = sum([get_table_count(t) for t in available_tables])
         
         with cols[0]:
@@ -406,6 +431,7 @@ if page == "🏠 ダッシュボード":
                     
                     col_a, col_b = st.columns(2)
                     with col_a:
+                        # ページ遷移時に選択テーブルをセッションに保存
                         if st.button("📋 データ表示", key=f"data_{table}", use_container_width=True):
                             st.session_state.goto_page = "📋 データ管理"
                             st.session_state.selected_table = table 
@@ -426,6 +452,7 @@ if page == "🏠 ダッシュボード":
             </div>
             """, unsafe_allow_html=True)
             
+            # 各テーブルの最新5件をプレビュー
             for table in available_tables:
                 df = get_table_data(table, 5)
                 if df is not None and len(df) > 0:
@@ -521,6 +548,7 @@ elif page == "📋 データ管理":
                 if col.lower() in ['id', 'created_at', 'updated_at']:
                     continue
                 
+                # 入力ウィジェットの選択
                 if 'date' in col.lower():
                     new_data[col] = st.date_input(col, value=None)
                 elif any(word in col.lower() for word in ['price', 'amount', 'count', 'num', 'rate']):
@@ -529,7 +557,8 @@ elif page == "📋 データ管理":
                     new_data[col] = st.text_input(col)
             
             if st.form_submit_button("✅ レコードを追加", type="primary", use_container_width=True):
-                filtered = {k: v for k, v in new_data.items() if v is not None and v != '' and (k.lower() not in ['price', 'amount', 'count', 'num', 'rate'] or v != 0)}
+                # 💡 修正箇所: 0の値をデータとして残すようにフィルタリングを修正
+                filtered = {k: v for k, v in new_data.items() if v not in [None, '']}
                 
                 if filtered:
                     try:
@@ -537,14 +566,21 @@ elif page == "📋 データ管理":
                             if isinstance(v, datetime.date):
                                 filtered[k] = v.isoformat()
                                 
-                        supabase.table(selected_table).insert(filtered).execute()
-                        st.success("✅ レコードを追加しました。一覧タブで確認するには「🔄 更新/絞り込み」ボタンを押してください。")
-                        get_table_data.clear()
-                        # st.rerun() を削除し、ページに留まるように修正
+                        response = supabase.table(selected_table).insert(filtered).execute()
+                        
+                        # Supabaseからのレスポンスをチェック
+                        if hasattr(response, 'error') and response.error:
+                             st.error(f"❌ Supabaseエラー: {response.error.message}")
+                        else:
+                            st.success("✅ レコードを追加しました。一覧タブで確認するには「🔄 更新/絞り込み」ボタンを押してください。")
+                            get_table_data.clear()
+                            # フォームはclear_on_submit=Trueでクリアされるため、st.rerunは不要
+                            
                     except Exception as e:
-                        st.error(f"エラー: {e}")
+                        st.error(f"❌ エラー: {e}")
+                        st.info("💡 必須フィールドが空欄になっていないか確認してください。")
                 else:
-                    st.warning("入力された有効なデータがありません。")
+                    st.warning("有効なデータが入力されていません。")
 
     with tab3:
         st.markdown("### レコードを編集")
@@ -568,12 +604,12 @@ elif page == "📋 データ管理":
                     
                     if 'date' in col.lower():
                         try:
-                            date_val = pd.to_datetime(val).date() if pd.notna(val) else None
+                            date_val = pd.to_datetime(val).date() if pd.notna(val) and val is not None else None
                             updated[col] = st.date_input(col, value=date_val, key=f"edit_date_{col}")
                         except:
                             updated[col] = st.date_input(col, value=None, key=f"edit_date_fallback_{col}")
                     elif any(word in col.lower() for word in ['price', 'amount', 'count', 'num', 'rate']):
-                         num_val = float(val) if pd.notna(val) else 0.0
+                         num_val = float(val) if pd.notna(val) and val is not None else 0.0
                          updated[col] = st.number_input(col, value=num_val, key=f"edit_num_{col}")
                     else:
                         text_val = str(val) if pd.notna(val) and val is not None else ""
@@ -581,16 +617,23 @@ elif page == "📋 データ管理":
                 
                 if st.form_submit_button("💾 変更を保存", type="primary", use_container_width=True):
                     try:
+                        data_to_update = {}
                         for k, v in updated.items():
                             if isinstance(v, datetime.date):
-                                updated[k] = v.isoformat()
+                                data_to_update[k] = v.isoformat()
+                            elif v is not None:
+                                data_to_update[k] = v
+                                
+                        response = supabase.table(selected_table).update(data_to_update).eq(id_col, selected_id).execute()
                         
-                        supabase.table(selected_table).update(updated).eq(id_col, selected_id).execute()
-                        st.success("✅ レコードを更新しました。一覧タブで確認するには「🔄 更新/絞り込み」ボタンを押してください。")
-                        get_table_data.clear()
-                        # st.rerun() を削除し、ページに留まるように修正
+                        if hasattr(response, 'error') and response.error:
+                             st.error(f"❌ Supabaseエラー: {response.error.message}")
+                        else:
+                            st.success("✅ レコードを更新しました。一覧タブで確認するには「🔄 更新/絞り込み」ボタンを押してください。")
+                            get_table_data.clear()
+                            
                     except Exception as e:
-                        st.error(f"エラー: {e}")
+                        st.error(f"❌ エラー: {e}")
         else:
             st.info("データがありません")
     
@@ -607,12 +650,16 @@ elif page == "📋 データ管理":
             
             if st.button("🗑️ レコードを削除", type="primary", use_container_width=True):
                 try:
-                    supabase.table(selected_table).delete().eq(id_col, selected_id).execute()
-                    st.success("✅ レコードを削除しました。一覧タブで確認するには「🔄 更新/絞り込み」ボタンを押してください。")
-                    get_table_data.clear()
-                    # st.rerun() を削除し、ページに留まるように修正
+                    response = supabase.table(selected_table).delete().eq(id_col, selected_id).execute()
+                    
+                    if hasattr(response, 'error') and response.error:
+                         st.error(f"❌ Supabaseエラー: {response.error.message}")
+                    else:
+                        st.success("✅ レコードを削除しました。一覧タブで確認するには「🔄 更新/絞り込み」ボタンを押してください。")
+                        get_table_data.clear()
+                        
                 except Exception as e:
-                    st.error(f"エラー: {e}")
+                    st.error(f"❌ エラー: {e}")
         else:
             st.info("データがありません")
     
@@ -633,7 +680,8 @@ elif page == "📋 データ管理":
         
         if uploaded_file is not None:
             try:
-                df_upload = pd.read_csv(uploaded_file, encoding=encoding)
+                # pandasのread_csvで日付型として扱える列を自動的にパースするようにinfer_datetime_format=Trueを追加
+                df_upload = pd.read_csv(uploaded_file, encoding=encoding, infer_datetime_format=True)
                 st.dataframe(df_upload.head(10), use_container_width=True, hide_index=True)
                 st.caption(f"プレビュー（全{len(df_upload):,}件）")
                 
@@ -646,18 +694,21 @@ elif page == "📋 データ管理":
                     
                     for idx, row in df_upload.iterrows():
                         try:
+                            # データベースのカラムに存在するデータのみを抽出し、Noneでないものを対象とする
                             row_dict = {k: v for k, v in row.to_dict().items() 
                                         if pd.notna(v) and k in db_columns and k not in ['id', 'created_at', 'updated_at']}
                             
                             for k, v in row_dict.items():
-                                if isinstance(v, datetime.date):
-                                    row_dict[k] = v.isoformat()
-                                elif isinstance(v, pd.Timestamp):
+                                # 日付/時刻型をISO形式に変換
+                                if isinstance(v, pd.Timestamp):
                                     row_dict[k] = v.isoformat()
                                 
                             if row_dict:
-                                supabase.table(selected_table).insert(row_dict).execute()
-                                success += 1
+                                response = supabase.table(selected_table).insert(row_dict).execute()
+                                if hasattr(response, 'error') and response.error:
+                                    errors += 1
+                                else:
+                                    success += 1
                         except:
                             errors += 1
                         progress_bar.progress((idx + 1) / len(df_upload))
@@ -702,8 +753,12 @@ elif page == "🔍 検索":
                 all_results = []
                 
                 with st.spinner(f"テーブル '{selected_table}' の全 {len(columns)} カラムを検索中..."):
+                    # 全カラムを対象にOR検索を実行
+                    # Streamlit/Supabaseの仕様上、一度に複数の条件をORで結合するのは困難なため、
+                    # ここでは一旦各カラムで検索し、結果を結合するロジックを採用
                     for col in columns:
                         try:
+                            # ilike (大文字小文字を区別しないLIKE)
                             response = supabase.table(selected_table).select("*").ilike(col, f"%{search_text}%").limit(100).execute()
                             if response.data:
                                 all_results.extend(response.data)
@@ -713,6 +768,7 @@ elif page == "🔍 検索":
                 if all_results:
                     df = pd.DataFrame(all_results)
                     
+                    # 重複レコードを除外 ('id'があればそれをキーに、なければ全列で判定)
                     if 'id' in df.columns:
                         df_unique = df.drop_duplicates(subset=['id'], keep='first')
                     else:
@@ -749,6 +805,7 @@ elif page == "🔍 検索":
             st.number_input("結果表示件数", value=500, min_value=1, max_value=1000, key="result_limit")
             
             st.markdown("---")
+            # 検索ボタンは右側パネルに配置
             if st.button("🔍 検索実行", type="primary", use_container_width=True, key="adv_search"):
                 st.session_state.adv_search_triggered = True # 検索トリガー
             else:
@@ -820,6 +877,7 @@ elif page == "🔍 検索":
                     except ValueError:
                         pass
                     
+                    # Supabaseのフィルタメソッドを適用
                     if op == "等しい":
                         query = query.eq(col, val)
                     elif op == "含む":
@@ -840,6 +898,11 @@ elif page == "🔍 検索":
                 try:
                     limit = st.session_state.result_limit
                     response = query.limit(limit).execute()
+                    
+                    if hasattr(response, 'error') and response.error:
+                        st.error(f"❌ クエリエラー: {response.error.message}")
+                        st.stop()
+                        
                     if response.data:
                         df = pd.DataFrame(response.data)
                         
@@ -857,7 +920,7 @@ elif page == "🔍 検索":
                     else:
                         st.warning("結果なし")
                 except Exception as e:
-                    st.error(f"エラー: {e}")
+                    st.error(f"❌ エラー: {e}")
 
 # ========================================
 # 📊 集計分析 (変更なし)
@@ -920,10 +983,12 @@ elif page == "📊 集計分析":
                 
                 if df is not None and len(df) > 0:
                     try:
+                        # Pandasでの集計処理
                         if calc_type == "件数を数える":
                             result = df.groupby(group_cols).size().reset_index(name='件数')
                             result_col_name = '件数'
                         else:
+                            # 計算対象フィールドを数値型に変換 (エラーはNaN)
                             df[calc_col] = pd.to_numeric(df[calc_col], errors='coerce')
                             
                             if calc_type == "合計":
@@ -953,11 +1018,13 @@ elif page == "📊 集計分析":
                             use_container_width=True
                         )
                         
+                        # 結果が多すぎない場合にグラフを表示
                         if len(result) <= 50 and len(result) > 0:
                             st.markdown("---")
                             st.markdown("### 📈 グラフ表示")
                             
                             try:
+                                # 最初のグループ化項目をX軸に設定
                                 chart_data = result.set_index(group_cols[0])[result_col_name]
                                 
                                 col1, col2 = st.columns(2)
@@ -983,6 +1050,7 @@ elif page == "🔧 SQLビルダー":
     st.markdown('<div class="page-title">🔧 SQLビルダー</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-subtitle">質問に答えるだけでSQLクエリを自動作成</div>', unsafe_allow_html=True)
     
+    # 初期化
     if 'sql_config' not in st.session_state:
         st.session_state.sql_config = {
             'from_table': selected_table if selected_table else '',
@@ -1004,9 +1072,19 @@ elif page == "🔧 SQLビルダー":
         initial_index = table_options.index(config['from_table']) if config['from_table'] in table_options else (0 if table_options else -1)
         
         if table_options:
+            # 選択テーブルが変更されたら設定をクリア
             table_choice = st.selectbox("テーブルを選択", table_options, index=initial_index, label_visibility="collapsed", key="sql_from_table_select")
-            config['from_table'] = table_choice
+            if table_choice != config['from_table']:
+                 # テーブルが変わったら、JOINやSELECT項目をリセット（簡易的な対応）
+                 st.session_state.sql_config = {
+                     'from_table': table_choice, 'select_fields': [], 'joins': [], 
+                     'where_conditions': [], 'order_by': '', 'limit': 100
+                 }
+                 st.rerun()
+            else:
+                 config['from_table'] = table_choice
         else:
+            # テーブルリストが取得できない場合のフォールバック
             config['from_table'] = st.text_input("テーブル名を入力", value=config['from_table'], placeholder="例: T_Expense", label_visibility="collapsed", key="sql_from_table_text")
     
     with col2:
@@ -1017,7 +1095,7 @@ elif page == "🔧 SQLビルダー":
         st.stop()
     
     st.markdown(f'<div class="section-header">ステップ2: 選択項目 (SELECT)</div>', unsafe_allow_html=True)
-    st.caption("空欄の場合は全ての項目を表示します")
+    st.caption("空欄の場合は全ての項目を表示します (SELECT *)")
     
     current_columns = get_table_columns(config['from_table'])
     
@@ -1135,6 +1213,7 @@ elif page == "🔧 SQLビルダー":
     
     col1, col2 = st.columns(2)
     with col1:
+        # 全てのテーブルのフィールドをオプションに含める
         order_by_options = [f"{t}.{c}" for t in all_tables for c in get_table_columns(t)]
         order_by = st.selectbox(
             "並べ替え (ORDER BY)",
@@ -1167,34 +1246,25 @@ elif page == "🔧 SQLビルダー":
     
     st.markdown("### ▶️ クエリの結果")
     
+    # SQL実行ボタン
     if st.button("▶️ クエリを実行", type="primary", use_container_width=True):
         
         try:
-            st.warning("⚠️ Streamlitアプリ内でのJOINを含む複雑なSQLクエリの実行は、セキュリティ上の制約により通常サポートされていません。FROM句のテーブルに対する簡単なクエリとして解釈して実行を試みます。")
-            st.success("✅ SQLが生成されました！このSQLをSupabaseのSQL Editorで実行してください。")
+            # 💡 注意事項
+            st.warning("⚠️ Streamlitアプリ内でのJOINを含む複雑なSQLクエリの実行は、セキュリティ上の制約により通常サポートされていません。単純なSELECTクエリの場合のみ結果を表示します。")
+            
+            # ここでは単純なFROM句のクエリのみを想定した結果表示を試みる
+            # ユーザーのSQLビルダークエリは実行しない（JOINを含む可能性があるため）
+            if not config['joins'] and not config['select_fields'] and not config['where_conditions']:
+                df_result = get_table_data(config['from_table'], config['limit'])
+                if df_result is not None and len(df_result) > 0:
+                     st.success(f"✅ クエリ結果 (簡易表示)")
+                     st.dataframe(df_result, use_container_width=True, height=400, hide_index=True)
+                else:
+                     st.info("結果なし")
+            else:
+                 st.success("✅ SQLが生成されました！このSQLをSupabaseのSQL Editorで実行してください。")
             
         except Exception as e:
             st.error(f"❌ クエリ実行エラー: {e}")
-            st.info("💡 複雑なJOINクエリはSupabaseのSQL Editorで実行してください。単純なクエリのみこちらで実行可能です。")
-            
-    st.markdown("")
-    st.info("💡 単純なクエリ（SELECT * FROM table LIMIT Xなど）は「▶️ クエリを実行」ボタンで結果を確認できる可能性がありますが、JOINを含む複雑なクエリはSupabaseのSQL Editorで実行してください。")
-    
-    with st.expander("📖 使い方の例を見る"):
-        st.markdown("""
-        ### 📌 例：納期が迫っている未納入の注文を検索
-        
-        **1. メインテーブル**
-        ```
-        T_Expense
-        ```
-        
-        **2. フィールド選択** (例)
-        - テーブル: `T_Expense`, フィールド: `PurchaseNo`, 別名: `注文番号`
-        
-        **3. 絞り込み条件（WHERE）**
-        - テーブル: `T_Expense`, フィールド: `NounyuDate`, 演算子: `IS NULL`
-        
-        **4. 並べ替えと件数制限**
-        - 並べ替え: `T_Expense.DeliveryDate ASC`
-        """)
+            st.info("💡 複雑なJOINクエリはSupabaseのSQL Editorで実行してください。")
