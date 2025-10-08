@@ -33,14 +33,14 @@ st.markdown("""
     }
     
     .main {
-        background-color: #f7f9fc;
-        padding: 2rem;
+        background-color: #f0f2f5;
+        padding: 1.5rem;
     }
     
     /* サイドバー */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #4a90e2 0%, #357abd 100%);
-        padding-top: 2rem;
+        background: #2c5282;
+        padding-top: 1rem;
     }
     
     [data-testid="stSidebar"] * {
@@ -52,17 +52,64 @@ st.markdown("""
         font-size: 15px;
     }
     
+    /* カードコンテナ */
+    .info-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        border-left: 4px solid #3182ce;
+    }
+    
+    .info-card-blue {
+        border-left-color: #3182ce;
+    }
+    
+    .info-card-orange {
+        border-left-color: #ed8936;
+    }
+    
+    .info-card-green {
+        border-left-color: #48bb78;
+    }
+    
+    .info-card-red {
+        border-left-color: #f56565;
+    }
+    
+    .card-header {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .card-header-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+    
     /* メトリクスカード */
     [data-testid="stMetricValue"] {
-        font-size: 32px;
+        font-size: 28px;
         font-weight: 700;
-        color: #1a202c;
+        color: #2d3748;
     }
     
     [data-testid="stMetricLabel"] {
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 500;
         color: #718096;
+        text-transform: uppercase;
     }
     
     /* ボタン */
@@ -72,14 +119,14 @@ st.markdown("""
         font-weight: 500;
         font-size: 14px;
         border: none;
-        background: #4a90e2;
+        background: #3182ce;
         color: white;
         transition: all 0.2s;
     }
     
     .stButton > button:hover {
-        background: #357abd;
-        box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+        background: #2c5282;
+        box-shadow: 0 2px 8px rgba(49, 130, 206, 0.3);
     }
     
     /* タブ */
@@ -99,7 +146,7 @@ st.markdown("""
     }
     
     .stTabs [aria-selected="true"] {
-        background: #4a90e2;
+        background: #3182ce;
         color: white;
     }
     
@@ -111,18 +158,9 @@ st.markdown("""
         background: white;
     }
     
-    /* カード */
-    .card {
-        background: white;
-        border-radius: 8px;
-        padding: 24px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
-    
     /* タイトル */
     .page-title {
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 700;
         color: #1a202c;
         margin-bottom: 8px;
@@ -131,36 +169,46 @@ st.markdown("""
     .page-subtitle {
         font-size: 14px;
         color: #718096;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
     }
     
     /* セクションヘッダー */
     .section-header {
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 600;
         color: #2d3748;
-        margin: 24px 0 16px 0;
-        padding-bottom: 8px;
+        margin: 20px 0 12px 0;
+        padding: 10px 0;
         border-bottom: 2px solid #e2e8f0;
     }
     
-    /* SQL表示 */
-    .sql-box {
-        background-color: #2d3748;
-        color: #e2e8f0;
-        padding: 20px;
-        border-radius: 8px;
-        font-family: 'Courier New', monospace;
-        font-size: 13px;
-        margin: 15px 0;
-        white-space: pre-wrap;
-        word-wrap: break-word;
+    /* 情報リスト */
+    .info-list-item {
+        padding: 12px;
+        margin: 8px 0;
+        background: #f7fafc;
+        border-radius: 6px;
+        border-left: 3px solid #3182ce;
+        font-size: 14px;
     }
     
-    /* インフォメッセージ */
-    .stAlert {
-        border-radius: 8px;
-        border-left-width: 4px;
+    /* ステータスバッジ */
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    
+    .status-active {
+        background: #c6f6d5;
+        color: #22543d;
+    }
+    
+    .status-pending {
+        background: #feebc8;
+        color: #7c2d12;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -270,27 +318,30 @@ with st.sidebar:
     st.markdown("---")
     
     available_tables = get_available_tables()
+    
+    # テーブルが1つの場合は自動選択
     if available_tables:
-        st.markdown("### テーブル")
-        selected_table = st.selectbox(
-            "テーブル選択",
-            available_tables,
-            label_visibility="collapsed"
-        )
+        if len(available_tables) == 1:
+            selected_table = available_tables[0]
+        else:
+            selected_table = st.selectbox(
+                "テーブル選択",
+                available_tables,
+                label_visibility="collapsed"
+            )
     else:
         selected_table = None
-        st.info("テーブルなし")
 
 # ========================================
 # 🏠 ダッシュボード
 # ========================================
 if page == "🏠 ダッシュボード":
     st.markdown('<div class="page-title">📊 ダッシュボード</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-subtitle">データベースの概要と統計情報</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">データベース概要</div>', unsafe_allow_html=True)
     
     if available_tables:
         # サマリーカード
-        cols = st.columns(4)
+        cols = st.columns(3)
         
         total_records = sum([get_table_count(t) for t in available_tables])
         
@@ -298,46 +349,92 @@ if page == "🏠 ダッシュボード":
             st.metric("総レコード数", f"{total_records:,}")
         
         with cols[1]:
-            st.metric("テーブル数", len(available_tables))
+            st.metric("テーブル数", f"{len(available_tables)}")
         
         with cols[2]:
-            st.metric("ステータス", "🟢 稼働中")
-        
-        with cols[3]:
             st.metric("最終更新", datetime.now().strftime("%Y/%m/%d"))
         
-        st.markdown('<div class="section-header">テーブル一覧</div>', unsafe_allow_html=True)
+        st.markdown("")
         
-        # テーブルごとの詳細
-        for table in available_tables:
-            with st.container():
-                col1, col2, col3 = st.columns([2, 1, 1])
-                
-                with col1:
-                    st.markdown(f"### 📊 {table}")
-                    count = get_table_count(table)
-                    st.caption(f"{count:,} レコード")
-                
-                with col2:
-                    if st.button("📋 データを見る", key=f"view_{table}", use_container_width=True):
-                        st.session_state.current_page = "📋 データ管理"
-                        st.session_state.selected_table = table
-                        st.rerun()
-                
-                with col3:
-                    if st.button("📊 分析する", key=f"analyze_{table}", use_container_width=True):
-                        st.session_state.current_page = "📊 集計分析"
-                        st.session_state.selected_table = table
-                        st.rerun()
-                
-                # データプレビュー
-                df = get_table_data(table, 10)
+        # カード型レイアウト
+        col1, col2 = st.columns([1, 1])
+        
+        with col1:
+            # テーブル一覧カード
+            st.markdown("""
+            <div class="info-card info-card-blue">
+                <div class="card-header">
+                    <span class="card-header-icon" style="background:#3182ce;color:white;">📊</span>
+                    <span>テーブル一覧</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            for table in available_tables:
+                count = get_table_count(table)
+                with st.container():
+                    st.markdown(f"""
+                    <div class="info-list-item">
+                        <strong>{table}</strong><br>
+                        <small style="color:#718096;">{count:,} レコード</small>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    col_a, col_b = st.columns(2)
+                    with col_a:
+                        if st.button("📋 データ表示", key=f"data_{table}", use_container_width=True):
+                            st.session_state.goto_page = "📋 データ管理"
+                            st.rerun()
+                    with col_b:
+                        if st.button("🔍 検索", key=f"search_{table}", use_container_width=True):
+                            st.session_state.goto_page = "🔍 検索"
+                            st.rerun()
+        
+        with col2:
+            # 最近の更新カード
+            st.markdown("""
+            <div class="info-card info-card-orange">
+                <div class="card-header">
+                    <span class="card-header-icon" style="background:#ed8936;color:white;">📰</span>
+                    <span>最近のデータ</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            for table in available_tables:
+                df = get_table_data(table, 5)
                 if df is not None and len(df) > 0:
-                    st.dataframe(df, use_container_width=True, hide_index=True, height=200)
-                
-                st.markdown("---")
+                    st.markdown(f"**{table}** の最新データ")
+                    st.dataframe(df, use_container_width=True, hide_index=True, height=150)
+                    st.markdown("")
+            
+            # クイックアクションカード
+            st.markdown("""
+            <div class="info-card info-card-green">
+                <div class="card-header">
+                    <span class="card-header-icon" style="background:#48bb78;color:white;">⚡</span>
+                    <span>クイックアクション</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if st.button("🔧 SQLビルダーを開く", use_container_width=True):
+                st.session_state.goto_page = "🔧 SQLビルダー"
+                st.rerun()
+            
+            if st.button("📊 集計分析を開く", use_container_width=True):
+                st.session_state.goto_page = "📊 集計分析"
+                st.rerun()
+    
     else:
-        st.info("👋 ようこそ！最初のテーブルを作成してください")
+        st.markdown("""
+        <div class="info-card info-card-blue">
+            <div class="card-header">
+                <span>👋 ようこそ</span>
+            </div>
+            <p style="color:#718096;margin:0;">最初のテーブルを作成してください</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ========================================
 # 📋 データ管理
@@ -739,6 +836,351 @@ elif page == "📊 集計分析":
 # ========================================
 elif page == "🔧 SQLビルダー":
     st.markdown('<div class="page-title">🔧 SQLビルダー</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">質問に答えるだけでSQLクエリを自動作成</div>', unsafe_allow_html=True)
+    
+    # セッション状態の初期化
+    if 'sql_config' not in st.session_state:
+        st.session_state.sql_config = {
+            'from_table': '',
+            'select_fields': [],
+            'joins': [],
+            'where_conditions': [],
+            'order_by': '',
+            'limit': 100
+        }
+    
+    config = st.session_state.sql_config
+    
+    # ステップ形式のUI
+    st.markdown("### ステップ1: どのテーブルのデータを見たいですか？")
+    
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        if available_tables:
+            table_options = ["手動入力"] + available_tables
+            table_choice = st.selectbox("テーブルを選択", table_options, label_visibility="collapsed")
+            
+            if table_choice == "手動入力":
+                config['from_table'] = st.text_input("テーブル名を入力", value=config['from_table'], placeholder="例: T_Expense", label_visibility="collapsed")
+            else:
+                config['from_table'] = table_choice
+        else:
+            config['from_table'] = st.text_input("テーブル名を入力", placeholder="例: T_Expense", label_visibility="collapsed")
+    
+    with col2:
+        st.metric("選択中", config['from_table'] if config['from_table'] else "-")
+    
+    if not config['from_table']:
+        st.info("👆 まずテーブル名を入力してください")
+        st.stop()
+    
+    st.markdown("---")
+    
+    # ステップ2: フィールド選択（オプション）
+    st.markdown("### ステップ2: どの項目を見たいですか？（省略可）")
+    st.caption("空欄の場合は全ての項目を表示します")
+    
+    with st.expander("✏️ 表示する項目を指定する", expanded=len(config['select_fields']) > 0):
+        col1, col2, col3 = st.columns([4, 4, 2])
+        with col1:
+            sel_field = st.text_input("項目名", key="sel_field", placeholder="例: PurchaseNo")
+        with col2:
+            sel_alias = st.text_input("表示名（変更する場合）", key="sel_alias", placeholder="例: 注文番号")
+        with col3:
+            st.write("")
+            st.write("")
+            if st.button("➕ 追加", key="add_select"):
+                if sel_field:
+                    config['select_fields'].append({
+                        'table': config['from_table'],
+                        'field': sel_field,
+                        'alias': sel_alias if sel_alias else None
+                    })
+                    st.rerun()
+        
+        if config['select_fields']:
+            st.markdown("**表示する項目:**")
+            for idx, field in enumerate(config['select_fields']):
+                col1, col2 = st.columns([9, 1])
+                with col1:
+                    display = f"✓ {field['field']}"
+                    if field.get('alias'):
+                        display += f" → 「{field['alias']}」として表示"
+                    st.success(display)
+                with col2:
+                    if st.button("❌", key=f"del_select_{idx}"):
+                        config['select_fields'].pop(idx)
+                        st.rerun()
+    
+    st.markdown("---")
+    
+    # ステップ3: 絞り込み条件
+    st.markdown("### ステップ3: データを絞り込みますか？（省略可）")
+    st.caption("条件を指定すると、該当するデータだけを表示します")
+    
+    with st.expander("🔍 絞り込み条件を追加する", expanded=len(config['where_conditions']) > 0):
+        
+        # わかりやすい条件入力
+        condition_type = st.radio(
+            "条件の種類",
+            ["値で絞り込む", "空欄かどうか", "日付範囲", "キーワード検索"],
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+        
+        if condition_type == "値で絞り込む":
+            col1, col2, col3, col4 = st.columns([3, 2, 3, 1])
+            with col1:
+                where_field = st.text_input("項目名", key="where_field_1", placeholder="例: DeleteFlg")
+            with col2:
+                where_op = st.selectbox("条件", ["と同じ", "より大きい", "より小さい", "以上", "以下"], key="where_op_1")
+            with col3:
+                where_val = st.text_input("値", key="where_val_1", placeholder="例: 0")
+            with col4:
+                st.write("")
+                st.write("")
+                if st.button("➕", key="add_where_1"):
+                    if where_field and where_val:
+                        op_map = {"と同じ": "=", "より大きい": ">", "より小さい": "<", "以上": ">=", "以下": "<="}
+                        config['where_conditions'].append({
+                            'table': None,
+                            'field': where_field,
+                            'operator': op_map[where_op],
+                            'value': where_val
+                        })
+                        st.rerun()
+        
+        elif condition_type == "空欄かどうか":
+            col1, col2, col3 = st.columns([4, 3, 1])
+            with col1:
+                where_field = st.text_input("項目名", key="where_field_2", placeholder="例: NounyuDate")
+            with col2:
+                null_type = st.selectbox("状態", ["空欄である", "空欄ではない"], key="null_type")
+            with col3:
+                st.write("")
+                st.write("")
+                if st.button("➕", key="add_where_2"):
+                    if where_field:
+                        config['where_conditions'].append({
+                            'table': None,
+                            'field': where_field,
+                            'operator': "IS NULL" if null_type == "空欄である" else "IS NOT NULL",
+                            'value': None
+                        })
+                        st.rerun()
+        
+        elif condition_type == "日付範囲":
+            col1, col2, col3, col4 = st.columns([3, 3, 3, 1])
+            with col1:
+                where_field = st.text_input("項目名", key="where_field_3", placeholder="例: DeliveryDate")
+            with col2:
+                date_from = st.date_input("開始日", key="date_from")
+            with col3:
+                date_to = st.date_input("終了日", key="date_to")
+            with col4:
+                st.write("")
+                st.write("")
+                if st.button("➕", key="add_where_3"):
+                    if where_field:
+                        # 開始日の条件
+                        config['where_conditions'].append({
+                            'table': None,
+                            'field': where_field,
+                            'operator': ">=",
+                            'value': date_from.strftime("%Y/%m/%d")
+                        })
+                        # 終了日の条件
+                        config['where_conditions'].append({
+                            'table': None,
+                            'field': where_field,
+                            'operator': "<=",
+                            'value': date_to.strftime("%Y/%m/%d")
+                        })
+                        st.rerun()
+        
+        else:  # キーワード検索
+            col1, col2, col3 = st.columns([4, 4, 1])
+            with col1:
+                where_field = st.text_input("項目名", key="where_field_4", placeholder="例: Description")
+            with col2:
+                where_val = st.text_input("キーワード", key="where_val_4", placeholder="例: パソコン")
+            with col3:
+                st.write("")
+                st.write("")
+                if st.button("➕", key="add_where_4"):
+                    if where_field and where_val:
+                        config['where_conditions'].append({
+                            'table': None,
+                            'field': where_field,
+                            'operator': "LIKE",
+                            'value': where_val
+                        })
+                        st.rerun()
+        
+        if config['where_conditions']:
+            st.markdown("**設定中の条件:**")
+            for idx, cond in enumerate(config['where_conditions']):
+                col1, col2 = st.columns([9, 1])
+                with col1:
+                    if cond['operator'] in ['IS NULL', 'IS NOT NULL']:
+                        text = f"✓ 「{cond['field']}」が {cond['operator'].replace('IS NULL', '空欄').replace('IS NOT NULL', '空欄ではない')}"
+                    elif cond['operator'] == 'LIKE':
+                        text = f"✓ 「{cond['field']}」に「{cond['value']}」を含む"
+                    else:
+                        text = f"✓ 「{cond['field']}」が {cond['operator']} {cond['value']}"
+                    st.info(text)
+                with col2:
+                    if st.button("❌", key=f"del_where_{idx}"):
+                        config['where_conditions'].pop(idx)
+                        st.rerun()
+    
+    st.markdown("---")
+    
+    # ステップ4: 並び替え
+    st.markdown("### ステップ4: 並び替えますか？（省略可）")
+    
+    with st.expander("📊 並び替え設定", expanded=bool(config.get('order_by'))):
+        col1, col2 = st.columns(2)
+        with col1:
+            order_field = st.text_input("並び替える項目", placeholder="例: DeliveryDate")
+        with col2:
+            order_dir = st.selectbox("順序", ["昇順（小→大）", "降順（大→小）"])
+        
+        if order_field:
+            config['order_by'] = f"{order_field} {'ASC' if '昇順' in order_dir else 'DESC'}"
+            st.success(f"✓ 「{order_field}」で{order_dir.split('（')[0]}に並び替え")
+    
+    # ステップ5: 件数制限
+    st.markdown("### ステップ5: 何件表示しますか？")
+    config['limit'] = st.slider("表示件数", 10, 1000, config['limit'], step=10)
+    
+    st.markdown("---")
+    
+    # 生成されたSQL
+    st.markdown('<div class="section-header">📝 生成されたSQL</div>', unsafe_allow_html=True)
+    
+    sql = build_sql_query(config)
+    st.code(sql, language="sql")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        sql_bytes = sql.encode('utf-8')
+        st.download_button(
+            "📥 SQLダウンロード",
+            sql_bytes,
+            f"query_{datetime.now().strftime('%Y%m%d_%H%M%S')}.sql",
+            "text/plain;charset=utf-8",
+            use_container_width=True
+        )
+    
+    with col2:
+        if st.button("📋 コピー用", use_container_width=True):
+            st.session_state.show_copy = True
+    
+    with col3:
+        if st.button("▶️ 実行", type="primary", use_container_width=True):
+            st.session_state.execute_query = True
+    
+    with col4:
+        if st.button("🔄 最初から", use_container_width=True):
+            st.session_state.sql_config = {
+                'from_table': '',
+                'select_fields': [],
+                'joins': [],
+                'where_conditions': [],
+                'order_by': '',
+                'limit': 100
+            }
+            st.session_state.execute_query = False
+            st.session_state.show_copy = False
+            st.rerun()
+    
+    if st.session_state.get('show_copy', False):
+        st.text_area("コピー用SQL", sql, height=150)
+    
+    # クエリ実行結果
+    if st.session_state.get('execute_query', False):
+        st.markdown("---")
+        st.markdown('<div class="section-header">📊 実行結果</div>', unsafe_allow_html=True)
+        
+        try:
+            with st.spinner("データを取得中..."):
+                query = supabase.table(config['from_table']).select("*")
+                
+                for cond in config.get('where_conditions', []):
+                    field = cond['field']
+                    op = cond['operator']
+                    val = cond.get('value')
+                    
+                    if op == '=':
+                        query = query.eq(field, val)
+                    elif op == 'IS NULL':
+                        query = query.is_(field, 'null')
+                    elif op == 'IS NOT NULL':
+                        query = query.not_.is_(field, 'null')
+                    elif op == '<=':
+                        query = query.lte(field, val)
+                    elif op == '>=':
+                        query = query.gte(field, val)
+                    elif op == '>':
+                        query = query.gt(field, val)
+                    elif op == '<':
+                        query = query.lt(field, val)
+                    elif op == 'LIKE':
+                        query = query.ilike(field, f"%{val}%")
+                
+                if config.get('limit'):
+                    query = query.limit(config['limit'])
+                
+                response = query.execute()
+                
+                if response.data:
+                    df_result = pd.DataFrame(response.data)
+                    
+                    if config['select_fields']:
+                        select_cols = []
+                        rename_map = {}
+                        for field in config['select_fields']:
+                            col_name = field['field']
+                            if col_name in df_result.columns:
+                                select_cols.append(col_name)
+                                if field.get('alias'):
+                                    rename_map[col_name] = field['alias']
+                        
+                        if select_cols:
+                            df_result = df_result[select_cols]
+                            if rename_map:
+                                df_result = df_result.rename(columns=rename_map)
+                    
+                    if config.get('order_by'):
+                        try:
+                            order_parts = config['order_by'].split()
+                            if len(order_parts) >= 1:
+                                col_to_sort = order_parts[0]
+                                ascending = True if len(order_parts) == 1 or order_parts[1].upper() != 'DESC' else False
+                                if col_to_sort in df_result.columns:
+                                    df_result = df_result.sort_values(by=col_to_sort, ascending=ascending)
+                        except:
+                            pass
+                    
+                    st.success(f"✅ {len(df_result):,}件のデータが見つかりました")
+                    st.dataframe(df_result, use_container_width=True, height=400, hide_index=True)
+                    
+                    csv = df_result.to_csv(index=False, encoding='utf-8-sig')
+                    st.download_button(
+                        "📥 結果をCSVダウンロード",
+                        csv,
+                        f"result_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        "text/csv",
+                        use_container_width=True
+                    )
+                else:
+                    st.warning("⚠️ データが見つかりませんでした")
+                    
+        except Exception as e:
+            st.error(f"❌ エラー: {e}")
+            st.info("💡 テーブル名や項目名が正しいか確認してください")
+    st.markdown('<div class="page-title">🔧 SQLビルダー</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-subtitle">ボタン操作だけで複雑なSQLクエリを作成</div>', unsafe_allow_html=True)
     
     st.info("💡 SQLの知識がなくても、複雑なクエリを簡単に作成できます。テーブルが存在しなくても、将来使用するテーブル名でSQLを生成できます。")
@@ -887,7 +1329,7 @@ elif page == "🔧 SQLビルダー":
     
     st.markdown("---")
     
-    # SQL生成
+    # SQL生成と実行
     st.markdown('<div class="section-header">📝 生成されたSQL</div>', unsafe_allow_html=True)
     
     if config['from_table']:
@@ -896,7 +1338,7 @@ elif page == "🔧 SQLビルダー":
         # SQLを見やすく表示
         st.code(sql, language="sql")
         
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
             # UTF-8でエンコードしてダウンロード
             sql_bytes = sql.encode('utf-8')
@@ -909,10 +1351,14 @@ elif page == "🔧 SQLビルダー":
             )
         
         with col2:
-            if st.button("📋 クリップボードにコピー", use_container_width=True):
-                st.info("💡 上のSQLコードを選択してコピーしてください")
+            if st.button("📋 コピー用に表示", use_container_width=True):
+                st.session_state.show_copy = True
         
         with col3:
+            if st.button("▶️ クエリを実行", type="primary", use_container_width=True):
+                st.session_state.execute_query = True
+        
+        with col4:
             if st.button("🔄 リセット", use_container_width=True):
                 st.session_state.sql_config = {
                     'from_table': '',
@@ -922,10 +1368,104 @@ elif page == "🔧 SQLビルダー":
                     'order_by': '',
                     'limit': 100
                 }
+                st.session_state.execute_query = False
+                st.session_state.show_copy = False
                 st.rerun()
         
+        # コピー用表示
+        if st.session_state.get('show_copy', False):
+            st.text_area("コピー用SQL", sql, height=150)
+        
+        # クエリ実行結果
+        if st.session_state.get('execute_query', False):
+            st.markdown("---")
+            st.markdown('<div class="section-header">📊 クエリ実行結果</div>', unsafe_allow_html=True)
+            
+            # Supabaseで実行可能な単純なクエリに変換
+            try:
+                with st.spinner("クエリを実行中..."):
+                    # メインテーブルからデータ取得
+                    query = supabase.table(config['from_table']).select("*")
+                    
+                    # WHERE条件を適用
+                    for cond in config.get('where_conditions', []):
+                        field = cond['field']
+                        op = cond['operator']
+                        val = cond.get('value')
+                        
+                        if op == '=':
+                            query = query.eq(field, val)
+                        elif op == 'IS NULL':
+                            query = query.is_(field, 'null')
+                        elif op == 'IS NOT NULL':
+                            query = query.not_.is_(field, 'null')
+                        elif op == '<=':
+                            query = query.lte(field, val)
+                        elif op == '>=':
+                            query = query.gte(field, val)
+                        elif op == 'LIKE':
+                            query = query.ilike(field, f"%{val}%")
+                    
+                    # LIMIT適用
+                    if config.get('limit'):
+                        query = query.limit(config['limit'])
+                    
+                    # 実行
+                    response = query.execute()
+                    
+                    if response.data:
+                        df_result = pd.DataFrame(response.data)
+                        
+                        # SELECT句でフィールドを絞る
+                        if config['select_fields']:
+                            select_cols = []
+                            rename_map = {}
+                            for field in config['select_fields']:
+                                col_name = field['field']
+                                if col_name in df_result.columns:
+                                    select_cols.append(col_name)
+                                    if field.get('alias'):
+                                        rename_map[col_name] = field['alias']
+                            
+                            if select_cols:
+                                df_result = df_result[select_cols]
+                                if rename_map:
+                                    df_result = df_result.rename(columns=rename_map)
+                        
+                        # ORDER BY適用（簡易版）
+                        if config.get('order_by'):
+                            try:
+                                order_parts = config['order_by'].split()
+                                if len(order_parts) >= 1:
+                                    col_to_sort = order_parts[0].split('.')[-1]  # テーブル名を除去
+                                    ascending = True if len(order_parts) == 1 or order_parts[1].upper() != 'DESC' else False
+                                    if col_to_sort in df_result.columns:
+                                        df_result = df_result.sort_values(by=col_to_sort, ascending=ascending)
+                            except:
+                                pass
+                        
+                        st.success(f"✅ {len(df_result):,}件のレコードが見つかりました")
+                        st.dataframe(df_result, use_container_width=True, height=400, hide_index=True)
+                        
+                        # ダウンロードボタン
+                        csv = df_result.to_csv(index=False, encoding='utf-8-sig')
+                        st.download_button(
+                            "📥 結果をCSVダウンロード",
+                            csv,
+                            f"result_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                            "text/csv",
+                            use_container_width=True
+                        )
+                    else:
+                        st.warning("⚠️ 結果が見つかりませんでした")
+                        
+            except Exception as e:
+                st.error(f"❌ クエリ実行エラー: {e}")
+                st.info("💡 複雑なJOINクエリはSupabaseのSQL Editorで実行してください。単純なクエリのみこちらで実行可能です。")
+        
         st.markdown("")
-        st.success("✅ SQLが生成されました！このSQLをSupabaseのSQL Editorや他のデータベースツールで実行できます。")
+        st.success("✅ SQLが生成されました！")
+        st.info("💡 単純なクエリは「▶️ クエリを実行」ボタンで結果を確認できます。複雑なJOINクエリはSupabaseのSQL Editorで実行してください。")
         
         # 使用例
         with st.expander("📖 使い方の例を見る"):
@@ -948,14 +1488,16 @@ elif page == "🔧 SQLビルダー":
             - 結合条件: `T_Expense.ConstructionNo = T_AcceptOrder.ConstructNo`
             
             **4. 条件（WHERE）**
-            - フィールド: `T_Expense.NounyuDate`, 演算子: `IS NULL`
-            - フィールド: `T_Expense.DeliveryDate`, 演算子: `>=`, 値: `2025/4/1`
-            - フィールド: `T_Expense.DeliveryDate`, 演算子: `<=`, 値: `2025/8/31`
-            - フィールド: `T_Expense.DeleteFlg`, 演算子: `=`, 値: `0`
+            - フィールド: `NounyuDate`, 演算子: `IS NULL`
+            - フィールド: `DeliveryDate`, 演算子: `>=`, 値: `2025/4/1`
+            - フィールド: `DeliveryDate`, 演算子: `<=`, 値: `2025/8/31`
+            - フィールド: `DeleteFlg`, 演算子: `=`, 値: `0`
             
             **5. その他**
-            - ORDER BY: `T_Expense.DeliveryDate ASC`
+            - ORDER BY: `DeliveryDate ASC`
             - LIMIT: `100`
+            
+            **注意:** JOIN句を含む複雑なクエリは、生成されたSQLをSupabaseで直接実行してください。
             """)
     else:
         st.warning("⚠️ メインテーブル名を入力してください")
