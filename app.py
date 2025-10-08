@@ -29,7 +29,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 洗練されたCSS (省略)
+# 洗練されたCSS (高密度デザインに調整)
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -41,6 +41,12 @@ st.markdown("""
     .main {
         background-color: #f0f2f5;
         padding: 1.5rem;
+    }
+
+    /* 💡 デザイン調整: 全体のフォントサイズを微調整し、情報密度を上げる */
+    body, p, label, input, textarea, select, 
+    [data-testid^="st"] {
+        font-size: 14px !important; 
     }
     
     /* サイドバー */
@@ -80,50 +86,22 @@ st.markdown("""
         border-left-color: #48bb78;
     }
     
-    .info-card-red {
-        border-left-color: #f56565;
-    }
-    
     .card-header {
-        font-size: 18px;
+        font-size: 16px; /* 既存より少し小さく */
         font-weight: 600;
         color: #2d3748;
-        margin-bottom: 15px;
+        margin-bottom: 10px; /* 余白を詰める */
         display: flex;
         align-items: center;
         gap: 10px;
     }
     
-    .card-header-icon {
-        width: 24px;
-        height: 24px;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-    }
-    
-    /* メトリクスカード */
-    [data-testid="stMetricValue"] {
-        font-size: 28px;
-        font-weight: 700;
-        color: #2d3748;
-    }
-    
-    [data-testid="stMetricLabel"] {
-        font-size: 13px;
-        font-weight: 500;
-        color: #718096;
-        text-transform: uppercase;
-    }
-    
     /* ボタン */
     .stButton > button {
         border-radius: 6px;
-        height: 38px;
+        height: 34px; /* ボタンの高さを低くして密度を上げる */
         font-weight: 500;
-        font-size: 14px;
+        font-size: 13px; /* フォントを小さく */
         border: none;
         background: #3182ce;
         color: white;
@@ -144,9 +122,9 @@ st.markdown("""
     .stTabs [data-baseweb="tab"] {
         background-color: white;
         border-radius: 6px 6px 0 0;
-        padding: 10px 20px;
+        padding: 8px 15px; /* タブのパディングを減らす */
         font-weight: 500;
-        font-size: 14px;
+        font-size: 13px;
         border: none;
         color: #718096;
     }
@@ -160,77 +138,64 @@ st.markdown("""
     .dataframe {
         border-radius: 8px;
         border: 1px solid #e2e8f0;
-        font-size: 13px;
+        font-size: 12px !important; /* データテーブルのフォントをさらに小さく */
         background: white;
+    }
+    .dataframe tbody tr {
+        line-height: 1.2; /* 行間を詰める */
     }
     
     /* タイトル */
     .page-title {
-        font-size: 24px;
+        font-size: 22px; /* 既存の24pxから微調整 */
         font-weight: 700;
         color: #1a202c;
-        margin-bottom: 8px;
+        margin-bottom: 5px;
+        padding-top: 5px;
+        border-bottom: 1px solid #e2e8f0; /* タイトル下の区切り線 */
     }
     
     .page-subtitle {
-        font-size: 14px;
+        font-size: 13px;
         color: #718096;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
     }
     
-    /* セクションヘッダー */
+    /* セクションヘッダーの強調 */
     .section-header {
-        font-size: 16px;
-        font-weight: 600;
-        color: #2d3748;
-        margin: 20px 0 12px 0;
-        padding: 10px 0;
-        border-bottom: 2px solid #e2e8f0;
+        font-size: 15px;
+        font-weight: 700;
+        color: #2c5282; 
+        margin: 20px 0 8px 0; /* 上下のマージンを詰める */
+        padding: 5px 0;
+        border-bottom: 3px solid #3182ce; /* 強い区切り線 */
     }
     
     /* 情報リスト */
     .info-list-item {
-        padding: 12px;
-        margin: 8px 0;
+        padding: 10px; /* パディングを減らす */
+        margin: 5px 0;
         background: #f7fafc;
         border-radius: 6px;
         border-left: 3px solid #3182ce;
-        font-size: 14px;
+        font-size: 13px;
     }
-    
-    /* ステータスバッジ */
-    .status-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 500;
-    }
-    
-    .status-active {
-        background: #c6f6d5;
-        color: #22543d;
-    }
-    
-    .status-pending {
-        background: #feebc8;
-        color: #7c2d12;
+
+    /* アラートをコンパクトに */
+    [data-testid="stAlert"] {
+        padding: 8px 10px;
+        font-size: 13px;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ========================================
-# データベース関数
+# データベース関数 (変更なし)
 # ========================================
 
-@st.cache_data(ttl=3600) # 1時間に1回のみテーブルリストを更新
+@st.cache_data(ttl=3600) 
 def get_available_tables():
-    """
-    Supabaseのテーブル一覧を、ハードコードされたリストに基づいて存在チェックして取得します。
-    Supabase Python SDK (PostgREST)は、匿名キーでシステムテーブルにアクセスできないため、この方法が最も確実です。
-    新しいテーブルを追加した場合、以下のfall_back_tablesリストに追記してください。
-    """
-    # 修正点2: 確実な存在チェックのため、ユーザーが使用している可能性のあるテーブル名をリスト化
+    """Supabaseのテーブル一覧を、ハードコードされたリストに基づいて存在チェックして取得します。"""
     fall_back_tables = [
         'T_AcceptOrder',
         'T_Expense',
@@ -246,11 +211,9 @@ def get_available_tables():
     existing = []
     for table in fall_back_tables:
         try:
-            # RLSが有効な場合、アクセスできるかどうかもチェック
             supabase.table(table).select("*").limit(1).execute()
             existing.append(table)
         except Exception:
-            # 存在しない、または権限がない場合はスキップ
             pass
     
     if not existing:
@@ -259,7 +222,7 @@ def get_available_tables():
 
     return sorted(existing)
 
-@st.cache_data(ttl=300) # 5分間データをキャッシュ
+@st.cache_data(ttl=300)
 def get_table_columns(table_name):
     try:
         response = supabase.table(table_name).select("*").limit(1).execute()
@@ -269,7 +232,7 @@ def get_table_columns(table_name):
     except:
         return []
 
-@st.cache_data(ttl=60) # 1分間データをキャッシュ
+@st.cache_data(ttl=60)
 def get_table_data(table_name, limit=1000):
     try:
         response = supabase.table(table_name).select("*").limit(limit).execute()
@@ -279,10 +242,9 @@ def get_table_data(table_name, limit=1000):
     except Exception as e:
         return pd.DataFrame()
 
-@st.cache_data(ttl=3600) # 1時間に1回のみカウントを更新
+@st.cache_data(ttl=3600)
 def get_table_count(table_name):
     try:
-        # count="exact"を指定して正確なカウントを取得
         response = supabase.table(table_name).select("id", count="exact").execute()
         return response.count
     except:
@@ -338,24 +300,35 @@ def build_sql_query(config):
     return '\n'.join(sql_parts)
 
 # ========================================
-# サイドバー (変更なし)
+# サイドバー
 # ========================================
 with st.sidebar:
     st.markdown("# 📊 データベース管理")
     st.markdown("---")
     
+    # ページ遷移ロジックの修正
     if 'goto_page' in st.session_state:
+        # goto_pageがある場合は、そのページに移動する
         initial_page_index = ["🏠 ダッシュボード", "📋 データ管理", "🔍 検索", "📊 集計分析", "🔧 SQLビルダー"].index(st.session_state.goto_page)
         del st.session_state.goto_page
     else:
-        initial_page_index = 0
+        # セッションにページ情報があればそれを使い、なければデフォルト(0)
+        if 'main_menu_page_index' in st.session_state:
+            initial_page_index = st.session_state.main_menu_page_index
+        else:
+            initial_page_index = 0
+            
+    page_options = ["🏠 ダッシュボード", "📋 データ管理", "🔍 検索", "📊 集計分析", "🔧 SQLビルダー"]
 
     page = st.radio(
         "メニュー",
-        ["🏠 ダッシュボード", "📋 データ管理", "🔍 検索", "📊 集計分析", "🔧 SQLビルダー"],
+        page_options,
         index=initial_page_index,
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        key="main_menu_page" # 状態を保持するためのキーを追加
     )
+    # 現在のページインデックスをセッションに保存（st.rerun()後に同じページに留まるため）
+    st.session_state.main_menu_page_index = page_options.index(page)
     
     st.markdown("---")
     
@@ -381,8 +354,7 @@ with st.sidebar:
         st.warning("利用可能なテーブルがありません。SupabaseのRLS設定を確認するか、`get_available_tables`関数にテーブル名を追加してください。")
         
     st.markdown("---")
-    if st.button("🔄 テーブルリストを更新"):
-        # キャッシュをクリアしてテーブルリストを再取得
+    if st.button("🔄 テーブルリストを更新", use_container_width=True):
         get_available_tables.clear()
         st.rerun()
 
@@ -391,12 +363,10 @@ with st.sidebar:
 # 🏠 ダッシュボード
 # ========================================
 if page == "🏠 ダッシュボード":
-    # 修正点1: タイトルを冗長にならないように修正
     st.markdown('<div class="page-title">🏠 ホーム</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-subtitle">データベースの全体概要</div>', unsafe_allow_html=True)
     
     if available_tables:
-        # サマリーカード
         cols = st.columns(3)
         
         total_records = sum([get_table_count(t) for t in available_tables])
@@ -410,33 +380,30 @@ if page == "🏠 ダッシュボード":
         with cols[2]:
             st.metric("最終更新", datetime.now().strftime("%Y/%m/%d"))
         
-        st.markdown("")
+        st.markdown('<div class="section-header">テーブル別サマリー</div>', unsafe_allow_html=True)
         
-        # カード型レイアウト
         col1, col2 = st.columns([1, 1])
         
         with col1:
-            # テーブル一覧カード
             st.markdown("""
             <div class="info-card info-card-blue">
                 <div class="card-header">
                     <span class="card-header-icon" style="background:#3182ce;color:white;">📊</span>
-                    <span>テーブル一覧</span>
+                    <span>テーブル一覧とアクション</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
             for table in available_tables:
                 count = get_table_count(table)
-                with st.container():
+                with st.container(border=True):
                     st.markdown(f"""
-                    <div class="info-list-item">
+                    <div style="font-size:14px; margin-bottom: 5px;">
                         <strong>{table}</strong><br>
                         <small style="color:#718096;">{count:,} レコード</small>
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    # ボタンの配置とロジック
                     col_a, col_b = st.columns(2)
                     with col_a:
                         if st.button("📋 データ表示", key=f"data_{table}", use_container_width=True):
@@ -450,12 +417,11 @@ if page == "🏠 ダッシュボード":
                             st.rerun()
         
         with col2:
-            # 最近の更新カード
             st.markdown("""
             <div class="info-card info-card-orange">
                 <div class="card-header">
                     <span class="card-header-icon" style="background:#ed8936;color:white;">📰</span>
-                    <span>最近のデータ</span>
+                    <span>最近のデータプレビュー</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -463,11 +429,10 @@ if page == "🏠 ダッシュボード":
             for table in available_tables:
                 df = get_table_data(table, 5)
                 if df is not None and len(df) > 0:
-                    st.markdown(f"**{table}** の最新データ")
+                    st.markdown(f"**{table}** の最新データ", unsafe_allow_html=True)
                     st.dataframe(df, use_container_width=True, hide_index=True, height=150)
                     st.markdown("")
             
-            # クイックアクションカード
             st.markdown("""
             <div class="info-card info-card-green">
                 <div class="card-header">
@@ -479,10 +444,6 @@ if page == "🏠 ダッシュボード":
             
             if st.button("🔧 SQLビルダーを開く", use_container_width=True):
                 st.session_state.goto_page = "🔧 SQLビルダー"
-                st.rerun()
-            
-            if st.button("📊 集計分析を開く", use_container_width=True):
-                st.session_state.goto_page = "📊 集計分析"
                 st.rerun()
     
     else:
@@ -496,7 +457,7 @@ if page == "🏠 ダッシュボード":
         """, unsafe_allow_html=True)
 
 # ========================================
-# 📋 データ管理 (変更なし)
+# 📋 データ管理
 # ========================================
 elif page == "📋 データ管理":
     st.markdown('<div class="page-title">📋 データ管理</div>', unsafe_allow_html=True)
@@ -506,28 +467,37 @@ elif page == "📋 データ管理":
         st.warning("⚠️ サイドバーからテーブルを選択してください")
         st.stop()
     
-    # キャッシュクリアボタン
-    if st.button("🔄 データキャッシュをクリアして再取得", key="clear_data_cache"):
-        get_table_data.clear()
-        st.rerun()
+    # 💡 業務アプリ風デザイン: 検索/フィルタエリアを上段に配置
+    st.markdown(f'<div class="section-header">🔍 {selected_table} データ検索・フィルタ</div>', unsafe_allow_html=True)
+    
+    # フィルタエリア
+    with st.container(border=True):
+        col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
+        with col1:
+            st.text_input("キーワード検索", placeholder="例：注文番号、品名など (現在機能は無効)", label_visibility="collapsed")
+        with col2:
+            limit = st.selectbox("表示件数", [100, 500, 1000], index=0, key="data_limit")
+        with col3:
+            if st.button("🔄 更新/絞り込み", use_container_width=True, type="secondary", key="refresh_data"):
+                get_table_data.clear()
+                st.rerun()
+        with col4:
+             if st.button("🧹 キャッシュクリア", use_container_width=True, type="secondary", key="clear_data_cache"):
+                 get_table_data.clear()
+                 st.rerun()
+
+    st.markdown(f'<div class="section-header">📋 {selected_table} - レコード操作</div>', unsafe_allow_html=True)
     
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["📋 一覧", "➕ 追加", "✏️ 編集", "🗑️ 削除", "📤 インポート"])
     
     with tab1:
-        col1, col2, col3 = st.columns([2, 1, 1])
-        with col1:
-            st.markdown(f"### {selected_table}")
-        with col2:
-            limit = st.selectbox("表示件数", [100, 500, 1000], index=0, key="data_limit")
-        with col3:
-            if st.button("🔄 更新", use_container_width=True, key="refresh_data"):
-                get_table_data.clear()
-                st.rerun()
+        st.markdown(f"### 取得結果 (最大 {limit} 件)")
         
         df = get_table_data(selected_table, limit)
         if df is not None and len(df) > 0:
-            st.info(f"📊 {len(df):,} 件のレコード (最大 {limit} 件)")
-            st.dataframe(df, use_container_width=True, height=500, hide_index=True)
+            st.info(f"📊 {len(df):,} 件のレコード")
+            # 💡 データフレームの高さを上げてリスト表示を強調
+            st.dataframe(df, use_container_width=True, height=600, hide_index=True)
             
             csv = df.to_csv(index=False, encoding='utf-8-sig')
             st.download_button(
@@ -568,9 +538,9 @@ elif page == "📋 データ管理":
                                 filtered[k] = v.isoformat()
                                 
                         supabase.table(selected_table).insert(filtered).execute()
-                        st.success("✅ レコードを追加しました")
-                        get_table_data.clear() 
-                        st.rerun()
+                        st.success("✅ レコードを追加しました。一覧タブで確認するには「🔄 更新/絞り込み」ボタンを押してください。")
+                        get_table_data.clear()
+                        # st.rerun() を削除し、ページに留まるように修正
                     except Exception as e:
                         st.error(f"エラー: {e}")
                 else:
@@ -616,9 +586,9 @@ elif page == "📋 データ管理":
                                 updated[k] = v.isoformat()
                         
                         supabase.table(selected_table).update(updated).eq(id_col, selected_id).execute()
-                        st.success("✅ レコードを更新しました")
+                        st.success("✅ レコードを更新しました。一覧タブで確認するには「🔄 更新/絞り込み」ボタンを押してください。")
                         get_table_data.clear()
-                        st.rerun()
+                        # st.rerun() を削除し、ページに留まるように修正
                     except Exception as e:
                         st.error(f"エラー: {e}")
         else:
@@ -638,9 +608,9 @@ elif page == "📋 データ管理":
             if st.button("🗑️ レコードを削除", type="primary", use_container_width=True):
                 try:
                     supabase.table(selected_table).delete().eq(id_col, selected_id).execute()
-                    st.success("✅ レコードを削除しました")
+                    st.success("✅ レコードを削除しました。一覧タブで確認するには「🔄 更新/絞り込み」ボタンを押してください。")
                     get_table_data.clear()
-                    st.rerun()
+                    # st.rerun() を削除し、ページに留まるように修正
                 except Exception as e:
                     st.error(f"エラー: {e}")
         else:
@@ -698,9 +668,10 @@ elif page == "📋 データ管理":
                         get_table_data.clear()
                         if errors > 0:
                             st.warning(f"⚠️ {errors}件のエラーがありました")
+                        st.rerun() # インポート後はデータ一覧を再描画するため再起動
                     else:
                         st.error("❌ インポートに失敗しました。ファイル形式またはデータ型を確認してください。")
-                    st.rerun()
+                    
             except UnicodeDecodeError:
                 st.error("❌ 文字コードが正しくありません。右側の「文字コード」を変更してください。")
                 st.info("💡 日本語のCSVファイルは通常「shift_jis」または「cp932」です")
@@ -720,7 +691,7 @@ elif page == "🔍 検索":
     
     tab1, tab2 = st.tabs(["🔍 簡単検索", "🎯 詳細検索"])
     
-    # 簡単検索 (変更なし)
+    # 簡単検索 (レイアウト変更なし)
     with tab1:
         st.markdown("### キーワードで検索")
         search_text = st.text_input("検索キーワード", placeholder="検索したいテキストを入力", label_visibility="collapsed", key="simple_search_text")
@@ -748,106 +719,145 @@ elif page == "🔍 検索":
                         df_unique = df.drop_duplicates(keep='first')
                         
                     st.success(f"✅ {len(df_unique):,}件見つかりました")
-                    st.dataframe(df_unique, use_container_width=True, height=500, hide_index=True)
+                    st.dataframe(df_unique, use_container_width=True, height=600, hide_index=True) # 高さ調整
                 else:
                     st.warning("結果が見つかりませんでした")
             else:
                 st.info("検索キーワードを入力してください。")
     
-    # 詳細検索 (修正)
+    # 詳細検索 (💡 業務アプリ風レイアウトに調整)
     with tab2:
-        st.markdown("### 複数の条件で検索")
+        st.markdown(f'<div class="section-header">🎯 {selected_table} - 詳細検索条件</div>', unsafe_allow_html=True)
         
-        if 'search_conditions' not in st.session_state:
-            st.session_state.search_conditions = []
-        
-        columns = get_table_columns(selected_table)
-        
-        # 条件追加UI
-        col1, col2, col3, col4 = st.columns([3, 2, 3, 1])
-        with col1:
-            cond_col = st.selectbox("フィールド", columns, key="sc_col")
-        with col2:
-            cond_op = st.selectbox("演算子", ["等しい", "含む", "より大きい", "より小さい"], key="sc_op")
-        with col3:
-            cond_val = st.text_input("値", key="sc_val")
-        with col4:
-            st.write("")
-            st.write("")
-            if st.button("➕ 条件を追加", key="add_condition_button", use_container_width=True):
-                if cond_val:
-                    st.session_state.search_conditions.append({
-                        'column': cond_col,
-                        'operator': cond_op,
-                        'value': cond_val
-                    })
-                    st.rerun()
-        
-        # 設定済み条件の表示
-        if st.session_state.search_conditions:
-            st.markdown("**設定された検索条件:**")
+        # 左右パネルの作成 (4:1)
+        col_main, col_settings = st.columns([4, 1])
+
+        with col_settings:
+            # 💡 画像の右側パネルを模した「表示設定」
+            st.markdown("""
+            <div class="info-card info-card-blue" style="padding: 10px;">
+                <div class="card-header" style="margin-bottom: 5px;">
+                    <span class="card-header-icon" style="background:#3182ce;color:white; width: 20px; height: 20px; font-size: 10px;">🔧</span>
+                    <span>表示設定</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
             
-            # 条件リストの表示と削除
-            for idx, cond in enumerate(st.session_state.search_conditions):
-                col1, col2 = st.columns([9, 1])
-                with col1:
-                    st.info(f"{cond['column']} が {cond['operator']} 「{cond['value']}」")
-                with col2:
-                    if st.button("❌ 削除", key=f"del_{idx}"):
-                        st.session_state.search_conditions.pop(idx)
+            # 簡易的な表示項目ON/OFFスイッチ
+            st.toggle("ID列を表示", value=False, key="show_id") 
+            st.toggle("created_atを表示", value=False, key="show_created_at")
+            st.number_input("結果表示件数", value=500, min_value=1, max_value=1000, key="result_limit")
+            
+            st.markdown("---")
+            if st.button("🔍 検索実行", type="primary", use_container_width=True, key="adv_search"):
+                st.session_state.adv_search_triggered = True # 検索トリガー
+            else:
+                 st.session_state.adv_search_triggered = False
+
+
+        with col_main:
+            if 'search_conditions' not in st.session_state:
+                st.session_state.search_conditions = []
+            
+            columns = get_table_columns(selected_table)
+            
+            # 条件追加UI
+            st.markdown("### 1. 検索条件の追加")
+            col1, col2, col3, col4 = st.columns([3, 2, 3, 1])
+            with col1:
+                cond_col = st.selectbox("フィールド", columns, key="sc_col")
+            with col2:
+                cond_op = st.selectbox("演算子", ["等しい", "含む", "より大きい", "より小さい"], key="sc_op")
+            with col3:
+                cond_val = st.text_input("値", key="sc_val")
+            with col4:
+                st.write("")
+                st.write("")
+                if st.button("➕ 条件を追加", key="add_condition_button", use_container_width=True):
+                    if cond_val:
+                        st.session_state.search_conditions.append({
+                            'column': cond_col,
+                            'operator': cond_op,
+                            'value': cond_val
+                        })
                         st.rerun()
-        else:
-            st.info("条件を一つ以上追加してください。")
             
-        st.markdown("---") # 検索ボタンの前に区切り線を追加
+            # 設定済み条件の表示
+            st.markdown("### 2. 現在の検索条件")
+            if st.session_state.search_conditions:
+                
+                # 条件リストの表示と削除
+                for idx, cond in enumerate(st.session_state.search_conditions):
+                    col_disp, col_del = st.columns([9, 1])
+                    with col_disp:
+                        st.info(f"{cond['column']} が {cond['operator']} 「{cond['value']}」")
+                    with col_del:
+                        if st.button("❌ 削除", key=f"del_{idx}"):
+                            st.session_state.search_conditions.pop(idx)
+                            st.rerun()
+            else:
+                st.info("条件を一つ以上追加してください。")
+            
+            st.markdown("---")
         
-        # 修正点1: 検索実行ボタンを常に表示
-        if st.button("🔍 検索実行", type="primary", use_container_width=True, key="adv_search"):
+        # 検索実行ロジック (右パネルのボタンが押された場合)
+        if st.session_state.get('adv_search_triggered'):
             
             if not st.session_state.search_conditions:
                 st.warning("⚠️ 検索条件が設定されていません。条件を追加してから実行してください。")
-                st.stop()
-            
-            query = supabase.table(selected_table).select("*")
-            
-            # 検索ロジック
-            for cond in st.session_state.search_conditions:
-                col, op, val = cond['column'], cond['operator'], cond['value']
+            else:
+                st.markdown(f'<div class="section-header">📈 {selected_table} - 検索結果</div>', unsafe_allow_html=True)
                 
-                is_numeric = False
+                query = supabase.table(selected_table).select("*")
+                
+                for cond in st.session_state.search_conditions:
+                    col, op, val = cond['column'], cond['operator'], cond['value']
+                    
+                    is_numeric = False
+                    try:
+                        float(val)
+                        is_numeric = True
+                    except ValueError:
+                        pass
+                    
+                    if op == "等しい":
+                        query = query.eq(col, val)
+                    elif op == "含む":
+                        query = query.ilike(col, f"%{val}%")
+                    elif op == "より大きい":
+                        if is_numeric:
+                            query = query.gt(col, float(val))
+                        else:
+                            st.warning(f"フィールド '{col}' の演算子 '{op}' は、数値型の値でのみ機能します。")
+                            st.stop()
+                    elif op == "より小さい":
+                        if is_numeric:
+                            query = query.lt(col, float(val))
+                        else:
+                            st.warning(f"フィールド '{col}' の演算子 '{op}' は、数値型の値でのみ機能します。")
+                            st.stop()
+                
                 try:
-                    float(val)
-                    is_numeric = True
-                except ValueError:
-                    pass
-                
-                if op == "等しい":
-                    query = query.eq(col, val)
-                elif op == "含む":
-                    query = query.ilike(col, f"%{val}%")
-                elif op == "より大きい":
-                    if is_numeric:
-                         query = query.gt(col, float(val))
+                    limit = st.session_state.result_limit
+                    response = query.limit(limit).execute()
+                    if response.data:
+                        df = pd.DataFrame(response.data)
+                        
+                        # 💡 表示設定に基づいて列をフィルタリング (簡易的な実装)
+                        cols_to_drop = []
+                        if not st.session_state.show_id and 'id' in df.columns:
+                            cols_to_drop.append('id')
+                        if not st.session_state.show_created_at and 'created_at' in df.columns:
+                            cols_to_drop.append('created_at')
+                            
+                        df_filtered = df.drop(columns=cols_to_drop, errors='ignore')
+
+                        st.success(f"✅ {len(df_filtered):,}件見つかりました (最大 {limit} 件)")
+                        st.dataframe(df_filtered, use_container_width=True, height=600, hide_index=True)
                     else:
-                         st.warning(f"フィールド '{col}' の演算子 '{op}' は、数値型の値でのみ機能します。")
-                         st.stop()
-                elif op == "より小さい":
-                    if is_numeric:
-                         query = query.lt(col, float(val))
-                    else:
-                         st.warning(f"フィールド '{col}' の演算子 '{op}' は、数値型の値でのみ機能します。")
-                         st.stop()
-            
-            try:
-                response = query.limit(500).execute()
-                if response.data:
-                    df = pd.DataFrame(response.data)
-                    st.success(f"✅ {len(df):,}件見つかりました")
-                    st.dataframe(df, use_container_width=True, height=500, hide_index=True)
-                else:
-                    st.warning("結果なし")
-            except Exception as e:
-                st.error(f"エラー: {e}")
+                        st.warning("結果なし")
+                except Exception as e:
+                    st.error(f"エラー: {e}")
 
 # ========================================
 # 📊 集計分析 (変更なし)
@@ -863,7 +873,7 @@ elif page == "📊 集計分析":
     columns = get_table_columns(selected_table)
     valid_columns = [c for c in columns if c not in ['id', 'created_at', 'updated_at']]
     
-    st.markdown("### 1️⃣ グループ化する項目を選択")
+    st.markdown(f'<div class="section-header">1️⃣ {selected_table} - グループ化設定</div>', unsafe_allow_html=True)
     st.caption("同じ値をまとめて集計したい項目を選んでください（例：カテゴリー、地域、月など）")
     group_cols = st.multiselect(
         "グループ化",
@@ -873,7 +883,7 @@ elif page == "📊 集計分析":
         key="group_cols"
     )
     
-    st.markdown("### 2️⃣ 集計方法を選択")
+    st.markdown(f'<div class="section-header">2️⃣ 集計方法の選択</div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
     
@@ -985,7 +995,7 @@ elif page == "🔧 SQLビルダー":
     
     config = st.session_state.sql_config
     
-    st.markdown("### ステップ1: どのテーブルのデータを見たいですか？")
+    st.markdown(f'<div class="section-header">ステップ1: FROMテーブル選択</div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns([3, 1])
     with col1:
@@ -1006,9 +1016,7 @@ elif page == "🔧 SQLビルダー":
         st.info("👆 まずテーブル名を選択または入力してください")
         st.stop()
     
-    st.markdown("---")
-    
-    st.markdown("### ステップ2: どの項目を見たいですか？（省略可）")
+    st.markdown(f'<div class="section-header">ステップ2: 選択項目 (SELECT)</div>', unsafe_allow_html=True)
     st.caption("空欄の場合は全ての項目を表示します")
     
     current_columns = get_table_columns(config['from_table'])
@@ -1022,7 +1030,7 @@ elif page == "🔧 SQLビルダー":
         with col3:
             st.write("")
             st.write("")
-            if st.button("➕ 追加", key="add_select"):
+            if st.button("➕ 追加", key="add_select", use_container_width=True):
                 if sel_field:
                     config['select_fields'].append({
                         'table': config['from_table'],
@@ -1042,13 +1050,11 @@ elif page == "🔧 SQLビルダー":
                         display += f" → 「{field['alias']}」として表示"
                     st.success(display)
                 with col2:
-                    if st.button("❌", key=f"del_select_{idx}"):
+                    if st.button("❌", key=f"del_select_{idx}", use_container_width=True):
                         config['select_fields'].pop(idx)
                         st.rerun()
 
-    st.markdown("---")
-
-    st.markdown("### ステップ3: 関連テーブルとの結合（JOIN）（省略可）")
+    st.markdown(f'<div class="section-header">ステップ3: テーブル結合 (JOIN)</div>', unsafe_allow_html=True)
     
     with st.expander("🔗 結合条件を指定する", expanded=len(config['joins']) > 0):
         col1, col2, col3, col4 = st.columns([3, 3, 4, 2])
@@ -1061,7 +1067,7 @@ elif page == "🔧 SQLビルダー":
         with col4:
             st.write("")
             st.write("")
-            if st.button("➕ 結合を追加", key="add_join"):
+            if st.button("➕ 結合を追加", key="add_join", use_container_width=True):
                 if join_table and on_condition:
                     config['joins'].append({
                         'type': join_type,
@@ -1077,13 +1083,11 @@ elif page == "🔧 SQLビルダー":
                 with col1:
                     st.info(f"{join['type']} JOIN **{join['table']}** ON {join['on_condition']}")
                 with col2:
-                    if st.button("❌", key=f"del_join_{idx}"):
+                    if st.button("❌", key=f"del_join_{idx}", use_container_width=True):
                         config['joins'].pop(idx)
                         st.rerun()
     
-    st.markdown("---")
-    
-    st.markdown("### ステップ4: 絞り込み条件（WHERE）（省略可）")
+    st.markdown(f'<div class="section-header">ステップ4: 絞り込み条件 (WHERE)</div>', unsafe_allow_html=True)
     
     with st.expander("📍 絞り込み条件を指定する", expanded=len(config['where_conditions']) > 0):
         all_tables = [config['from_table']] + [j['table'] for j in config['joins']]
@@ -1102,7 +1106,7 @@ elif page == "🔧 SQLビルダー":
         with col5:
             st.write("")
             st.write("")
-            if st.button("➕ 条件を追加", key="add_where"):
+            if st.button("➕ 条件を追加", key="add_where", use_container_width=True):
                 if cond_field and (cond_value or disabled_val):
                     value_to_add = None if disabled_val else cond_value
                     config['where_conditions'].append({
@@ -1123,13 +1127,11 @@ elif page == "🔧 SQLビルダー":
                         display += f"'{cond['value']}'"
                     st.success(display)
                 with col2:
-                    if st.button("❌", key=f"del_where_{idx}"):
+                    if st.button("❌", key=f"del_where_{idx}", use_container_width=True):
                         config['where_conditions'].pop(idx)
                         st.rerun()
 
-    st.markdown("---")
-    
-    st.markdown("### ステップ5: 並べ替えと件数制限（省略可）")
+    st.markdown(f'<div class="section-header">ステップ5: 並べ替えと件数制限</div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
     with col1:
@@ -1189,14 +1191,10 @@ elif page == "🔧 SQLビルダー":
         
         **2. フィールド選択** (例)
         - テーブル: `T_Expense`, フィールド: `PurchaseNo`, 別名: `注文番号`
-        - テーブル: `T_Expense`, フィールド: `Description`, 別名: `品名`
-        - テーブル: `T_Expense`, フィールド: `DeliveryDate`, 別名: `納期`
         
         **3. 絞り込み条件（WHERE）**
         - テーブル: `T_Expense`, フィールド: `NounyuDate`, 演算子: `IS NULL`
-        - テーブル: `T_Expense`, フィールド: `DeliveryDate`, 演算子: `<='`, 値: `'2024-12-31'`
         
         **4. 並べ替えと件数制限**
         - 並べ替え: `T_Expense.DeliveryDate ASC`
-        - 制限: `100`
         """)
