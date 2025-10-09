@@ -490,12 +490,10 @@ with st.sidebar:
     if 'page' not in st.session_state:
         st.session_state['page'] = "🏠 ダッシュボード"
     
-    # ラジオボタンを大きく見やすく
-    st.markdown("### メニュー")
     page = st.radio(
-        "メニュー選択",
-        ["🏠 ダッシュボード", "🆕 テーブル作成", "📋 データ管理", "📊 集計分析", "🔧 SQL実行"],
-        index=["🏠 ダッシュボード", "🆕 テーブル作成", "📋 データ管理", "📊 集計分析", "🔧 SQL実行"].index(st.session_state['page']) if st.session_state['page'] in ["🏠 ダッシュボード", "🆕 テーブル作成", "📋 データ管理", "📊 集計分析", "🔧 SQL実行"] else 0,
+        "メニュー",
+        ["🏠 ダッシュボード", "🆕 テーブル作成", "📋 データ管理", "🔍 検索", "📊 集計分析", "🔧 SQL実行"],
+        index=["🏠 ダッシュボード", "🆕 テーブル作成", "📋 データ管理", "🔍 検索", "📊 集計分析", "🔧 SQL実行"].index(st.session_state['page']) if st.session_state['page'] in ["🏠 ダッシュボード", "🆕 テーブル作成", "📋 データ管理", "🔍 検索", "📊 集計分析", "🔧 SQL実行"] else 0,
         label_visibility="collapsed"
     )
     
@@ -503,7 +501,7 @@ with st.sidebar:
     
     st.markdown("---")
     
-    if st.button("🔄 データを更新", use_container_width=True):
+    if st.button("🔄 更新", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
     
@@ -512,9 +510,41 @@ with st.sidebar:
     
     if available_tables:
         st.success(f"✅ {len(available_tables)}個のテーブル")
+        
+        with st.expander("📋 テーブル一覧", expanded=True):
+            for table in available_tables:
+                st.markdown(f"<span style='color: #e0e0e0;'>• {table}</span>", unsafe_allow_html=True)
     else:
         st.warning("テーブルなし")
-        st.info("💡 「🆕 テーブル作成」から作成してください")
+        st.info("💡 Supabaseにテーブルを作成後、「🔄 更新」ボタンを押してください")
+    
+    st.markdown("---")
+    
+    if available_tables:
+        st.markdown("### 📋 テーブル選択")
+        st.caption("現在のテーブル")
+        
+        if len(available_tables) == 1:
+            selected_table = available_tables[0]
+            st.info(f"✓ {selected_table}")
+        else:
+            if 'selected_table' not in st.session_state or st.session_state.get('selected_table') not in available_tables:
+                st.session_state['selected_table'] = available_tables[0]
+            
+            selected_table = st.selectbox(
+                "テーブルを選ぶ",
+                available_tables,
+                index=available_tables.index(st.session_state['selected_table']) if st.session_state['selected_table'] in available_tables else 0,
+                label_visibility="collapsed",
+                key="sidebar_table_select"
+            )
+            st.session_state['selected_table'] = selected_table
+            
+            count = get_table_count(selected_table)
+            st.success(f"✓ {selected_table}\n\n{count:,} レコード")
+    else:
+        selected_table = None
+        st.warning("テーブルがありません")
 
 # ========================================
 # 🏠 ダッシュボード
@@ -801,13 +831,13 @@ elif page == "🆕 テーブル作成":
 # ========================================
 elif page == "📋 データ管理":
     st.markdown('<div class="page-title">📋 データ管理</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-subtitle">レコードの表示・検索・追加・編集・削除</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">レコードの表示・追加・編集・削除</div>', unsafe_allow_html=True)
     
     if not selected_table:
         st.warning("⚠️ サイドバーからテーブルを選択してください")
         st.stop()
     
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📋 一覧・検索", "➕ 追加", "✏️ 編集", "🗑️ 削除", "📤 インポート"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📋 一覧", "➕ 追加", "✏️ 編集", "🗑️ 削除", "📤 インポート"])
     
     with tab1:
         col1, col2, col3 = st.columns([2, 1, 1])
@@ -819,128 +849,7 @@ elif page == "📋 データ管理":
             if st.button("🔄 更新", use_container_width=True):
                 st.rerun()
         
-        st.markdown("---")
-        
-        # 検索機能
-        search_expander = st.expander("🔍 検索", expanded=False)
-        
-        with search_expander:
-            search_tab1, search_tab2 = st.tabs(["簡単検索", "詳細検索"])
-            
-            with search_tab1:
-                col_s1, col_s2 = st.columns([4, 1])
-                with col_s1:
-                    search_text = st.text_input("キーワード検索", placeholder="検索したいテキストを入力", key="quick_search")
-                with col_s2:
-                    st.write("")
-                    search_btn = st.button("🔍 検索", type="primary", use_container_width=True, key="quick_search_btn")
-            
-            with search_tab2:
-                if 'search_conditions' not in st.session_state:
-                    st.session_state.search_conditions = []
-                
-                columns = get_table_columns(selected_table)
-                
-                col1, col2, col3, col4 = st.columns([3, 2, 3, 1])
-                with col1:
-                    cond_col = st.selectbox("フィールド", columns, key="detail_col")
-                with col2:
-                    cond_op = st.selectbox("演算子", ["等しい", "含む", "より大きい", "より小さい"], key="detail_op")
-                with col3:
-                    cond_val = st.text_input("値", key="detail_val")
-                with col4:
-                    st.write("")
-                    if st.button("➕", key="add_cond"):
-                        if cond_val:
-                            st.session_state.search_conditions.append({
-                                'column': cond_col,
-                                'operator': cond_op,
-                                'value': cond_val
-                            })
-                            st.rerun()
-                
-                if st.session_state.search_conditions:
-                    st.markdown("**検索条件:**")
-                    for idx, cond in enumerate(st.session_state.search_conditions):
-                        col1, col2 = st.columns([9, 1])
-                        with col1:
-                            st.info(f"{cond['column']} が {cond['operator']} 「{cond['value']}」")
-                        with col2:
-                            if st.button("❌", key=f"del_cond_{idx}"):
-                                st.session_state.search_conditions.pop(idx)
-                                st.rerun()
-                    
-                    col_exec, col_clear = st.columns(2)
-                    with col_exec:
-                        detail_search_btn = st.button("🔍 検索実行", type="primary", use_container_width=True, key="detail_search_btn")
-                    with col_clear:
-                        if st.button("🗑️ 条件クリア", use_container_width=True):
-                            st.session_state.search_conditions = []
-                            st.rerun()
-        
-        st.markdown("---")
-        
-        # データ表示
-        df = None
-        
-        # 簡単検索の実行
-        if 'search_btn' in locals() and search_btn and search_text:
-            columns = get_table_columns(selected_table)
-            all_results = []
-            
-            for col in columns:
-                try:
-                    response = supabase.table(selected_table).select("*").ilike(col, f"%{search_text}%").limit(limit).execute()
-                    if response.data:
-                        all_results.extend(response.data)
-                except:
-                    continue
-            
-            if all_results:
-                unique_data = []
-                seen = set()
-                for item in all_results:
-                    key = str(item.get('id', str(item)))
-                    if key not in seen:
-                        seen.add(key)
-                        unique_data.append(item)
-                
-                df = pd.DataFrame(unique_data)
-                st.success(f"✅ {len(df):,}件見つかりました")
-            else:
-                st.warning("結果が見つかりませんでした")
-        
-        # 詳細検索の実行
-        elif 'detail_search_btn' in locals() and detail_search_btn and st.session_state.search_conditions:
-            query = supabase.table(selected_table).select("*")
-            
-            for cond in st.session_state.search_conditions:
-                col, op, val = cond['column'], cond['operator'], cond['value']
-                
-                if op == "等しい":
-                    query = query.eq(col, val)
-                elif op == "含む":
-                    query = query.ilike(col, f"%{val}%")
-                elif op == "より大きい":
-                    query = query.gt(col, val)
-                elif op == "より小さい":
-                    query = query.lt(col, val)
-            
-            try:
-                response = query.limit(limit).execute()
-                if response.data:
-                    df = pd.DataFrame(response.data)
-                    st.success(f"✅ {len(df):,}件見つかりました")
-                else:
-                    st.warning("結果なし")
-            except Exception as e:
-                st.error(f"エラー: {e}")
-        
-        # 通常表示
-        else:
-            df = get_table_data(selected_table, limit)
-        
-        # データフレーム表示
+        df = get_table_data(selected_table, limit)
         if df is not None and len(df) > 0:
             st.info(f"📊 {len(df):,} 件のレコード")
             st.dataframe(df, use_container_width=True, height=500, hide_index=True)
