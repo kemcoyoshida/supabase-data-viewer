@@ -41,9 +41,9 @@ def show_add_page(supabase, table):
     
     # 新規追加フォーム
     st.markdown(
-        '<div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); '
+        '<div style="background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); '
         'padding: 10px; border-radius: 8px; margin-bottom: 10px; margin-top: 10px;">'
-        '<p style="color: white; margin: 0; font-size: 14px; font-weight: bold;">新規データ入力</p>'
+        '<p style="color: #333; margin: 0; font-size: 14px; font-weight: bold;">新規データ入力</p>'
         '</div>',
         unsafe_allow_html=True
     )
@@ -233,9 +233,9 @@ def show_edit_page(supabase, table):
         selected_id = selected_row_data.get(id_col)
         
         st.markdown(
-            f'<div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); '
+            f'<div style="background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); '
             f'padding: 10px; border-radius: 8px; margin-bottom: 10px;">'
-            f'<p style="color: white; margin: 0; font-size: 14px; font-weight: bold;">編集: ID {selected_id}</p>'
+            f'<p style="color: #333; margin: 0; font-size: 14px; font-weight: bold;">編集: ID {selected_id}</p>'
             f'</div>',
             unsafe_allow_html=True
         )
@@ -414,9 +414,9 @@ def show_delete_page(supabase, table):
         selected_id = selected_row_data.get(id_col)
         
         st.markdown(
-            f'<div style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); '
+            f'<div style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); '
             f'padding: 10px; border-radius: 8px; margin-bottom: 10px;">'
-            f'<p style="color: white; margin: 0; font-size: 14px; font-weight: bold;">削除: ID {selected_id}</p>'
+            f'<p style="color: #333; margin: 0; font-size: 14px; font-weight: bold;">削除: ID {selected_id}</p>'
             f'</div>',
             unsafe_allow_html=True
         )
@@ -457,97 +457,199 @@ def show_delete_page(supabase, table):
         st.info("👆 削除する行をクリック")
 
 
+# ========== テーブル選択ページ ==========
+def show_table_selection(supabase, available_tables):
+    """テーブル選択専用ページ"""
+    
+    st.markdown("### 📋 テーブル選択")
+    
+    # 検索ボックス
+    search_query = st.text_input(
+        "🔍 テーブルを検索", 
+        placeholder="テーブル名を入力して検索...",
+        key="table_search"
+    )
+    
+    # テーブルをフィルタリング
+    if search_query:
+        filtered_tables = [t for t in available_tables if search_query.lower() in t.lower()]
+    else:
+        filtered_tables = available_tables
+    
+    if not filtered_tables:
+        st.warning("該当するテーブルが見つかりません", icon="⚠️")
+        return
+    
+    # テーブル一覧表示（カード形式）
+    st.markdown(
+        '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); '
+        'padding: 10px; border-radius: 8px; margin-bottom: 15px;">'
+        '<p style="color: white; margin: 0; font-size: 14px; font-weight: bold; text-align: center;">'
+        f'テーブル一覧 ({len(filtered_tables)}件)'
+        '</p></div>',
+        unsafe_allow_html=True
+    )
+    
+    # 3列でテーブルを表示
+    cols_per_row = 3
+    for i in range(0, len(filtered_tables), cols_per_row):
+        cols = st.columns(cols_per_row)
+        for j in range(cols_per_row):
+            idx = i + j
+            if idx < len(filtered_tables):
+                table = filtered_tables[idx]
+                
+                # 各テーブルのデータ件数を取得
+                df = get_table_data(table, limit=1000)
+                count = len(df) if df is not None else 0
+                
+                with cols[j]:
+                    # カード型のボタン
+                    if st.button(
+                        f"📊 {table}\n({count:,}件)",
+                        key=f"select_table_{table}",
+                        use_container_width=True,
+                        type="secondary"
+                    ):
+                        st.session_state["selected_table"] = table
+                        st.session_state["table_selected"] = True
+                        st.rerun()
+
+
+# ========== 操作選択ページ ==========
+def show_operation_selection(supabase, table):
+    """操作選択専用ページ（テーブル選択後）"""
+    
+    # 選択中のテーブル表示
+    df = get_table_data(table, limit=100)
+    count = len(df) if df is not None else 0
+    
+    col_back, col_table, col_count = st.columns([1, 3, 1])
+    
+    with col_back:
+        if st.button("⬅️ 戻る", use_container_width=True):
+            st.session_state["table_selected"] = False
+            st.session_state.pop("selected_table", None)
+            st.rerun()
+    
+    with col_table:
+        st.markdown(
+            f'<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); '
+            f'padding: 12px; border-radius: 8px; text-align: center;">'
+            f'<p style="color: white; margin: 0; font-size: 15px; font-weight: bold;">📋 {table}</p>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+    
+    with col_count:
+        st.metric("件数", f"{count:,}")
+    
+    # データプレビュー
+    st.markdown("**データプレビュー**")
+    if df is not None and not df.empty:
+        id_col = "id" if "id" in df.columns else df.columns[0]
+        st.dataframe(
+            df,
+            use_container_width=True,
+            height=200,
+            hide_index=True,
+            column_order=[id_col] + [c for c in df.columns if c != id_col]
+        )
+    else:
+        st.info("データなし", icon="📭")
+    
+    # 操作選択
+    st.markdown(
+        '<div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); '
+        'padding: 12px; border-radius: 8px; margin-top: 15px; margin-bottom: 10px; text-align: center;">'
+        '<p style="color: #333; margin: 0; font-size: 14px; font-weight: bold;">操作を選択してください</p>'
+        '</div>',
+        unsafe_allow_html=True
+    )
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("➕ データ追加", use_container_width=True, type="secondary", key="btn_add"):
+            st.session_state["manage_mode"] = "add"
+            st.session_state["operation_selected"] = True
+            st.rerun()
+    
+    with col2:
+        if st.button("✍️ データ編集", use_container_width=True, type="secondary", key="btn_edit"):
+            st.session_state["manage_mode"] = "edit"
+            st.session_state["operation_selected"] = True
+            st.rerun()
+    
+    with col3:
+        if st.button("🗑️ データ削除", use_container_width=True, type="secondary", key="btn_delete"):
+            st.session_state["manage_mode"] = "delete"
+            st.session_state["operation_selected"] = True
+            st.rerun()
+
+
 # ========== メイン画面 ==========
 def show(supabase, available_tables):
-    """データ管理のメイン画面 - ボタンで機能を切り替え"""
+    """データ管理のメイン画面 - 2段階フロー"""
     
     if not available_tables:
         st.info("テーブルが存在しません。テーブル作成ページで追加してください。", icon="ℹ️")
         return
     
     # セッションステートの初期化
-    if "manage_mode" not in st.session_state:
-        st.session_state["manage_mode"] = "add"
+    if "table_selected" not in st.session_state:
+        st.session_state["table_selected"] = False
     
-    # ヘッダー
-    st.markdown("### データ管理")
+    if "operation_selected" not in st.session_state:
+        st.session_state["operation_selected"] = False
     
-    # テーブル選択（おしゃれなグラデーション背景）
-    st.markdown(
-        '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); '
-        'padding: 15px; border-radius: 10px; margin-bottom: 15px;">'
-        '<p style="color: white; margin: 0; font-size: 14px; font-weight: bold;">📋 テーブル選択</p>'
-        '</div>',
-        unsafe_allow_html=True
-    )
+    # フロー制御
+    if not st.session_state["table_selected"]:
+        # ステップ1: テーブル選択
+        show_table_selection(supabase, available_tables)
     
-    col_select, col_count = st.columns([3, 1])
+    elif not st.session_state["operation_selected"]:
+        # ステップ2: 操作選択
+        table = st.session_state.get("selected_table")
+        if table:
+            show_operation_selection(supabase, table)
     
-    default_table = st.session_state.get("selected_table", available_tables[0])
-    default_index = available_tables.index(default_table) if default_table in available_tables else 0
-
-    with col_select:
-        # テーブル選択を検索可能に
-        table = st.selectbox(
-            "テーブル", 
-            available_tables, 
-            index=default_index, 
-            key="manage_table_select",
-            label_visibility="collapsed"
-        )
-    
-    if table != st.session_state.get("selected_table_actual"):
-        st.session_state["selected_table_actual"] = table
-        st.cache_data.clear()
+    else:
+        # ステップ3: 実際の操作画面
+        table = st.session_state.get("selected_table")
+        mode = st.session_state.get("manage_mode", "add")
         
-    df_count = get_table_data(table, limit=500)
-    count = df_count.shape[0] if df_count is not None else 0
-    
-    with col_count:
-        st.metric("件数", f"{count:,}", label_visibility="visible")
-    
-    # モード切り替えボタン（テキスト付き、おしゃれな配色）
-    st.markdown(
-        '<div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); '
-        'padding: 10px; border-radius: 8px; margin-bottom: 10px; margin-top: 10px;">'
-        '<p style="color: #333; margin: 0; font-size: 13px; font-weight: bold; text-align: center;">操作モード</p>'
-        '</div>',
-        unsafe_allow_html=True
-    )
-    
-    col_mode1, col_mode2, col_mode3 = st.columns(3)
-    
-    with col_mode1:
-        if st.button("➕ 追加", use_container_width=True, type="primary" if st.session_state["manage_mode"] == "add" else "secondary"):
-            st.session_state["manage_mode"] = "add"
-            st.session_state.pop("edit_date_filter_applied", None)
-            st.session_state.pop("edit_keyword_filter_applied", None)
-            st.session_state.pop("delete_date_filter_applied", None)
-            st.session_state.pop("delete_keyword_filter_applied", None)
-            st.rerun()
-    
-    with col_mode2:
-        if st.button("✍️ 編集", use_container_width=True, type="primary" if st.session_state["manage_mode"] == "edit" else "secondary"):
-            st.session_state["manage_mode"] = "edit"
-            st.session_state.pop("edit_date_filter_applied", None)
-            st.session_state.pop("edit_keyword_filter_applied", None)
-            st.session_state.pop("delete_date_filter_applied", None)
-            st.session_state.pop("delete_keyword_filter_applied", None)
-            st.rerun()
-    
-    with col_mode3:
-        if st.button("🗑️ 削除", use_container_width=True, type="primary" if st.session_state["manage_mode"] == "delete" else "secondary"):
-            st.session_state["manage_mode"] = "delete"
-            st.session_state.pop("edit_date_filter_applied", None)
-            st.session_state.pop("edit_keyword_filter_applied", None)
-            st.session_state.pop("delete_date_filter_applied", None)
-            st.session_state.pop("delete_keyword_filter_applied", None)
-            st.rerun()
-    
-    # 選択されたモードに応じてページを表示
-    if st.session_state["manage_mode"] == "add":
-        show_add_page(supabase, table)
-    elif st.session_state["manage_mode"] == "edit":
-        show_edit_page(supabase, table)
-    elif st.session_state["manage_mode"] == "delete":
-        show_delete_page(supabase, table)
+        if not table:
+            st.error("テーブルが選択されていません")
+            return
+        
+        # ヘッダー（戻るボタン付き）
+        col_back, col_info = st.columns([1, 4])
+        
+        with col_back:
+            if st.button("⬅️ 戻る", use_container_width=True):
+                st.session_state["operation_selected"] = False
+                st.rerun()
+        
+        with col_info:
+            df_count = get_table_data(table, limit=500)
+            count = df_count.shape[0] if df_count is not None else 0
+            
+            mode_text = {"add": "追加", "edit": "編集", "delete": "削除"}.get(mode, "")
+            
+            st.markdown(
+                f'<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); '
+                f'padding: 10px; border-radius: 8px; text-align: center;">'
+                f'<p style="color: white; margin: 0; font-size: 14px;">'
+                f'<strong>{table}</strong> | {mode_text}モード | {count:,}件'
+                f'</p></div>',
+                unsafe_allow_html=True
+            )
+        
+        # 各操作画面を表示
+        if mode == "add":
+            show_add_page(supabase, table)
+        elif mode == "edit":
+            show_edit_page(supabase, table)
+        elif mode == "delete":
+            show_delete_page(supabase, table)
