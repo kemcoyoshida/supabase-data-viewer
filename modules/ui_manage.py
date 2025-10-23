@@ -2,6 +2,44 @@ import streamlit as st
 from .supabase_utils import get_table_columns, get_table_data
 import pandas as pd
 
+# CSSでテーブルのスタイルをカスタマイズ
+st.markdown("""
+<style>
+    /* データフレームの行間を狭く */
+    .stDataFrame {
+        font-size: 12px !important;
+    }
+    
+    /* テーブルのセル内padding調整 */
+    .stDataFrame [data-testid="stDataFrameResizable"] {
+        font-size: 11px !important;
+    }
+    
+    /* テーブル全体を小さく */
+    div[data-testid="stDataFrame"] > div {
+        font-size: 11px !important;
+    }
+    
+    /* 行の高さを調整 */
+    .stDataFrame tbody tr {
+        height: 25px !important;
+        line-height: 1.2 !important;
+    }
+    
+    /* ヘッダーも小さく */
+    .stDataFrame thead tr th {
+        font-size: 11px !important;
+        padding: 4px 8px !important;
+    }
+    
+    /* セルのpadding調整 */
+    .stDataFrame tbody tr td {
+        font-size: 11px !important;
+        padding: 2px 8px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # データ操作関数
 def execute_operation(supabase, table, operation, data=None, condition=None):
     try:
@@ -32,7 +70,7 @@ def show_add_page(supabase, table):
         st.dataframe(
             df,
             use_container_width=True,
-            height=200,
+            height=300,
             hide_index=True,
             column_order=[id_col] + [c for c in df.columns if c != id_col]
         )
@@ -207,7 +245,7 @@ def show_edit_page(supabase, table):
         df,
         key="edit_dataframe",
         use_container_width=True,
-        height=250,
+        height=350,
         hide_index=True,
         column_order=[id_col] + [c for c in df.columns if c != id_col],
         on_select="rerun",
@@ -388,7 +426,7 @@ def show_delete_page(supabase, table):
         df,
         key="delete_dataframe",
         use_container_width=True,
-        height=250,
+        height=350,
         hide_index=True,
         column_order=[id_col] + [c for c in df.columns if c != id_col],
         on_select="rerun",
@@ -551,7 +589,7 @@ def show_operation_selection(supabase, table):
         st.dataframe(
             df,
             use_container_width=True,
-            height=200,
+            height=350,
             hide_index=True,
             column_order=[id_col] + [c for c in df.columns if c != id_col]
         )
