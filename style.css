@@ -1,0 +1,107 @@
+/* style.css - 濃いブラウン × オフホワイト テーマ（ベース 24px） */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;700&display=swap');
+
+:root {
+  --bg: #f5f0eb; /* オフホワイト / わずかに暖色 */
+  --card: #ffffff;
+  --primary-text: #2c211a; /* 濃い文字色 */
+  --accent: #5e4a3b; /* 濃いめのブラウン */
+  --accent-light: #8b6e58; /* ボタンなどで使用 */
+  --muted: #70625a; /* グレーディング */
+  --shadow-color: rgba(94, 74, 59, 0.15); /* 濃い影 */
+}
+
+/* 基本：アプリ全体の文字サイズを24pxに設定 */
+html, body, .block-container { 
+    font-family: 'Noto Sans JP', 'Inter', sans-serif; 
+    font-size: 24px !important; 
+    background: var(--bg) !important; 
+    color: var(--primary-text) !important; 
+}
+h1 { font-size: 38px !important; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 5px;}
+h2 { font-size: 32px !important; color: var(--accent); }
+h3 { font-size: 26px !important; color: var(--accent-light); }
+
+/* カード */
+.card { 
+    background: var(--card); 
+    padding: 20px; 
+    border-radius: 12px; 
+    box-shadow: 0 10px 25px var(--shadow-color); /* 影を濃く強調 */
+    border:1px solid rgba(94, 74, 59, 0.1); 
+}
+
+/* サイドバー */
+[data-testid="stSidebar"] { 
+    background: linear-gradient(180deg,#fcfcfb 0%, #f7f3f0 100%); /* 少し濃いグラデーション */
+    min-width: 350px !important; /* 少し広げる */
+    max-width: 450px !important; /* 最大幅を450pxに広げ、長いボタン名が収まるようにする */
+    width: 450px !important; /* サイドバーの幅を強制的に固定 */
+    padding: 18px !important; 
+}
+
+/* ★★★ サイドバーのタイトル（データベース管理）を最大サイズに ★★★ */
+[data-testid="stSidebar"] h1 { 
+    color: var(--accent) !important; 
+    font-size: 35px !important; /* 最大サイズ */
+    font-weight: 700 !important;
+    margin-bottom: 20px !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+}
+
+/* ★★★ 修正点: Streamlitの内部コンテナの幅を調整してボタン幅を揃える ★★★ */
+[data-testid="stSidebar"] div.stVerticalBlock {
+    /* Streamlitがサイドバー内の要素を配置するコンテナ。これを100%にする。 */
+    width: 100% !important;
+}
+/* Streamlitのボタンやセレクトボックスなどのウィジェットを囲むブロック要素も100%にする */
+[data-testid="stSidebar"] div.stVerticalBlock > div:has(.stButton) {
+    width: 100% !important;
+}
+/* ★★★ 修正点ここまで ★★★ */
+
+
+/* テーブルヘッダ */
+th { background: #e8e2dd !important; font-weight:700 !important; color: var(--accent) !important; }
+
+/* ボタン */
+/* サイドバー外のメインコンテンツのボタン */
+.stButton>button { 
+    height:50px !important; 
+    border-radius:10px !important; 
+    font-weight:700 !important; 
+    background-color: var(--accent-light) !important; 
+    color: white !important;
+    border: none !important;
+    transition: background-color 0.2s;
+    width: 100% !important; 
+}
+.stButton>button:hover {
+    background-color: var(--accent) !important;
+}
+
+/* ★★★ サイドバーボタンの修正点（最優先で適用） ★★★ */
+[data-testid="stSidebar"] .stButton {
+    /* サイドバーの stButton コンテナは幅100%を維持 */
+    width: 100% !important;
+    margin-bottom: 10px; /* ボタン間に間隔を空ける */
+}
+[data-testid="stSidebar"] .stButton>button {
+    /* ボタン自体に幅100%を適用 (親要素であるstButtonコンテナの幅に合わせる) */
+    width: 100% !important;
+    /* テキストの折り返しを禁止し、1行で表示する */
+    white-space: nowrap !important; 
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* small note (キャプション) */
+.small-note { color: var(--muted); font-size:20px; } 
+
+/* Streamlit SelectBox/TextInput の調整 */
+div[data-testid="stForm"] > div > div > div > label {
+    font-size: 22px !important; /* フォームのラベルも大きく */
+    font-weight: 600;
+    color: var(--muted);
+}
