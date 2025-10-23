@@ -22,46 +22,83 @@ def execute_operation(supabase, table, operation, data=None, condition=None):
 
 # --- ヘルパー関数: 新規追加フォーム ---
 def show_add_form_toggle(supabase, table):
-    st.markdown("### ➕ データ追加")
+    st.markdown(
+        '<div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); '
+        'padding: 20px; border-radius: 10px; margin-bottom: 20px;">'
+        '<h3 style="color: white; margin: 0;">➕ 新しいデータを追加</h3>'
+        '<p style="color: #e0f7ff; margin: 5px 0 0 0;">ボタンをクリックして入力フォームを開く</p>'
+        '</div>',
+        unsafe_allow_html=True
+    )
     
-    if st.button("➕ 新規レコードの入力画面を開く/閉じる", key="toggle_add_form", use_container_width=True):
+    if st.button("➕ 入力フォームを開く/閉じる", key="toggle_add_form", use_container_width=True, type="primary"):
         st.session_state["show_add_form"] = not st.session_state.get("show_add_form", False)
     
     if st.session_state.get("show_add_form", False):
-        st.markdown("---")
+        st.markdown("<br>", unsafe_allow_html=True)
+        
         cols = get_table_columns(table)
         
         if not cols:
             st.warning("カラム情報が取得できません。", icon="⚠️")
             return
+        
+        st.markdown(
+            '<div style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); '
+            'padding: 15px; border-radius: 10px; margin-bottom: 15px;">'
+            '<h4 style="color: #d84315; margin: 0;">📝 新規データ入力フォーム</h4>'
+            '</div>',
+            unsafe_allow_html=True
+        )
             
         with st.form("add_form", clear_on_submit=True):
             col_list = [c for c in cols if c.lower() not in ["id","created_at","updated_at"]]
             num_cols = 3
             new = {}
             
-            for i in range(0, len(col_list), num_cols):
-                cols_form = st.columns(num_cols)
-                for j in range(num_cols):
-                    idx = i + j
-                    if idx < len(col_list):
-                        c = col_list[idx]
-                        with cols_form[j]:
-                            new[c] = st.text_input(c, key=f"add_input_{table}_{c}")
+            # 各項目をカード形式で表示
+            for i, c in enumerate(col_list):
+                st.markdown(
+                    f'<div style="background: #f5f5f5; padding: 10px; border-radius: 5px; '
+                    f'margin-bottom: 10px; border-left: 4px solid #4facfe;">'
+                    f'<strong>{i+1}. {c}</strong>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+                new[c] = st.text_input(
+                    f"値を入力", 
+                    key=f"add_input_{table}_{c}",
+                    placeholder=f"{c} の値を入力してください",
+                    label_visibility="collapsed"
+                )
             
-            if st.form_submit_button("➕ 実行 - 新規追加"):
-                payload = {k:v for k,v in new.items() if v not in [None,""]}
-                if not payload:
-                    st.warning("入力されたデータがありません。", icon="⚠️")
-                    return
-                success, result = execute_operation(supabase, table, "insert", payload)
-                if success:
-                    st.success("✅ データが正常に追加されました")
-                    st.cache_data.clear()
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            col_submit, col_cancel = st.columns([3, 1])
+            
+            with col_submit:
+                submitted = st.form_submit_button("✅ データを追加する", use_container_width=True, type="primary")
+            
+            with col_cancel:
+                if st.form_submit_button("❌ キャンセル", use_container_width=True):
                     st.session_state["show_add_form"] = False
                     st.rerun()
+            
+            if submitted:
+                payload = {k:v for k,v in new.items() if v not in [None,""]}
+                if not payload:
+                    st.warning("⚠️ 少なくとも1つの項目に値を入力してください。", icon="⚠️")
                 else:
-                    st.error(f"❌ 追加失敗: {result}")
+                    success, result = execute_operation(supabase, table, "insert", payload)
+                    if success:
+                        st.success("🎉 データが正常に追加されました！")
+                        st.balloons()
+                        st.cache_data.clear()
+                        st.session_state["show_add_form"] = False
+                        st.rerun()
+                    else:
+                        st.error(f"❌ 追加失敗: {result}")
+        
         st.markdown("---")
 
 
@@ -298,7 +335,7 @@ def show(supabase, available_tables):
     default_index = available_tables.index(default_table) if default_table in available_tables else 0
 
     with col_left:
-        table = st.selectbox("操作するテーブルを選択", available_tables, index=default_index, key="manage_table")
+        table = st.selectbox("📋 テーブルを選択", available_tables, index=default_index, key="manage_table")
     
     if table != st.session_state.get("selected_table_actual"):
         st.session_state["selected_table_actual"] = table
@@ -310,18 +347,13 @@ def show(supabase, available_tables):
     with col_right:
         st.metric("総件数", f"{count:,}件")
         
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # 2. 新規追加
-    show_add_form_toggle(supabase, table)
-    
     st.markdown("---")
 
-    # 3. データ一覧・検索・選択
-    st.markdown("### 📜 データ一覧・検索・選択")
+    # 2. データ一覧・検索・選択（最上部に配置）
+    st.markdown("### 📊 データ一覧")
     selected_row = show_data_selection_core(supabase, table, key_suffix="main")
 
-    # 4. 選択した行の操作フォーム
+    # 3. 選択した行の操作フォーム（データ一覧の直後）
     if selected_row:
         df_cols = get_table_columns(table)
         id_col = "id" if "id" in df_cols else df_cols[0]
@@ -383,3 +415,8 @@ def show(supabase, available_tables):
             '</div>',
             unsafe_allow_html=True
         )
+    
+    st.markdown("---")
+    
+    # 4. 新規追加（最後に配置）
+    show_add_form_toggle(supabase, table)
