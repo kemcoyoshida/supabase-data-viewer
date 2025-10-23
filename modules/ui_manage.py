@@ -40,7 +40,13 @@ def show_add_page(supabase, table):
         st.info("データなし", icon="📭")
     
     # 新規追加フォーム
-    st.markdown("**新規データ入力**")
+    st.markdown(
+        '<div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); '
+        'padding: 10px; border-radius: 8px; margin-bottom: 10px; margin-top: 10px;">'
+        '<p style="color: white; margin: 0; font-size: 14px; font-weight: bold;">新規データ入力</p>'
+        '</div>',
+        unsafe_allow_html=True
+    )
     
     cols = get_table_columns(table)
     
@@ -104,7 +110,13 @@ def show_edit_page(supabase, table):
     id_col = "id" if "id" in df.columns else df.columns[0]
     
     # 検索フィルター（常に表示、コンパクト）
-    st.markdown("**検索**")
+    st.markdown(
+        '<div style="background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%); '
+        'padding: 8px; border-radius: 8px; margin-bottom: 8px;">'
+        '<p style="color: #333; margin: 0; font-size: 13px; font-weight: bold;">🔍 検索</p>'
+        '</div>',
+        unsafe_allow_html=True
+    )
     
     # 日付検索
     date_cols = [c for c in df.columns if 'date' in c.lower() or 'at' in c.lower() or 'time' in c.lower()]
@@ -220,7 +232,13 @@ def show_edit_page(supabase, table):
     if selected_row_data:
         selected_id = selected_row_data.get(id_col)
         
-        st.markdown(f"**編集: ID {selected_id}**")
+        st.markdown(
+            f'<div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); '
+            f'padding: 10px; border-radius: 8px; margin-bottom: 10px;">'
+            f'<p style="color: white; margin: 0; font-size: 14px; font-weight: bold;">編集: ID {selected_id}</p>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
         
         with st.form(f"edit_form_{selected_id}"):
             df_cols = get_table_columns(table)
@@ -273,7 +291,13 @@ def show_delete_page(supabase, table):
     id_col = "id" if "id" in df.columns else df.columns[0]
     
     # 検索フィルター（常に表示、コンパクト）
-    st.markdown("**検索**")
+    st.markdown(
+        '<div style="background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%); '
+        'padding: 8px; border-radius: 8px; margin-bottom: 8px;">'
+        '<p style="color: #333; margin: 0; font-size: 13px; font-weight: bold;">🔍 検索</p>'
+        '</div>',
+        unsafe_allow_html=True
+    )
     
     # 日付検索
     date_cols = [c for c in df.columns if 'date' in c.lower() or 'at' in c.lower() or 'time' in c.lower()]
@@ -389,7 +413,13 @@ def show_delete_page(supabase, table):
     if selected_row_data:
         selected_id = selected_row_data.get(id_col)
         
-        st.markdown(f"**削除: ID {selected_id}**")
+        st.markdown(
+            f'<div style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); '
+            f'padding: 10px; border-radius: 8px; margin-bottom: 10px;">'
+            f'<p style="color: white; margin: 0; font-size: 14px; font-weight: bold;">削除: ID {selected_id}</p>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
         
         # データ詳細
         with st.expander("詳細", expanded=False):
@@ -439,10 +469,19 @@ def show(supabase, available_tables):
     if "manage_mode" not in st.session_state:
         st.session_state["manage_mode"] = "add"
     
-    # テーブル選択（検索可能＆コンパクト）
+    # ヘッダー
     st.markdown("### データ管理")
     
-    col_select, col_count, col_mode1, col_mode2, col_mode3 = st.columns([2, 1, 1, 1, 1])
+    # テーブル選択（おしゃれなグラデーション背景）
+    st.markdown(
+        '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); '
+        'padding: 15px; border-radius: 10px; margin-bottom: 15px;">'
+        '<p style="color: white; margin: 0; font-size: 14px; font-weight: bold;">📋 テーブル選択</p>'
+        '</div>',
+        unsafe_allow_html=True
+    )
+    
+    col_select, col_count = st.columns([3, 1])
     
     default_table = st.session_state.get("selected_table", available_tables[0])
     default_index = available_tables.index(default_table) if default_table in available_tables else 0
@@ -467,9 +506,19 @@ def show(supabase, available_tables):
     with col_count:
         st.metric("件数", f"{count:,}", label_visibility="visible")
     
-    # モード切り替えボタン（小さく）
+    # モード切り替えボタン（テキスト付き、おしゃれな配色）
+    st.markdown(
+        '<div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); '
+        'padding: 10px; border-radius: 8px; margin-bottom: 10px; margin-top: 10px;">'
+        '<p style="color: #333; margin: 0; font-size: 13px; font-weight: bold; text-align: center;">操作モード</p>'
+        '</div>',
+        unsafe_allow_html=True
+    )
+    
+    col_mode1, col_mode2, col_mode3 = st.columns(3)
+    
     with col_mode1:
-        if st.button("➕", use_container_width=True, type="primary" if st.session_state["manage_mode"] == "add" else "secondary", help="追加"):
+        if st.button("➕ 追加", use_container_width=True, type="primary" if st.session_state["manage_mode"] == "add" else "secondary"):
             st.session_state["manage_mode"] = "add"
             st.session_state.pop("edit_date_filter_applied", None)
             st.session_state.pop("edit_keyword_filter_applied", None)
@@ -478,7 +527,7 @@ def show(supabase, available_tables):
             st.rerun()
     
     with col_mode2:
-        if st.button("✍️", use_container_width=True, type="primary" if st.session_state["manage_mode"] == "edit" else "secondary", help="編集"):
+        if st.button("✍️ 編集", use_container_width=True, type="primary" if st.session_state["manage_mode"] == "edit" else "secondary"):
             st.session_state["manage_mode"] = "edit"
             st.session_state.pop("edit_date_filter_applied", None)
             st.session_state.pop("edit_keyword_filter_applied", None)
@@ -487,7 +536,7 @@ def show(supabase, available_tables):
             st.rerun()
     
     with col_mode3:
-        if st.button("🗑️", use_container_width=True, type="primary" if st.session_state["manage_mode"] == "delete" else "secondary", help="削除"):
+        if st.button("🗑️ 削除", use_container_width=True, type="primary" if st.session_state["manage_mode"] == "delete" else "secondary"):
             st.session_state["manage_mode"] = "delete"
             st.session_state.pop("edit_date_filter_applied", None)
             st.session_state.pop("edit_keyword_filter_applied", None)
