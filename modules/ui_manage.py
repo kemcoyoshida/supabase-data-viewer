@@ -90,20 +90,26 @@ def show_data_selection_core(table, key_suffix):
     id_col = "id" if "id" in df.columns else df.columns[0]
     
     # --- フィルタリング UI ---
-    with st.expander("🔽 データフィルタリング (検索条件)", expanded=False):
+    with st.expander("🔍 検索・フィルター", expanded=False):
         
         # 🌟 日付検索機能
         date_cols = [c for c in df.columns if 'date' in c.lower() or 'at' in c.lower()]
 
         if date_cols:
-            st.subheader("🗓️ 日付による絞り込み")
+            st.markdown(
+                '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); '
+                'padding: 15px; border-radius: 10px; margin-bottom: 15px;">'
+                '<h4 style="color: white; margin: 0;">📅 期間で検索</h4>'
+                '</div>',
+                unsafe_allow_html=True
+            )
+            
             col_d1, col_d2, col_d3 = st.columns(3)
             with col_d1:
-                date_filter_col = st.selectbox("日付項目", date_cols, key=f"date_filter_col_{key_suffix}")
+                date_filter_col = st.selectbox("📆 日付項目", date_cols, key=f"date_filter_col_{key_suffix}")
             
-            # DataFrameの当該カラムをdatetime型に変換（エラーを無視して変換できるものだけ）
+            # DataFrameの当該カラムをdatetime型に変換
             try:
-                # Supabaseからのデータは文字列なので、まずdatetimeに変換し、日付部分を取り出す
                 df["__temp_date_filter"] = pd.to_datetime(df[date_filter_col], errors='coerce').dt.date
                 date_col_ready = True
             except:
@@ -111,10 +117,9 @@ def show_data_selection_core(table, key_suffix):
                 st.warning(f"{date_filter_col} は日付として処理できません。", icon="⚠️")
                 
             with col_d2:
-                # 🌟 Streamlitのバグ回避のため、value=Noneではなく空のdatetime.dateオブジェクトを設定
-                start_date = st.date_input("開始日 (この日以降)", value=None, key=f"start_date_{key_suffix}")
+                start_date = st.date_input("📍 開始日", value=None, key=f"start_date_{key_suffix}")
             with col_d3:
-                end_date = st.date_input("終了日 (この日まで)", value=None, key=f"end_date_{key_suffix}")
+                end_date = st.date_input("📍 終了日", value=None, key=f"end_date_{key_suffix}")
                 
             if start_date or end_date:
                 if date_col_ready:
@@ -126,23 +131,35 @@ def show_data_selection_core(table, key_suffix):
                         temp_df = temp_df[temp_df["__temp_date_filter"] <= end_date]
                         
                     df = temp_df
-                    st.info(f"日付フィルタを適用中: {date_filter_col} が {start_date or '最初'} から {end_date or '最新'} の範囲")
+                    
+                    # フィルタ適用の表示
+                    date_range_text = f"{start_date or '最初'} ～ {end_date or '最新'}"
+                    st.success(f"✅ 期間フィルタ適用中: **{date_range_text}**", icon="🎯")
                 
-            # テンポラリカラムを削除 (次のフィルターに影響しないように)
+            # テンポラリカラムを削除
             if "__temp_date_filter" in df.columns:
                 df = df.drop(columns=["__temp_date_filter"])
+            
+            st.markdown("<br>", unsafe_allow_html=True)
 
-        st.subheader("🔎 テキスト/値による絞り込み")
-        # --- (B) テキスト/値フィルタリング (既存のロジック) ---
+        # テキスト/値フィルタリング
+        st.markdown(
+            '<div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); '
+            'padding: 15px; border-radius: 10px; margin-bottom: 15px;">'
+            '<h4 style="color: white; margin: 0;">🔎 キーワードで検索</h4>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+        
         cols = df.columns.tolist()
         
         col1, col2, col3 = st.columns([3, 2, 3])
         with col1:
-            filter_col = st.selectbox("項目", cols, key=f"filter_col_{key_suffix}")
+            filter_col = st.selectbox("📋 検索する項目", cols, key=f"filter_col_{key_suffix}")
         with col2:
-            filter_op = st.selectbox("条件", ["含む", "等しい"], key=f"filter_op_{key_suffix}")
+            filter_op = st.selectbox("🎯 条件", ["含む", "等しい", "以上", "以下"], key=f"filter_op_{key_suffix}")
         with col3:
-            filter_val = st.text_input("検索値", key=f"filter_val_{key_suffix}")
+            filter_val = st.text_input("🔍 検索値", key=f"filter_val_{key_suffix}", placeholder="検索したい値を入力")
             
         if filter_val:
             try:
@@ -151,18 +168,44 @@ def show_data_selection_core(table, key_suffix):
                     df = df[df[filter_col].astype(str) == filter_val]
                 elif filter_op == "含む":
                     df = df[df[filter_col].astype(str).str.contains(filter_val, case=False, na=False)]
+                elif filter_op == "以上":
+                    # 数値として比較を試みる
+                    try:
+                        df = df[pd.to_numeric(df[filter_col], errors='coerce') >= float(filter_val)]
+                    except:
+                        st.warning("「以上」は数値項目でのみ使用できます", icon="⚠️")
+                elif filter_op == "以下":
+                    try:
+                        df = df[pd.to_numeric(df[filter_col], errors='coerce') <= float(filter_val)]
+                    except:
+                        st.warning("「以下」は数値項目でのみ使用できます", icon="⚠️")
+                
+                st.success(f"✅ キーワードフィルタ適用中: **{filter_col}** が **{filter_val}** を{filter_op}", icon="🎯")
+                
             except Exception as e:
-                st.warning("フィルタリング失敗: 入力値の型を確認してください。")
+                st.error(f"フィルタリングエラー: {str(e)}", icon="❌")
+        
+        # フィルタをクリアするボタン
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🔄 すべてのフィルタをクリア", use_container_width=True, type="secondary", key=f"clear_filter_{key_suffix}"):
+            st.rerun()
 
     # --- データフレーム（選択可能） ---
-    st.caption(f"💡 表示件数: {len(df)}件。修正または削除したい行を**クリック**して選択してください。")
+    st.markdown(
+        f'<div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); '
+        f'padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">'
+        f'<p style="margin: 0; color: #333;"><strong>📊 表示件数: {len(df)}件</strong> | '
+        f'修正・削除したい行をクリックして選択 👇</p>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
     
     # 🌟 重要な修正: selection_mode と on_select を追加して行選択を有効化
     event = st.dataframe(
         df,
         key=f"st_dataframe_{table}_{key_suffix}", 
         use_container_width=True,
-        height=350,
+        height=400,
         hide_index=True,
         column_order=[id_col] + [c for c in df.columns if c != id_col],
         selection_mode="single-row",  # 🌟 追加: 単一行選択を有効化
@@ -180,16 +223,20 @@ def show_data_selection_core(table, key_suffix):
         if selected_index < len(df):
             selected_row_data = df.iloc[selected_index].to_dict()
             st.session_state[f"selected_row_{key_suffix}"] = selected_row_data
-            # 🌟 修正: 選択成功メッセージをより目立たせる
-            st.success(f"✅ ID **{selected_row_data.get(id_col)}** の行が選択されました。下の「🎯 選択したレコードの操作」セクションをご確認ください。")
+            # 🌟 選択成功メッセージ - おしゃれなカードデザイン
+            st.markdown(
+                f'<div style="background: linear-gradient(135deg, #96fbc4 0%, #f9f586 100%); '
+                f'padding: 15px; border-radius: 10px; margin-top: 10px; border-left: 5px solid #00c853;">'
+                f'<p style="margin: 0; color: #2e7d32; font-weight: bold;">✅ ID <code>{selected_row_data.get(id_col)}</code> が選択されました</p>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
         else:
             st.session_state[f"selected_row_{key_suffix}"] = None
             st.warning("無効な行が選択されました。")
     else:
+        # 選択されていない場合
         st.session_state[f"selected_row_{key_suffix}"] = None
-        st.info("☝️ 上の表から操作したい行をクリックしてください。")
-        
-    st.markdown("---")
     
     return selected_row_data
 
@@ -271,8 +318,7 @@ def show(supabase, available_tables):
     st.markdown("### 📜 データ一覧・検索・選択")
     selected_row = show_data_selection_core(table, key_suffix="main")
 
-    # 4. 編集・削除フォームの表示
-    # 🌟 修正: selected_row が存在する場合のみ表示
+    # 4. 選択した行の操作フォーム（データ一覧の直後に表示）
     if selected_row:
         # 選択行情報からIDを取得
         df_cols = get_table_columns(table)
@@ -280,40 +326,45 @@ def show(supabase, available_tables):
         selected_id = selected_row.get(id_col)
         
         st.markdown("---")
-        st.markdown(f"### 🎯 選択したレコードの操作 (ID: `{selected_id}`)")
+        st.markdown(
+            f'<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); '
+            f'padding: 20px; border-radius: 10px; margin-bottom: 20px;">'
+            f'<h3 style="color: white; margin: 0;">🎯 選択したレコードの操作</h3>'
+            f'<p style="color: #e0e0e0; margin: 5px 0 0 0;">ID: <code style="background: rgba(255,255,255,0.2); '
+            f'padding: 2px 8px; border-radius: 4px;">{selected_id}</code></p>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
         
-        # 編集と削除の領域を定義
-        edit_col, delete_col = st.columns([2, 1])
-
-        with edit_col:
+        # タブで編集と削除を分ける（よりコンパクト）
+        tab1, tab2 = st.tabs(["✍️ 修正", "🗑️ 削除"])
+        
+        with tab1:
             show_edit_form(supabase, table, selected_row, id_col)
         
-        with delete_col:
-            st.markdown("#### 🗑️ 削除警告")
+        with tab2:
+            st.markdown("#### ⚠️ 削除の確認")
+            st.warning(f"ID `{selected_id}` のレコードを削除しようとしています。", icon="⚠️")
             
-            # --- 削除の第一ステップ: 警告と確認ボタン ---
-            # キーにselected_idを含め、一意性を確保
-            if st.button(f"🗑️ ID {selected_id} の削除を開始", type="secondary", key=f"init_delete_btn_{selected_id}", use_container_width=True):
-                # 削除確認フラグを立てる
-                st.session_state["confirm_delete_id"] = selected_id
-            
-            # --- 削除の第二ステップ: 最終確認フロー ---
-            # セッションステートのIDと現在選択されているIDが一致する場合のみ確認フローを表示
-            if st.session_state.get("confirm_delete_id") == selected_id:
-                st.markdown("---")
-                st.error(f"⚠️ **最終確認:** ID `{selected_id}` を削除します。")
+            # 削除の確認フロー
+            if st.session_state.get("confirm_delete_id") != selected_id:
+                # 第一段階：削除開始ボタン
+                if st.button(f"🗑️ このレコードを削除する", type="secondary", key=f"init_delete_btn_{selected_id}", use_container_width=True):
+                    st.session_state["confirm_delete_id"] = selected_id
+                    st.rerun()
+            else:
+                # 第二段階：最終確認
+                st.error(f"⚠️ **最終確認:** 本当に削除しますか？", icon="🚨")
                 
                 col_yes, col_no = st.columns(2)
                 
                 with col_yes:
-                    # 削除実行
-                    # キーにselected_idを含め、一意性を確保
-                    if st.button("🗑️ 削除を最終確定", type="primary", key=f"final_delete_yes_{selected_id}", use_container_width=True):
+                    if st.button("✅ はい、削除します", type="primary", key=f"final_delete_yes_{selected_id}", use_container_width=True):
                         success, result = execute_operation(supabase, table, "delete", condition=(id_col, selected_id))
                         if success:
                             st.success("✅ データが正常に削除されました")
-                            st.session_state.pop("confirm_delete_id", None) # 状態クリア
-                            st.session_state.pop("selected_row_main", None) # 選択もクリア
+                            st.session_state.pop("confirm_delete_id", None)
+                            st.session_state.pop("selected_row_main", None)
                             st.cache_data.clear()
                             st.rerun() 
                         else:
@@ -321,17 +372,17 @@ def show(supabase, available_tables):
                             st.session_state.pop("confirm_delete_id", None)
                 
                 with col_no:
-                    # キャンセルボタン
-                    # キーにselected_idを含め、一意性を確保
-                    if st.button("キャンセル", key=f"final_delete_no_{selected_id}", use_container_width=True):
-                        st.session_state.pop("confirm_delete_id", None) # 状態クリア
+                    if st.button("❌ キャンセル", key=f"final_delete_no_{selected_id}", use_container_width=True):
+                        st.session_state.pop("confirm_delete_id", None)
                         st.info("削除をキャンセルしました。")
-            else:
-                 st.info("👆上のボタンを押すと削除の最終確認が表示されます。")
+                        st.rerun()
     else:
-        # 🌟 修正: 選択されていない場合の明確な指示
-        st.markdown("""
-        ---
-        ### 🎯 選択したレコードの操作
-        データ一覧から行をクリックして選択すると、ここに**修正フォーム**と**削除オプション**が表示されます。
-        """)
+        # 選択されていない場合の案内
+        st.markdown(
+            '<div style="background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); '
+            'padding: 20px; border-radius: 10px; text-align: center; margin-top: 20px;">'
+            '<p style="margin: 0; color: #333; font-size: 16px;">👆 データ一覧から行をクリックして選択すると、<br>'
+            '<strong>修正・削除</strong>ができます</p>'
+            '</div>',
+            unsafe_allow_html=True
+        )
