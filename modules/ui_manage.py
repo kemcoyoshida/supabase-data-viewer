@@ -79,92 +79,11 @@ def show_data_selection_core(supabase, table, key_suffix):
     df = df_raw.copy()
     id_col = "id" if "id" in df.columns else df.columns[0]
     
-    # --- フィルタリング UI ---
-    with st.expander("🔍 検索・フィルター", expanded=True):
-        
-        # 日付検索
-        date_cols = [c for c in df.columns if 'date' in c.lower() or 'at' in c.lower() or 'time' in c.lower()]
-
-        if date_cols:
-            st.markdown(
-                '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); '
-                'padding: 15px; border-radius: 10px; margin-bottom: 15px;">'
-                '<h4 style="color: white; margin: 0;">📅 期間で検索</h4>'
-                '</div>',
-                unsafe_allow_html=True
-            )
-            
-            col_d1, col_d2, col_d3 = st.columns(3)
-            with col_d1:
-                date_filter_col = st.selectbox("📆 日付項目", date_cols, key=f"date_filter_col_{key_suffix}")
-            
-            with col_d2:
-                start_date = st.date_input("📍 開始日", value=None, key=f"start_date_{key_suffix}")
-            with col_d3:
-                end_date = st.date_input("📍 終了日", value=None, key=f"end_date_{key_suffix}")
-                
-            if start_date or end_date:
-                try:
-                    df["__temp_date"] = pd.to_datetime(df[date_filter_col], errors='coerce').dt.date
-                    
-                    if start_date:
-                        df = df[df["__temp_date"] >= start_date]
-                    if end_date:
-                        df = df[df["__temp_date"] <= end_date]
-                    
-                    df = df.drop(columns=["__temp_date"])
-                    
-                    date_range_text = f"{start_date or '最初'} ～ {end_date or '最新'}"
-                    st.success(f"✅ 期間フィルタ適用中: **{date_range_text}**")
-                except Exception as e:
-                    st.error(f"日付フィルタエラー: {str(e)}")
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-
-        # テキスト/値フィルタリング
-        st.markdown(
-            '<div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); '
-            'padding: 15px; border-radius: 10px; margin-bottom: 15px;">'
-            '<h4 style="color: white; margin: 0;">🔎 キーワードで検索</h4>'
-            '</div>',
-            unsafe_allow_html=True
-        )
-        
-        cols = df.columns.tolist()
-        
-        col1, col2, col3 = st.columns([3, 2, 3])
-        with col1:
-            filter_col = st.selectbox("📋 検索する項目", cols, key=f"filter_col_{key_suffix}")
-        with col2:
-            filter_op = st.selectbox("🎯 条件", ["含む", "等しい", "以上", "以下"], key=f"filter_op_{key_suffix}")
-        with col3:
-            filter_val = st.text_input("🔍 検索値", key=f"filter_val_{key_suffix}", placeholder="検索したい値を入力")
-            
-        if filter_val:
-            try:
-                if filter_op == "等しい":
-                    df = df[df[filter_col].astype(str) == filter_val]
-                elif filter_op == "含む":
-                    df = df[df[filter_col].astype(str).str.contains(filter_val, case=False, na=False)]
-                elif filter_op == "以上":
-                    df = df[pd.to_numeric(df[filter_col], errors='coerce') >= float(filter_val)]
-                elif filter_op == "以下":
-                    df = df[pd.to_numeric(df[filter_col], errors='coerce') <= float(filter_val)]
-                
-                st.success(f"✅ キーワードフィルタ適用中: **{filter_col}** が **{filter_val}** を{filter_op}")
-            except Exception as e:
-                st.error(f"フィルタリングエラー: {str(e)}")
-        
-        # フィルタクリア
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🔄 すべてのフィルタをクリア", use_container_width=True, type="secondary", key=f"clear_filter_{key_suffix}"):
-            st.rerun()
-
-    # --- データフレーム表示 ---
+    # --- データフレーム表示（最初に表示） ---
     st.markdown(
         f'<div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); '
         f'padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">'
-        f'<p style="margin: 0; color: #333;"><strong>📊 表示件数: {len(df)}件</strong> | '
+        f'<p style="margin: 0; color: #333;"><strong>📊 全件数: {len(df_raw)}件</strong> | '
         f'修正・削除したい行をクリックして選択 👇</p>'
         f'</div>',
         unsafe_allow_html=True
@@ -202,6 +121,130 @@ def show_data_selection_core(supabase, table, key_suffix):
                     )
     except Exception as e:
         selected_row_data = st.session_state.get(f"selected_row_{key_suffix}", None)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # --- フィルタリング UI（表の下に配置） ---
+    with st.expander("🔍 検索・フィルター（データを絞り込む）", expanded=False):
+        
+        # 日付検索
+        date_cols = [c for c in df_raw.columns if 'date' in c.lower() or 'at' in c.lower() or 'time' in c.lower()]
+
+        if date_cols:
+            st.markdown(
+                '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); '
+                'padding: 15px; border-radius: 10px; margin-bottom: 15px;">'
+                '<h4 style="color: white; margin: 0;">📅 期間で検索</h4>'
+                '</div>',
+                unsafe_allow_html=True
+            )
+            
+            col_d1, col_d2, col_d3 = st.columns(3)
+            with col_d1:
+                date_filter_col = st.selectbox("📆 日付項目", date_cols, key=f"date_filter_col_{key_suffix}")
+            
+            with col_d2:
+                start_date = st.date_input("📍 開始日", value=None, key=f"start_date_{key_suffix}")
+            with col_d3:
+                end_date = st.date_input("📍 終了日", value=None, key=f"end_date_{key_suffix}")
+                
+            if start_date or end_date:
+                if st.button("🔍 期間フィルタを適用", key=f"apply_date_filter_{key_suffix}", use_container_width=True, type="primary"):
+                    st.session_state[f"date_filter_applied_{key_suffix}"] = {
+                        "col": date_filter_col,
+                        "start": start_date,
+                        "end": end_date
+                    }
+                    st.rerun()
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+
+        # テキスト/値フィルタリング
+        st.markdown(
+            '<div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); '
+            'padding: 15px; border-radius: 10px; margin-bottom: 15px;">'
+            '<h4 style="color: white; margin: 0;">🔎 キーワードで検索</h4>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+        
+        cols = df_raw.columns.tolist()
+        
+        col1, col2, col3 = st.columns([3, 2, 3])
+        with col1:
+            filter_col = st.selectbox("📋 検索する項目", cols, key=f"filter_col_{key_suffix}")
+        with col2:
+            filter_op = st.selectbox("🎯 条件", ["含む", "等しい", "以上", "以下"], key=f"filter_op_{key_suffix}")
+        with col3:
+            filter_val = st.text_input("🔍 検索値", key=f"filter_val_{key_suffix}", placeholder="検索したい値を入力")
+            
+        if filter_val:
+            if st.button("🔍 キーワードフィルタを適用", key=f"apply_keyword_filter_{key_suffix}", use_container_width=True, type="primary"):
+                st.session_state[f"keyword_filter_applied_{key_suffix}"] = {
+                    "col": filter_col,
+                    "op": filter_op,
+                    "val": filter_val
+                }
+                st.rerun()
+        
+        # フィルタクリア
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🔄 すべてのフィルタをクリア", use_container_width=True, type="secondary", key=f"clear_filter_{key_suffix}"):
+            st.session_state.pop(f"date_filter_applied_{key_suffix}", None)
+            st.session_state.pop(f"keyword_filter_applied_{key_suffix}", None)
+            st.rerun()
+    
+    # フィルタが適用されている場合の表示
+    filter_applied = False
+    
+    # 日付フィルタの適用
+    if f"date_filter_applied_{key_suffix}" in st.session_state:
+        filter_info = st.session_state[f"date_filter_applied_{key_suffix}"]
+        try:
+            df["__temp_date"] = pd.to_datetime(df[filter_info["col"]], errors='coerce').dt.date
+            
+            if filter_info["start"]:
+                df = df[df["__temp_date"] >= filter_info["start"]]
+            if filter_info["end"]:
+                df = df[df["__temp_date"] <= filter_info["end"]]
+            
+            df = df.drop(columns=["__temp_date"])
+            
+            date_range_text = f"{filter_info['start'] or '最初'} ～ {filter_info['end'] or '最新'}"
+            st.success(f"✅ 期間フィルタ適用中: **{date_range_text}** （表示: {len(df)}件）")
+            filter_applied = True
+        except Exception as e:
+            st.error(f"日付フィルタエラー: {str(e)}")
+    
+    # キーワードフィルタの適用
+    if f"keyword_filter_applied_{key_suffix}" in st.session_state:
+        filter_info = st.session_state[f"keyword_filter_applied_{key_suffix}"]
+        try:
+            if filter_info["op"] == "等しい":
+                df = df[df[filter_info["col"]].astype(str) == filter_info["val"]]
+            elif filter_info["op"] == "含む":
+                df = df[df[filter_info["col"]].astype(str).str.contains(filter_info["val"], case=False, na=False)]
+            elif filter_info["op"] == "以上":
+                df = df[pd.to_numeric(df[filter_info["col"]], errors='coerce') >= float(filter_info["val"])]
+            elif filter_info["op"] == "以下":
+                df = df[pd.to_numeric(df[filter_info["col"]], errors='coerce') <= float(filter_info["val"])]
+            
+            st.success(f"✅ キーワードフィルタ適用中: **{filter_info['col']}** が **{filter_info['val']}** を{filter_info['op']} （表示: {len(df)}件）")
+            filter_applied = True
+        except Exception as e:
+            st.error(f"フィルタリングエラー: {str(e)}")
+    
+    if filter_applied and len(df) < len(df_raw):
+        # フィルタ適用後のデータフレームを再表示
+        st.markdown("### 🔍 フィルタ結果")
+        st.dataframe(
+            df,
+            key=f"filtered_dataframe_{table}_{key_suffix}",
+            use_container_width=True,
+            height=300,
+            hide_index=True,
+            column_order=[id_col] + [c for c in df.columns if c != id_col]
+        )
     
     return selected_row_data
 
