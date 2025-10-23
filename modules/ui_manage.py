@@ -157,20 +157,21 @@ def show_data_selection_core(table, key_suffix):
     # --- データフレーム（選択可能） ---
     st.caption(f"💡 表示件数: {len(df)}件。修正または削除したい行を**クリック**して選択してください。")
     
-    st.dataframe(
+    # 🌟 重要な修正: selection_mode と on_select を追加して行選択を有効化
+    event = st.dataframe(
         df,
-        # 🌟 修正: テーブル名を含む一意なキーに変更
         key=f"st_dataframe_{table}_{key_suffix}", 
         use_container_width=True,
         height=350,
         hide_index=True,
-        column_order=[id_col] + [c for c in df.columns if c != id_col]
+        column_order=[id_col] + [c for c in df.columns if c != id_col],
+        selection_mode="single-row",  # 🌟 追加: 単一行選択を有効化
+        on_select="rerun"  # 🌟 追加: 選択時に自動的にrerunする
     )
     
     # 選択された行の処理
-    # 🌟 修正: テーブル名を含むキーでセレクト状態を正しく取得
-    selected_state = st.session_state.get(f"st_dataframe_{table}_{key_suffix}", {})
-    selected_rows = selected_state.get("selection", {}).get("rows", [])
+    # 🌟 修正: eventオブジェクトから直接選択情報を取得
+    selected_rows = event.selection.rows if hasattr(event, 'selection') else []
     
     selected_row_data = None
     if selected_rows:
