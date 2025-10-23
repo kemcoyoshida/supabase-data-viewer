@@ -22,46 +22,28 @@ def execute_operation(supabase, table, operation, data=None, condition=None):
 # ========== データ追加ページ ==========
 def show_add_page(supabase, table):
     """データ追加専用ページ"""
-    st.markdown("## ➕ データ追加")
-    st.markdown("---")
+    st.markdown("### ➕ データ追加")
     
     # 現在のデータ一覧
-    st.markdown("### 📊 現在のデータ一覧")
-    
     df = get_table_data(table, limit=100)
     
     if df is not None and not df.empty:
-        st.markdown(
-            f'<div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); '
-            f'padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">'
-            f'<p style="margin: 0; color: #333;"><strong>📊 最新 {len(df)}件を表示</strong></p>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-        
         id_col = "id" if "id" in df.columns else df.columns[0]
         
         st.dataframe(
             df,
             use_container_width=True,
-            height=300,
+            height=250,
             hide_index=True,
             column_order=[id_col] + [c for c in df.columns if c != id_col]
         )
     else:
-        st.info("データがありません。最初のデータを追加しましょう！", icon="📭")
+        st.info("データがありません", icon="📭")
     
     st.markdown("---")
     
     # 新規追加フォーム
-    st.markdown(
-        '<div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); '
-        'padding: 20px; border-radius: 10px; margin-bottom: 20px;">'
-        '<h3 style="color: white; margin: 0;">➕ 新しいデータを追加</h3>'
-        '<p style="color: #e0f7ff; margin: 5px 0 0 0;">下のフォームに入力してデータを追加</p>'
-        '</div>',
-        unsafe_allow_html=True
-    )
+    st.markdown("#### 📝 新規データ入力")
     
     cols = get_table_columns(table)
     
@@ -74,26 +56,16 @@ def show_add_page(supabase, table):
         new = {}
         
         for i, c in enumerate(col_list):
-            st.markdown(
-                f'<div style="background: #f5f5f5; padding: 10px; border-radius: 5px; '
-                f'margin-bottom: 10px; border-left: 4px solid #4facfe;">'
-                f'<strong>📝 {i+1}. {c}</strong>'
-                f'</div>',
-                unsafe_allow_html=True
-            )
             new[c] = st.text_input(
-                f"値を入力", 
+                f"{c}", 
                 key=f"add_input_{table}_{c}",
-                placeholder=f"{c} の値を入力してください",
-                label_visibility="collapsed"
+                placeholder=f"{c} の値を入力"
             )
-        
-        st.markdown("<br>", unsafe_allow_html=True)
         
         col_submit, col_clear = st.columns([3, 1])
         
         with col_submit:
-            submitted = st.form_submit_button("✅ データを追加する", use_container_width=True, type="primary")
+            submitted = st.form_submit_button("✅ 追加", use_container_width=True, type="primary")
         
         with col_clear:
             st.form_submit_button("🔄 クリア", use_container_width=True)
@@ -116,11 +88,7 @@ def show_add_page(supabase, table):
 # ========== データ編集ページ ==========
 def show_edit_page(supabase, table):
     """データ編集専用ページ"""
-    st.markdown("## ✍️ データ編集")
-    st.markdown("---")
-    
-    # データ一覧と検索
-    st.markdown("### 📊 データ一覧・検索")
+    st.markdown("### ✍️ データ編集")
     
     df_raw = get_table_data(table, limit=500)
     
@@ -224,20 +192,13 @@ def show_edit_page(supabase, table):
             st.error(f"フィルタリングエラー: {str(e)}")
     
     # データ一覧表示
-    st.markdown(
-        f'<div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); '
-        f'padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">'
-        f'<p style="margin: 0; color: #333;"><strong>📊 表示件数: {len(df)}件</strong> | '
-        f'編集したい行をクリックして選択 👇</p>'
-        f'</div>',
-        unsafe_allow_html=True
-    )
+    st.caption(f"📊 {len(df)}件 | 編集したい行をクリック")
     
     selection = st.dataframe(
         df,
         key="edit_dataframe",
         use_container_width=True,
-        height=400,
+        height=350,
         hide_index=True,
         column_order=[id_col] + [c for c in df.columns if c != id_col],
         on_select="rerun",
@@ -255,56 +216,30 @@ def show_edit_page(supabase, table):
                 if selected_index < len(df):
                     selected_row_data = df.iloc[selected_index].to_dict()
                     st.session_state["selected_row_edit"] = selected_row_data
-                    st.markdown(
-                        f'<div style="background: linear-gradient(135deg, #96fbc4 0%, #f9f586 100%); '
-                        f'padding: 15px; border-radius: 10px; margin-top: 10px; border-left: 5px solid #00c853;">'
-                        f'<p style="margin: 0; color: #2e7d32; font-weight: bold;">✅ ID <code>{selected_row_data.get(id_col)}</code> が選択されました</p>'
-                        f'</div>',
-                        unsafe_allow_html=True
-                    )
+                    st.success(f"✅ ID: {selected_row_data.get(id_col)} を選択", icon="✓")
     except:
         selected_row_data = st.session_state.get("selected_row_edit", None)
-    
-    st.markdown("---")
     
     # 編集フォーム
     if selected_row_data:
         selected_id = selected_row_data.get(id_col)
         
-        st.markdown(
-            f'<div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); '
-            f'padding: 20px; border-radius: 10px; margin-bottom: 20px;">'
-            f'<h3 style="color: white; margin: 0;">✍️ データ編集フォーム</h3>'
-            f'<p style="color: #ffe0e0; margin: 5px 0 0 0;">ID: <code style="background: rgba(255,255,255,0.2); '
-            f'padding: 2px 8px; border-radius: 4px;">{selected_id}</code></p>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
+        st.markdown(f"#### ✍️ ID: {selected_id} を編集")
         
         with st.form(f"edit_form_{selected_id}"):
             df_cols = get_table_columns(table)
             upd = {}
             col_list = [c for c in df_cols if c.lower() not in ["id","created_at","updated_at"]]
             
-            for i, c in enumerate(col_list):
+            for c in col_list:
                 val = selected_row_data.get(c, "")
-                st.markdown(
-                    f'<div style="background: #f5f5f5; padding: 10px; border-radius: 5px; '
-                    f'margin-bottom: 10px; border-left: 4px solid #f093fb;">'
-                    f'<strong>📝 {i+1}. {c}</strong>'
-                    f'</div>',
-                    unsafe_allow_html=True
-                )
                 upd[c] = st.text_input(
                     c, 
                     value=str(val) if val is not None else "", 
-                    key=f"edit_input_{c}_{selected_id}",
-                    label_visibility="collapsed"
+                    key=f"edit_input_{c}_{selected_id}"
                 )
             
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            if st.form_submit_button("💾 変更を保存する", use_container_width=True, type="primary"):
+            if st.form_submit_button("💾 保存", use_container_width=True, type="primary"):
                 update_payload = {k: v for k, v in upd.items()}
                 
                 success, result = execute_operation(supabase, table, "update", update_payload, condition=(id_col, selected_id))
@@ -317,23 +252,13 @@ def show_edit_page(supabase, table):
                 else:
                     st.error(f"❌ 更新失敗: {result}")
     else:
-        st.markdown(
-            '<div style="background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); '
-            'padding: 20px; border-radius: 10px; text-align: center;">'
-            '<p style="margin: 0; color: #333; font-size: 16px;">👆 データ一覧から編集したい行をクリックしてください</p>'
-            '</div>',
-            unsafe_allow_html=True
-        )
+        st.info("👆 編集したい行をクリックしてください")
 
 
 # ========== データ削除ページ ==========
 def show_delete_page(supabase, table):
     """データ削除専用ページ"""
-    st.markdown("## 🗑️ データ削除")
-    st.markdown("---")
-    
-    # データ一覧と検索
-    st.markdown("### 📊 データ一覧・検索")
+    st.markdown("### 🗑️ データ削除")
     
     df_raw = get_table_data(table, limit=500)
     
@@ -437,20 +362,13 @@ def show_delete_page(supabase, table):
             st.error(f"フィルタリングエラー: {str(e)}")
     
     # データ一覧表示
-    st.markdown(
-        f'<div style="background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%); '
-        f'padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">'
-        f'<p style="margin: 0; color: #333;"><strong>📊 表示件数: {len(df)}件</strong> | '
-        f'削除したい行をクリックして選択 👇</p>'
-        f'</div>',
-        unsafe_allow_html=True
-    )
+    st.caption(f"📊 {len(df)}件 | 削除したい行をクリック")
     
     selection = st.dataframe(
         df,
         key="delete_dataframe",
         use_container_width=True,
-        height=400,
+        height=350,
         hide_index=True,
         column_order=[id_col] + [c for c in df.columns if c != id_col],
         on_select="rerun",
@@ -468,63 +386,36 @@ def show_delete_page(supabase, table):
                 if selected_index < len(df):
                     selected_row_data = df.iloc[selected_index].to_dict()
                     st.session_state["selected_row_delete"] = selected_row_data
-                    st.markdown(
-                        f'<div style="background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%); '
-                        f'padding: 15px; border-radius: 10px; margin-top: 10px; border-left: 5px solid #e74c3c;">'
-                        f'<p style="margin: 0; color: #c0392b; font-weight: bold;">⚠️ ID <code>{selected_row_data.get(id_col)}</code> が選択されました</p>'
-                        f'</div>',
-                        unsafe_allow_html=True
-                    )
+                    st.warning(f"⚠️ ID: {selected_row_data.get(id_col)} を選択", icon="⚠")
     except:
         selected_row_data = st.session_state.get("selected_row_delete", None)
-    
-    st.markdown("---")
     
     # 削除確認
     if selected_row_data:
         selected_id = selected_row_data.get(id_col)
         
-        st.markdown(
-            f'<div style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); '
-            f'padding: 20px; border-radius: 10px; margin-bottom: 20px;">'
-            f'<h3 style="color: white; margin: 0;">🗑️ 削除の確認</h3>'
-            f'<p style="color: #ffe0e0; margin: 5px 0 0 0;">ID: <code style="background: rgba(255,255,255,0.2); '
-            f'padding: 2px 8px; border-radius: 4px;">{selected_id}</code></p>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
+        st.markdown(f"#### 🗑️ ID: {selected_id} を削除")
         
-        # 選択されたデータの詳細表示
-        st.markdown("#### 📄 削除するデータの詳細")
-        
-        for key, value in selected_row_data.items():
-            st.markdown(
-                f'<div style="background: #fff3cd; padding: 10px; border-radius: 5px; '
-                f'margin-bottom: 5px; border-left: 4px solid #ffc107;">'
-                f'<strong>{key}:</strong> {value}'
-                f'</div>',
-                unsafe_allow_html=True
-            )
-        
-        st.markdown("<br>", unsafe_allow_html=True)
+        # データ詳細
+        with st.expander("📄 削除するデータの詳細", expanded=False):
+            for key, value in selected_row_data.items():
+                st.text(f"{key}: {value}")
         
         if st.session_state.get("confirm_delete_id") != selected_id:
-            # 第一段階：削除開始ボタン
-            st.warning("⚠️ このデータを削除しようとしています。", icon="⚠️")
-            if st.button(f"🗑️ このレコードを削除する", type="secondary", key=f"init_delete_btn_{selected_id}", use_container_width=True):
+            st.warning("⚠️ このデータを削除します")
+            if st.button(f"🗑️ 削除する", type="secondary", key=f"init_delete_btn_{selected_id}", use_container_width=True):
                 st.session_state["confirm_delete_id"] = selected_id
                 st.rerun()
         else:
-            # 第二段階：最終確認
-            st.error(f"⚠️ **最終確認:** 本当に削除しますか？この操作は取り消せません！", icon="🚨")
+            st.error(f"⚠️ 本当に削除しますか？", icon="🚨")
             
             col_yes, col_no = st.columns(2)
             
             with col_yes:
-                if st.button("✅ はい、削除します", type="primary", key=f"final_delete_yes_{selected_id}", use_container_width=True):
+                if st.button("✅ 削除", type="primary", key=f"final_delete_yes_{selected_id}", use_container_width=True):
                     success, result = execute_operation(supabase, table, "delete", condition=(id_col, selected_id))
                     if success:
-                        st.success("✅ データが正常に削除されました")
+                        st.success("✅ 削除しました")
                         st.session_state.pop("confirm_delete_id", None)
                         st.session_state.pop("selected_row_delete", None)
                         st.cache_data.clear()
@@ -536,16 +427,10 @@ def show_delete_page(supabase, table):
             with col_no:
                 if st.button("❌ キャンセル", key=f"final_delete_no_{selected_id}", use_container_width=True):
                     st.session_state.pop("confirm_delete_id", None)
-                    st.info("削除をキャンセルしました。")
+                    st.info("キャンセルしました")
                     st.rerun()
     else:
-        st.markdown(
-            '<div style="background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); '
-            'padding: 20px; border-radius: 10px; text-align: center;">'
-            '<p style="margin: 0; color: #333; font-size: 16px;">👆 データ一覧から削除したい行をクリックしてください</p>'
-            '</div>',
-            unsafe_allow_html=True
-        )
+        st.info("👆 削除したい行をクリックしてください")
 
 
 # ========== メイン画面 ==========
@@ -560,14 +445,14 @@ def show(supabase, available_tables):
     if "manage_mode" not in st.session_state:
         st.session_state["manage_mode"] = "add"
     
-    # テーブル選択
-    col_left, col_right = st.columns([4, 1])
+    # テーブル選択（コンパクト）
+    col_left, col_right = st.columns([3, 1])
     
     default_table = st.session_state.get("selected_table", available_tables[0])
     default_index = available_tables.index(default_table) if default_table in available_tables else 0
 
     with col_left:
-        table = st.selectbox("📋 テーブルを選択", available_tables, index=default_index, key="manage_table_select")
+        table = st.selectbox("📋 テーブル", available_tables, index=default_index, key="manage_table_select")
     
     if table != st.session_state.get("selected_table_actual"):
         st.session_state["selected_table_actual"] = table
@@ -577,23 +462,13 @@ def show(supabase, available_tables):
     count = df_count.shape[0] if df_count is not None else 0
     
     with col_right:
-        st.metric("総件数", f"{count:,}件")
+        st.metric("件数", f"{count:,}")
     
-    st.markdown("---")
-    
-    # モード切り替えボタン（大きくて目立つデザイン）
-    st.markdown(
-        '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); '
-        'padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center;">'
-        '<h4 style="color: white; margin: 0;">🎯 操作を選択してください</h4>'
-        '</div>',
-        unsafe_allow_html=True
-    )
-    
+    # モード切り替えボタン（コンパクト）
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        if st.button("➕ データ追加", use_container_width=True, type="primary" if st.session_state["manage_mode"] == "add" else "secondary"):
+        if st.button("➕ 追加", use_container_width=True, type="primary" if st.session_state["manage_mode"] == "add" else "secondary"):
             st.session_state["manage_mode"] = "add"
             # フィルタをクリア
             st.session_state.pop("edit_date_filter_applied", None)
@@ -603,7 +478,7 @@ def show(supabase, available_tables):
             st.rerun()
     
     with col2:
-        if st.button("✍️ データ編集", use_container_width=True, type="primary" if st.session_state["manage_mode"] == "edit" else "secondary"):
+        if st.button("✍️ 編集", use_container_width=True, type="primary" if st.session_state["manage_mode"] == "edit" else "secondary"):
             st.session_state["manage_mode"] = "edit"
             # フィルタをクリア
             st.session_state.pop("edit_date_filter_applied", None)
@@ -613,7 +488,7 @@ def show(supabase, available_tables):
             st.rerun()
     
     with col3:
-        if st.button("🗑️ データ削除", use_container_width=True, type="primary" if st.session_state["manage_mode"] == "delete" else "secondary"):
+        if st.button("🗑️ 削除", use_container_width=True, type="primary" if st.session_state["manage_mode"] == "delete" else "secondary"):
             st.session_state["manage_mode"] = "delete"
             # フィルタをクリア
             st.session_state.pop("edit_date_filter_applied", None)
@@ -622,7 +497,7 @@ def show(supabase, available_tables):
             st.session_state.pop("delete_keyword_filter_applied", None)
             st.rerun()
     
-    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
     
     # 選択されたモードに応じてページを表示
     if st.session_state["manage_mode"] == "add":
