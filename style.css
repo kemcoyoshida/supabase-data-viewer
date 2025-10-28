@@ -43,11 +43,14 @@ h3 { font-size: 20px !important; color: var(--accent-light); }
 /* ★★★ サイドバーのタイトル（データベース管理）を最大サイズに ★★★ */
 [data-testid="stSidebar"] h1 { 
     color: var(--accent) !important; 
-    font-size: 35px !important; /* 最大サイズ */
+    font-size: 26px !important; /* 折り返さず収まるサイズ */
     font-weight: 700 !important;
-    margin-bottom: 20px !important;
+    margin-bottom: 16px !important;
     text-align: center !important;
-    line-height: 1.2 !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }
 
 /* ★★★ 修正点: Streamlitの内部コンテナの幅を調整してボタン幅を揃える ★★★ */
