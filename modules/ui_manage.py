@@ -109,68 +109,30 @@ def show_data_selection_core(table, key_suffix):
         except Exception:
             st.warning("検索に失敗しました。入力値の型をご確認ください。")
 
-    # 日付フィルタ（常時表示）
-        
-        # 🌟 日付検索機能
-        date_cols = [c for c in df.columns if 'date' in c.lower() or 'at' in c.lower()]
-
-        if date_cols:
-            st.subheader("🗓️ 日付による絞り込み")
-            col_d1, col_d2, col_d3 = st.columns(3)
-            with col_d1:
-                date_filter_col = st.selectbox("日付項目", date_cols, key=f"date_filter_col_{key_suffix}")
-            
-            # DataFrameの当該カラムをdatetime型に変換（エラーを無視して変換できるものだけ）
-            try:
-                # Supabaseからのデータは文字列なので、まずdatetimeに変換し、日付部分を取り出す
-                df["__temp_date_filter"] = pd.to_datetime(df[date_filter_col], errors='coerce').dt.date
-                date_col_ready = True
-            except:
-                date_col_ready = False
-                st.warning(f"{date_filter_col} は日付として処理できません。", icon="⚠️")
-                
-            with col_d2:
-                # 🌟 Streamlitのバグ回避のため、value=Noneではなく空のdatetime.dateオブジェクトを設定
-                start_date = st.date_input("開始日 (この日以降)", value=None, key=f"start_date_{key_suffix}")
-            with col_d3:
-                end_date = st.date_input("終了日 (この日まで)", value=None, key=f"end_date_{key_suffix}")
-                
+    # 日付フィルタ（必要時のみ、1行でスリムに）
+    date_cols = [c for c in df.columns if 'date' in c.lower() or 'at' in c.lower()]
+    if date_cols:
+        d1, d2, d3 = st.columns(3)
+        with d1:
+            date_filter_col = st.selectbox("日付項目", date_cols, key=f"date_filter_col_{key_suffix}")
+        with d2:
+            start_date = st.date_input("開始日", value=None, key=f"start_date_{key_suffix}")
+        with d3:
+            end_date = st.date_input("終了日", value=None, key=f"end_date_{key_suffix}")
+        # 変換して適用
+        try:
+            df["__temp_date_filter"] = pd.to_datetime(df[date_filter_col], errors='coerce').dt.date
             if start_date or end_date:
-                if date_col_ready:
-                    temp_df = df[df["__temp_date_filter"].notna()]
-                    
-                    if start_date:
-                        temp_df = temp_df[temp_df["__temp_date_filter"] >= start_date]
-                    if end_date:
-                        temp_df = temp_df[temp_df["__temp_date_filter"] <= end_date]
-                        
-                    df = temp_df
-                    st.info(f"日付フィルタを適用中: {date_filter_col} が {start_date or '最初'} から {end_date or '最新'} の範囲")
-                
-            # テンポラリカラムを削除 (次のフィルターに影響しないように)
-            if "__temp_date_filter" in df.columns:
-                df = df.drop(columns=["__temp_date_filter"])
-
-        st.subheader("🔎 テキスト/値による絞り込み")
-        # --- (B) テキスト/値フィルタリング (既存のロジック) ---
-        cols = df.columns.tolist()
-        col1, col2, col3 = st.columns([3, 2, 3])
-        with col1:
-            filter_col = st.selectbox("項目", cols, key=f"filter_col_{key_suffix}")
-        with col2:
-            filter_op = st.selectbox("条件", ["含む", "等しい"], key=f"filter_op_{key_suffix}")
-        with col3:
-            filter_val = st.text_input("検索値", key=f"filter_val_{key_suffix}")
-            
-        if filter_val:
-            try:
-                # フィルタリングロジック
-                if filter_op == "等しい":
-                    df = df[df[filter_col].astype(str) == filter_val]
-                elif filter_op == "含む":
-                    df = df[df[filter_col].astype(str).str.contains(filter_val, case=False, na=False)]
-            except Exception as e:
-                st.warning("フィルタリング失敗: 入力値の型を確認してください。")
+                temp_df = df[df["__temp_date_filter"].notna()]
+                if start_date:
+                    temp_df = temp_df[temp_df["__temp_date_filter"] >= start_date]
+                if end_date:
+                    temp_df = temp_df[temp_df["__temp_date_filter"] <= end_date]
+                df = temp_df
+        except Exception:
+            pass
+        if "__temp_date_filter" in df.columns:
+            df = df.drop(columns=["__temp_date_filter"])
 
     # --- データフレーム（選択可能） ---
     st.caption(f"💡 表示件数: {len(df)}件。行をクリックして選択できます。")
