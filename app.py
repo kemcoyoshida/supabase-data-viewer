@@ -1,6 +1,18 @@
 # app.py
 # -*- coding: utf-8 -*-
 import streamlit as st
+import os
+import locale
+
+# 日本語ロケール設定
+try:
+    locale.setlocale(locale.LC_ALL, 'ja_JP.UTF-8')
+except:
+    try:
+        locale.setlocale(locale.LC_ALL, 'Japanese_Japan.932')
+    except:
+        pass  # システムのデフォルトロケールを使用
+
 from modules import (
     supabase_utils,
     ui_dashboard,
@@ -8,7 +20,6 @@ from modules import (
     ui_create,
     ui_search,
 )
-import os
 
 st.set_page_config(page_title="データベース管理", layout="wide", page_icon="🟤")
 
