@@ -34,23 +34,23 @@ h3 { font-size: 20px !important; color: var(--accent-light); }
 /* サイドバー */
 [data-testid="stSidebar"] { 
     background: linear-gradient(180deg,#fcfcfb 0%, #f7f3f0 100%); /* 少し濃いグラデーション */
-    min-width: 280px !important; /* 幅をコンパクトに */
-    max-width: 320px !important; /* 最大幅も縮小 */
-    width: 320px !important; /* 固定幅を縮小 */
+    min-width: 320px !important; /* 少し広げる */
+    max-width: 380px !important; /* 余裕を持たせる */
+    width: 360px !important; /* 標準幅を拡大 */
     padding: 16px !important; 
 }
 
 /* ★★★ サイドバーのタイトル（データベース管理）を最大サイズに ★★★ */
 [data-testid="stSidebar"] h1 { 
     color: var(--accent) !important; 
-    font-size: 26px !important; /* 折り返さず収まるサイズ */
+    font-size: 22px !important; /* 1行で収まるようにさらに縮小 */
     font-weight: 700 !important;
     margin-bottom: 16px !important;
     text-align: center !important;
     line-height: 1.1 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    text-overflow: clip !important;
 }
 
 /* ★★★ 修正点: Streamlitの内部コンテナの幅を調整してボタン幅を揃える ★★★ */
