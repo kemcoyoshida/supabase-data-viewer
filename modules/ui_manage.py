@@ -25,9 +25,11 @@ def execute_operation(supabase, table, operation, data=None, condition=None):
 # --- ヘルパー関数: 新規追加フォームの表示 (トグル機能付き) ---
 def show_add_form_toggle(supabase, table):
     st.markdown("### ➕ データ追加")
-    
-    # 常時フォームを開く（ユーザー要望: 表の下に配置するため、呼び出し位置を下へ移動）
-    if True:
+    # 表の下に配置し、デフォルトは閉じる
+    if st.button("➕ 新規レコードを追加", key="toggle_add_form", use_container_width=True):
+        st.session_state["show_add_form"] = not st.session_state.get("show_add_form", False)
+
+    if st.session_state.get("show_add_form", False):
         st.markdown("---")
         cols = get_table_columns(table)
         
@@ -51,7 +53,7 @@ def show_add_form_toggle(supabase, table):
                             # 入力キーをテーブル名で一意にする
                             new[c] = st.text_input(c, key=f"add_input_{table}_{c}")
             
-            if st.form_submit_button("➕ 実行 - 新規追加"):
+            if st.form_submit_button("💾 追加を実行"):
                 payload = {k:v for k,v in new.items() if v not in [None,""]}
                 if not payload:
                     st.warning("入力されたデータがありません。", icon="⚠️")
@@ -60,6 +62,7 @@ def show_add_form_toggle(supabase, table):
                 if success:
                     st.success("✅ データが正常に追加されました")
                     st.cache_data.clear()
+                    st.session_state["show_add_form"] = False
                     st.rerun()
                 else:
                     st.error(f"❌ 追加失敗: {result}")
@@ -87,8 +90,26 @@ def show_data_selection_core(table, key_suffix):
     id_col = "id" if "id" in df.columns else df.columns[0]
     
     # --- フィルタリング UI ---
-    # 要望: 最初からすぐ検索できるよう常時表示
-    with st.expander("🔽 データフィルタリング (検索条件)", expanded=True):
+    # 検索UI（常時表示：折りたたみなし）
+    st.markdown("#### 🔎 検索（テキスト/値 + 日付）")
+    cols = df.columns.tolist()
+    q1, q2, q3 = st.columns([3, 2, 5])
+    with q1:
+        quick_col = st.selectbox("項目", cols, key=f"quick_col_{key_suffix}")
+    with q2:
+        quick_op = st.selectbox("条件", ["含む", "等しい"], key=f"quick_op_{key_suffix}")
+    with q3:
+        quick_val = st.text_input("検索値", key=f"quick_val_{key_suffix}")
+    if quick_val:
+        try:
+            if quick_op == "等しい":
+                df = df[df[quick_col].astype(str) == quick_val]
+            else:
+                df = df[df[quick_col].astype(str).str.contains(quick_val, case=False, na=False)]
+        except Exception:
+            st.warning("検索に失敗しました。入力値の型をご確認ください。")
+
+    # 日付フィルタ（常時表示）
         
         # 🌟 日付検索機能
         date_cols = [c for c in df.columns if 'date' in c.lower() or 'at' in c.lower()]
@@ -133,7 +154,6 @@ def show_data_selection_core(table, key_suffix):
         st.subheader("🔎 テキスト/値による絞り込み")
         # --- (B) テキスト/値フィルタリング (既存のロジック) ---
         cols = df.columns.tolist()
-        
         col1, col2, col3 = st.columns([3, 2, 3])
         with col1:
             filter_col = st.selectbox("項目", cols, key=f"filter_col_{key_suffix}")
@@ -153,20 +173,23 @@ def show_data_selection_core(table, key_suffix):
                 st.warning("フィルタリング失敗: 入力値の型を確認してください。")
 
     # --- データフレーム（選択可能） ---
-    st.caption(f"💡 表示件数: {len(df)}件。修正または削除したい行を**クリック**して選択してください。")
+    st.caption(f"💡 表示件数: {len(df)}件。行をクリックして選択できます。")
     
-    # データフレーム表示（テーブル名を含む一意なキー）
-    st.dataframe(
+    # データテーブル（選択可能）：data_editorで確実に選択できるように
+    data_key = f"data_editor_{table}_{key_suffix}"
+    st.data_editor(
         df,
-        key=f"st_dataframe_{table}_{key_suffix}", 
+        key=data_key,
         use_container_width=True,
-        height=350,
+        height=280,
         hide_index=True,
-        column_order=[id_col] + [c for c in df.columns if c != id_col]
+        column_order=[id_col] + [c for c in df.columns if c != id_col],
+        num_rows="fixed",
+        disabled=True,
     )
     
     # 選択された行の処理
-    selected_state = st.session_state.get(f"st_dataframe_{table}_{key_suffix}", {})
+    selected_state = st.session_state.get(data_key, {})
     selected_rows = selected_state.get("selection", {}).get("rows", [])
     
     selected_row_data = None
