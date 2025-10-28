@@ -150,39 +150,50 @@ def show_data_selection_core(table, key_suffix):
     if clear_now:
         st.session_state.pop(state_key, None)
 
-    # 実際のフィルタ適用
-    saved = st.session_state.get(state_key)
-    if saved:
-        # テキスト/値
-        q = saved.get("quick", {})
+    # 実際のフィルタ適用（保存済みがあれば優先、なければ現在の入力で即時適用）
+    def apply_filters(filters_dict, frame):
+        out = frame
+        if not filters_dict:
+            return out
+        q = filters_dict.get("quick", {})
         q_col, q_op, q_val = q.get("col"), q.get("op"), q.get("val")
         if q_val:
             try:
                 if q_op == "等しい":
-                    df = df[df[q_col].astype(str) == q_val]
+                    out = out[out[q_col].astype(str) == q_val]
                 else:
-                    df = df[df[q_col].astype(str).str.contains(q_val, case=False, na=False)]
+                    out = out[out[q_col].astype(str).str.contains(q_val, case=False, na=False)]
             except Exception:
                 pass
-        # 日付
-        d = saved.get("date")
+        d = filters_dict.get("date")
         if d and d.get("col"):
             try:
-                df["__temp_date_filter"] = pd.to_datetime(df[d["col"]], errors='coerce').dt.date
-                temp_df = df[df["__temp_date_filter"].notna()]
+                out["__temp_date_filter"] = pd.to_datetime(out[d["col"]], errors='coerce').dt.date
+                tmp = out[out["__temp_date_filter"].notna()]
                 if d.get("mode") == "期間":
                     if d.get("start"):
-                        temp_df = temp_df[temp_df["__temp_date_filter"] >= d.get("start")]
+                        tmp = tmp[tmp["__temp_date_filter"] >= d.get("start")]
                     if d.get("end"):
-                        temp_df = temp_df[temp_df["__temp_date_filter"] <= d.get("end")]
+                        tmp = tmp[tmp["__temp_date_filter"] <= d.get("end")]
                 else:
                     if d.get("same"):
-                        temp_df = temp_df[temp_df["__temp_date_filter"] == d.get("same")]
-                df = temp_df
+                        tmp = tmp[tmp["__temp_date_filter"] == d.get("same")]
+                out = tmp
             except Exception:
                 pass
-            if "__temp_date_filter" in df.columns:
-                df = df.drop(columns=["__temp_date_filter"])
+            if "__temp_date_filter" in out.columns:
+                out = out.drop(columns=["__temp_date_filter"])
+        return out
+
+    saved = st.session_state.get(state_key)
+    if saved:
+        df = apply_filters(saved, df)
+    else:
+        # 入力中でも即時適用（ボタン不要）
+        has_quick = bool(quick_val)
+        has_date = date_cols and ((pending_filters.get("date", {}).get("mode") == "期間" and (pending_filters["date"].get("start") or pending_filters["date"].get("end"))) or (pending_filters.get("date", {}).get("mode") == "同じ日" and pending_filters["date"].get("same")))
+        if has_quick or has_date:
+            df = apply_filters(pending_filters, df)
 
     # --- データフレーム（選択可能） ---
     st.caption(f"表示件数: {len(df)}件")
