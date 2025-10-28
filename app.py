@@ -17,8 +17,6 @@ from modules import (
     supabase_utils,
     ui_dashboard,
     ui_manage,
-    ui_create,
-    ui_search,
 )
 
 st.set_page_config(page_title="データベース管理", layout="wide", page_icon="🟤")
@@ -51,12 +49,6 @@ with st.sidebar:
     if st.button("📋 データ管理"):
         st.session_state["page"] = "データ管理"
         st.rerun()
-    if st.button("🆕 テーブル作成"):
-        st.session_state["page"] = "テーブル作成"
-        st.rerun()
-    if st.button("🔍 詳細検索"):
-        st.session_state["page"] = "詳細検索"
-        st.rerun()
 
     st.markdown("---")
     if st.button("🔄 更新"):
@@ -76,11 +68,7 @@ page = st.session_state.get("page", "ダッシュボード")
 
 if page == "ダッシュボード":
     ui_dashboard.show(supabase, available_tables)
-elif page == "テーブル作成":
-    ui_create.show(supabase, available_tables)
 elif page == "データ管理":
     ui_manage.show(supabase, available_tables)
-elif page == "詳細検索":
-    ui_search.show(supabase, available_tables)
 else:
     st.write("不明なページ")
