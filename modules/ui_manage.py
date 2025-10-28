@@ -99,14 +99,14 @@ def show_data_selection_core(table, key_suffix):
         quick_op = st.selectbox("条件", ["含む", "等しい"], key=f"quick_op_{key_suffix}")
     with q3:
         quick_val = st.text_input("検索値", key=f"quick_val_{key_suffix}")
-    if quick_val:
-        try:
-            if quick_op == "等しい":
-                df = df[df[quick_col].astype(str) == quick_val]
-            else:
-                df = df[df[quick_col].astype(str).str.contains(quick_val, case=False, na=False)]
-        except Exception:
-            st.warning("検索に失敗しました。入力値の型をご確認ください。")
+    # 入力値はとりあえず保持するだけ。実際の適用は下の「検索」ボタンで行う
+    pending_filters = {
+        "quick": {
+            "col": quick_col,
+            "op": quick_op,
+            "val": quick_val,
+        }
+    }
 
     # 日付フィルタ（期間 / 同じ日）
     date_cols = [c for c in df.columns if 'date' in c.lower() or 'at' in c.lower()]
@@ -118,31 +118,71 @@ def show_data_selection_core(table, key_suffix):
             date_filter_col = st.selectbox("日付項目", date_cols, key=f"date_filter_col_{key_suffix}")
         if date_mode == "期間":
             with d2:
-                start_date = st.date_input("開始日", value=None, key=f"start_date_{key_suffix}")
+                start_enable = st.checkbox("開始を指定", key=f"start_enable_{key_suffix}")
+                start_date = st.date_input("開始日", key=f"start_date_{key_suffix}") if start_enable else None
             with d3:
-                end_date = st.date_input("終了日", value=None, key=f"end_date_{key_suffix}")
+                end_enable = st.checkbox("終了を指定", key=f"end_enable_{key_suffix}")
+                end_date = st.date_input("終了日", key=f"end_date_{key_suffix}") if end_enable else None
         else:
             with d2:
-                same_date = st.date_input("対象日", value=None, key=f"same_date_{key_suffix}")
+                same_date = st.date_input("対象日", key=f"same_date_{key_suffix}")
             end_date = None
             start_date = None
-        # 変換して適用
-        try:
-            df["__temp_date_filter"] = pd.to_datetime(df[date_filter_col], errors='coerce').dt.date
-            temp_df = df[df["__temp_date_filter"].notna()]
-            if date_mode == "期間":
-                if start_date:
-                    temp_df = temp_df[temp_df["__temp_date_filter"] >= start_date]
-                if end_date:
-                    temp_df = temp_df[temp_df["__temp_date_filter"] <= end_date]
-            else:
-                if same_date:
-                    temp_df = temp_df[temp_df["__temp_date_filter"] == same_date]
-            df = temp_df
-        except Exception:
-            pass
-        if "__temp_date_filter" in df.columns:
-            df = df.drop(columns=["__temp_date_filter"])
+        pending_filters["date"] = {
+            "mode": date_mode,
+            "col": date_filter_col,
+            "start": start_date,
+            "end": end_date,
+            "same": same_date if date_mode == "同じ日" else None,
+        }
+
+    # 操作ボタン（検索/クリア）
+    b1, b2 = st.columns([1,1])
+    with b1:
+        apply_now = st.button("検索を適用", key=f"apply_search_{key_suffix}")
+    with b2:
+        clear_now = st.button("条件クリア", key=f"clear_search_{key_suffix}")
+
+    # 条件の保存/クリア
+    state_key = f"saved_filters_{table}_{key_suffix}"
+    if apply_now:
+        st.session_state[state_key] = pending_filters
+    if clear_now:
+        st.session_state.pop(state_key, None)
+
+    # 実際のフィルタ適用
+    saved = st.session_state.get(state_key)
+    if saved:
+        # テキスト/値
+        q = saved.get("quick", {})
+        q_col, q_op, q_val = q.get("col"), q.get("op"), q.get("val")
+        if q_val:
+            try:
+                if q_op == "等しい":
+                    df = df[df[q_col].astype(str) == q_val]
+                else:
+                    df = df[df[q_col].astype(str).str.contains(q_val, case=False, na=False)]
+            except Exception:
+                pass
+        # 日付
+        d = saved.get("date")
+        if d and d.get("col"):
+            try:
+                df["__temp_date_filter"] = pd.to_datetime(df[d["col"]], errors='coerce').dt.date
+                temp_df = df[df["__temp_date_filter"].notna()]
+                if d.get("mode") == "期間":
+                    if d.get("start"):
+                        temp_df = temp_df[temp_df["__temp_date_filter"] >= d.get("start")]
+                    if d.get("end"):
+                        temp_df = temp_df[temp_df["__temp_date_filter"] <= d.get("end")]
+                else:
+                    if d.get("same"):
+                        temp_df = temp_df[temp_df["__temp_date_filter"] == d.get("same")]
+                df = temp_df
+            except Exception:
+                pass
+            if "__temp_date_filter" in df.columns:
+                df = df.drop(columns=["__temp_date_filter"])
 
     # --- データフレーム（選択可能） ---
     st.caption(f"表示件数: {len(df)}件")
