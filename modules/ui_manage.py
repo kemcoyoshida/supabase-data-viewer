@@ -26,11 +26,8 @@ def execute_operation(supabase, table, operation, data=None, condition=None):
 def show_add_form_toggle(supabase, table):
     st.markdown("### ➕ データ追加")
     
-    # フォーム表示状態をセッションステートで管理し、ボタンでトグル
-    if st.button("➕ 新規レコードの入力画面を開く/閉じる", key="toggle_add_form", use_container_width=True):
-        st.session_state["show_add_form"] = not st.session_state.get("show_add_form", False)
-    
-    if st.session_state.get("show_add_form", False):
+    # 常時フォームを開く（ユーザー要望: 表の下に配置するため、呼び出し位置を下へ移動）
+    if True:
         st.markdown("---")
         cols = get_table_columns(table)
         
@@ -63,7 +60,6 @@ def show_add_form_toggle(supabase, table):
                 if success:
                     st.success("✅ データが正常に追加されました")
                     st.cache_data.clear()
-                    st.session_state["show_add_form"] = False # 成功したら閉じる
                     st.rerun()
                 else:
                     st.error(f"❌ 追加失敗: {result}")
@@ -91,7 +87,8 @@ def show_data_selection_core(table, key_suffix):
     id_col = "id" if "id" in df.columns else df.columns[0]
     
     # --- フィルタリング UI ---
-    with st.expander("🔽 データフィルタリング (検索条件)", expanded=False):
+    # 要望: 最初からすぐ検索できるよう常時表示
+    with st.expander("🔽 データフィルタリング (検索条件)", expanded=True):
         
         # 🌟 日付検索機能
         date_cols = [c for c in df.columns if 'date' in c.lower() or 'at' in c.lower()]
@@ -264,15 +261,13 @@ def show(supabase, available_tables):
         
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 2. 新規追加機能 (プラスボタンでトグル)
-    show_add_form_toggle(supabase, table)
-    
-    st.markdown("---")
-
-    # 3. データ一覧・検索・選択 (コア機能)
+    # 2. データ一覧・検索・選択 (コア機能)
     st.markdown("### 📜 データ一覧・検索・選択")
     # show_data_selection_coreはセッションステートから最新の選択行データを取得して返す
     selected_row = show_data_selection_core(table, key_suffix="main")
+
+    # 3. データ追加（要望: 表の下に配置）
+    show_add_form_toggle(supabase, table)
 
     # 4. 編集・削除フォームの表示
     if selected_row:
