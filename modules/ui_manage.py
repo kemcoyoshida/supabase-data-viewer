@@ -1,51 +1,15 @@
 import streamlit as st
 from .supabase_utils import get_table_columns, get_table_data
+from datetime import datetime
 import pandas as pd
 
-# CSSでテーブルのスタイルをカスタマイズ
-st.markdown("""
-<style>
-    /* データフレームの行間を狭く */
-    .stDataFrame {
-        font-size: 12px !important;
-    }
-    
-    /* テーブルのセル内padding調整 */
-    .stDataFrame [data-testid="stDataFrameResizable"] {
-        font-size: 11px !important;
-    }
-    
-    /* テーブル全体を小さく */
-    div[data-testid="stDataFrame"] > div {
-        font-size: 11px !important;
-    }
-    
-    /* 行の高さを調整 */
-    .stDataFrame tbody tr {
-        height: 25px !important;
-        line-height: 1.2 !important;
-    }
-    
-    /* ヘッダーも小さく */
-    .stDataFrame thead tr th {
-        font-size: 11px !important;
-        padding: 4px 8px !important;
-    }
-    
-    /* セルのpadding調整 */
-    .stDataFrame tbody tr td {
-        font-size: 11px !important;
-        padding: 2px 8px !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# データ操作関数
+# データ操作関数 - 実際はapp.pyのSupabaseクライアント経由で実行
 def execute_operation(supabase, table, operation, data=None, condition=None):
     try:
         if operation == "insert":
             resp = supabase.table(table).insert(data).execute()
         elif operation == "update":
+            # condition は (column, value) のタプルを想定
             col, val = condition
             resp = supabase.table(table).update(data).eq(col, val).execute()
         elif operation == "delete":
@@ -54,640 +18,318 @@ def execute_operation(supabase, table, operation, data=None, condition=None):
         
         return True, resp
     except Exception as e:
+        # 実際にはより詳細なエラーハンドリングが必要
         return False, str(e)
 
 
-# ========== データ追加ページ ==========
-def show_add_page(supabase, table):
-    """データ追加専用ページ"""
+# --- ヘルパー関数: 新規追加フォームの表示 (トグル機能付き) ---
+def show_add_form_toggle(supabase, table):
+    st.markdown("### ➕ データ追加")
     
-    # 現在のデータ一覧
-    df = get_table_data(table, limit=100)
+    # フォーム表示状態をセッションステートで管理し、ボタンでトグル
+    if st.button("➕ 新規レコードの入力画面を開く/閉じる", key="toggle_add_form", use_container_width=True):
+        st.session_state["show_add_form"] = not st.session_state.get("show_add_form", False)
     
-    if df is not None and not df.empty:
-        id_col = "id" if "id" in df.columns else df.columns[0]
+    if st.session_state.get("show_add_form", False):
+        st.markdown("---")
+        cols = get_table_columns(table)
         
-        st.dataframe(
-            df,
-            use_container_width=True,
-            height=300,
-            hide_index=True,
-            column_order=[id_col] + [c for c in df.columns if c != id_col]
-        )
-    else:
-        st.info("データなし", icon="📭")
-    
-    # 新規追加フォーム
-    st.markdown(
-        '<div style="background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); '
-        'padding: 10px; border-radius: 8px; margin-bottom: 10px; margin-top: 10px;">'
-        '<p style="color: #333; margin: 0; font-size: 14px; font-weight: bold;">新規データ入力</p>'
-        '</div>',
-        unsafe_allow_html=True
-    )
-    
-    cols = get_table_columns(table)
-    
-    if not cols:
-        st.warning("カラム情報が取得できません。", icon="⚠️")
-        return
-    
-    with st.form("add_form", clear_on_submit=True):
-        col_list = [c for c in cols if c.lower() not in ["id","created_at","updated_at"]]
-        new = {}
-        
-        # 1行4列のレイアウト
-        num_cols = 4
-        for i in range(0, len(col_list), num_cols):
-            cols_form = st.columns(num_cols)
-            for j in range(num_cols):
-                idx = i + j
-                if idx < len(col_list):
-                    c = col_list[idx]
-                    with cols_form[j]:
-                        new[c] = st.text_input(
-                            f"{c}", 
-                            key=f"add_input_{table}_{c}",
-                            placeholder=f"{c}"
-                        )
-        
-        col_submit, col_clear = st.columns([3, 1])
-        
-        with col_submit:
-            submitted = st.form_submit_button("✅ 追加", use_container_width=True, type="primary")
-        
-        with col_clear:
-            st.form_submit_button("🔄 クリア", use_container_width=True)
-        
-        if submitted:
-            payload = {k:v for k,v in new.items() if v not in [None,""]}
-            if not payload:
-                st.warning("⚠️ 少なくとも1つの項目に値を入力してください。", icon="⚠️")
-            else:
-                success, result = execute_operation(supabase, table, "insert", payload)
-                if success:
-                    st.success("🎉 データが正常に追加されました！")
-                    st.balloons()
-                    st.cache_data.clear()
-                    st.rerun()
-                else:
-                    st.error(f"❌ 追加失敗: {result}")
-
-
-# ========== データ編集ページ ==========
-def show_edit_page(supabase, table):
-    """データ編集専用ページ"""
-    
-    df_raw = get_table_data(table, limit=500)
-    
-    if df_raw is None or df_raw.empty:
-        st.info("データなし", icon="📭")
-        return
-    
-    df = df_raw.copy()
-    id_col = "id" if "id" in df.columns else df.columns[0]
-    
-    # 検索フィルター（常に表示、コンパクト）
-    st.markdown(
-        '<div style="background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%); '
-        'padding: 8px; border-radius: 8px; margin-bottom: 8px;">'
-        '<p style="color: #333; margin: 0; font-size: 13px; font-weight: bold;">🔍 検索</p>'
-        '</div>',
-        unsafe_allow_html=True
-    )
-    
-    # 日付検索
-    date_cols = [c for c in df.columns if 'date' in c.lower() or 'at' in c.lower() or 'time' in c.lower()]
-
-    if date_cols:
-        col_d1, col_d2, col_d3, col_d4 = st.columns(4)
-        with col_d1:
-            date_filter_col = st.selectbox("日付", date_cols, key="edit_date_filter_col", label_visibility="collapsed")
-        
-        with col_d2:
-            start_date = st.date_input("開始", value=None, key="edit_start_date", label_visibility="collapsed")
-        with col_d3:
-            end_date = st.date_input("終了", value=None, key="edit_end_date", label_visibility="collapsed")
-        
-        with col_d4:
-            if st.button("🔍", key="edit_apply_date", use_container_width=True, help="期間検索"):
-                if start_date or end_date:
-                    st.session_state["edit_date_filter_applied"] = {
-                        "col": date_filter_col,
-                        "start": start_date,
-                        "end": end_date
-                    }
-                    st.rerun()
-
-    # キーワード検索
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        filter_col = st.selectbox("項目", df_raw.columns.tolist(), key="edit_filter_col", label_visibility="collapsed")
-    with col2:
-        filter_op = st.selectbox("条件", ["含む", "等しい", "以上", "以下"], key="edit_filter_op", label_visibility="collapsed")
-    with col3:
-        filter_val = st.text_input("値", key="edit_filter_val", placeholder="検索", label_visibility="collapsed")
-    with col4:
-        col_search, col_clear = st.columns(2)
-        with col_search:
-            if st.button("🔍", key="edit_apply_keyword", use_container_width=True, help="検索"):
-                if filter_val:
-                    st.session_state["edit_keyword_filter_applied"] = {
-                        "col": filter_col,
-                        "op": filter_op,
-                        "val": filter_val
-                    }
-                    st.rerun()
-        with col_clear:
-            if st.button("✕", key="edit_clear", use_container_width=True, help="クリア"):
-                st.session_state.pop("edit_date_filter_applied", None)
-                st.session_state.pop("edit_keyword_filter_applied", None)
-                st.rerun()
-    
-    # フィルタ適用
-    if "edit_date_filter_applied" in st.session_state:
-        filter_info = st.session_state["edit_date_filter_applied"]
-        try:
-            df["__temp_date"] = pd.to_datetime(df[filter_info["col"]], errors='coerce').dt.date
+        if not cols:
+            st.warning("カラム情報が取得できません。", icon="⚠️")
+            return
             
-            if filter_info["start"]:
-                df = df[df["__temp_date"] >= filter_info["start"]]
-            if filter_info["end"]:
-                df = df[df["__temp_date"] <= filter_info["end"]]
+        with st.form("add_form", clear_on_submit=True):
+            col_list = [c for c in cols if c.lower() not in ["id","created_at","updated_at"]]
+            num_cols = 3
+            new = {}
             
-            df = df.drop(columns=["__temp_date"])
-            
-            date_range_text = f"{filter_info['start'] or '最初'} ～ {filter_info['end'] or '最新'}"
-            st.success(f"✅ 期間フィルタ適用中: **{date_range_text}** （表示: {len(df)}件）")
-        except Exception as e:
-            st.error(f"日付フィルタエラー: {str(e)}")
-    
-    if "edit_keyword_filter_applied" in st.session_state:
-        filter_info = st.session_state["edit_keyword_filter_applied"]
-        try:
-            if filter_info["op"] == "等しい":
-                df = df[df[filter_info["col"]].astype(str) == filter_info["val"]]
-            elif filter_info["op"] == "含む":
-                df = df[df[filter_info["col"]].astype(str).str.contains(filter_info["val"], case=False, na=False)]
-            elif filter_info["op"] == "以上":
-                df = df[pd.to_numeric(df[filter_info["col"]], errors='coerce') >= float(filter_info["val"])]
-            elif filter_info["op"] == "以下":
-                df = df[pd.to_numeric(df[filter_info["col"]], errors='coerce') <= float(filter_info["val"])]
-            
-            st.success(f"✅ キーワードフィルタ適用中: **{filter_info['col']}** が **{filter_info['val']}** を{filter_info['op']} （表示: {len(df)}件）")
-        except Exception as e:
-            st.error(f"フィルタリングエラー: {str(e)}")
-    
-    # データ一覧表示
-    st.caption(f"{len(df)}件")
-    
-    selection = st.dataframe(
-        df,
-        key="edit_dataframe",
-        use_container_width=True,
-        height=350,
-        hide_index=True,
-        column_order=[id_col] + [c for c in df.columns if c != id_col],
-        on_select="rerun",
-        selection_mode="single-row"
-    )
-    
-    # 選択された行の処理
-    selected_row_data = None
-    
-    try:
-        if hasattr(selection, 'selection') and hasattr(selection.selection, 'rows'):
-            selected_indices = selection.selection.rows
-            if selected_indices and len(selected_indices) > 0:
-                selected_index = selected_indices[0]
-                if selected_index < len(df):
-                    selected_row_data = df.iloc[selected_index].to_dict()
-                    st.session_state["selected_row_edit"] = selected_row_data
-    except:
-        selected_row_data = st.session_state.get("selected_row_edit", None)
-    
-    # 編集フォーム
-    if selected_row_data:
-        selected_id = selected_row_data.get(id_col)
-        
-        st.markdown(
-            f'<div style="background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); '
-            f'padding: 10px; border-radius: 8px; margin-bottom: 10px;">'
-            f'<p style="color: #333; margin: 0; font-size: 14px; font-weight: bold;">編集: ID {selected_id}</p>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-        
-        with st.form(f"edit_form_{selected_id}"):
-            df_cols = get_table_columns(table)
-            upd = {}
-            col_list = [c for c in df_cols if c.lower() not in ["id","created_at","updated_at"]]
-            
-            # 1行4列のレイアウト
-            num_cols = 4
+            # フォームの入力フィールドを3列に分割して表示
             for i in range(0, len(col_list), num_cols):
                 cols_form = st.columns(num_cols)
                 for j in range(num_cols):
                     idx = i + j
                     if idx < len(col_list):
                         c = col_list[idx]
-                        val = selected_row_data.get(c, "")
                         with cols_form[j]:
-                            upd[c] = st.text_input(
-                                c, 
-                                value=str(val) if val is not None else "", 
-                                key=f"edit_input_{c}_{selected_id}"
-                            )
+                            # 入力キーをテーブル名で一意にする
+                            new[c] = st.text_input(c, key=f"add_input_{table}_{c}")
             
-            if st.form_submit_button("💾 保存", use_container_width=True, type="primary"):
-                update_payload = {k: v for k, v in upd.items()}
-                
-                success, result = execute_operation(supabase, table, "update", update_payload, condition=(id_col, selected_id))
-                
+            if st.form_submit_button("➕ 実行 - 新規追加"):
+                payload = {k:v for k,v in new.items() if v not in [None,""]}
+                if not payload:
+                    st.warning("入力されたデータがありません。", icon="⚠️")
+                    return
+                success, result = execute_operation(supabase, table, "insert", payload)
                 if success:
-                    st.success("✅ 更新しました")
+                    st.success("✅ データが正常に追加されました")
                     st.cache_data.clear()
-                    st.session_state.pop("selected_row_edit", None)
-                    st.rerun() 
+                    st.session_state["show_add_form"] = False # 成功したら閉じる
+                    st.rerun()
                 else:
-                    st.error(f"❌ 更新失敗: {result}")
-    else:
-        st.info("👆 編集する行をクリック")
+                    st.error(f"❌ 追加失敗: {result}")
+        st.markdown("---")
 
 
-# ========== データ削除ページ ==========
-def show_delete_page(supabase, table):
-    """データ削除専用ページ"""
+# --- コア機能: データ選択とフィルタリング ---
+def show_data_selection_core(table, key_suffix):
+    """
+    データ一覧を表示し、フィルタリングと行選択を可能にする。
+    選択された行データ(dict)を返す。
+    """
     
+    # 全データを取得 (最大500件表示)
     df_raw = get_table_data(table, limit=500)
     
     if df_raw is None or df_raw.empty:
-        st.info("データなし", icon="📭")
-        return
-    
+        # データがない場合も状態をリセット
+        st.session_state.pop(f"selected_row_{key_suffix}", None)
+        return None
+        
     df = df_raw.copy()
+    
+    # ID/主キーの列を決定
     id_col = "id" if "id" in df.columns else df.columns[0]
     
-    # 検索フィルター（常に表示、コンパクト）
-    st.markdown(
-        '<div style="background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%); '
-        'padding: 8px; border-radius: 8px; margin-bottom: 8px;">'
-        '<p style="color: #333; margin: 0; font-size: 13px; font-weight: bold;">🔍 検索</p>'
-        '</div>',
-        unsafe_allow_html=True
-    )
-    
-    # 日付検索
-    date_cols = [c for c in df.columns if 'date' in c.lower() or 'at' in c.lower() or 'time' in c.lower()]
-
-    if date_cols:
-        col_d1, col_d2, col_d3, col_d4 = st.columns(4)
-        with col_d1:
-            date_filter_col = st.selectbox("日付", date_cols, key="delete_date_filter_col", label_visibility="collapsed")
+    # --- フィルタリング UI ---
+    with st.expander("🔽 データフィルタリング (検索条件)", expanded=False):
         
-        with col_d2:
-            start_date = st.date_input("開始", value=None, key="delete_start_date", label_visibility="collapsed")
-        with col_d3:
-            end_date = st.date_input("終了", value=None, key="delete_end_date", label_visibility="collapsed")
-        
-        with col_d4:
-            if st.button("🔍", key="delete_apply_date", use_container_width=True, help="期間検索"):
-                if start_date or end_date:
-                    st.session_state["delete_date_filter_applied"] = {
-                        "col": date_filter_col,
-                        "start": start_date,
-                        "end": end_date
-                    }
-                    st.rerun()
+        # 🌟 日付検索機能
+        date_cols = [c for c in df.columns if 'date' in c.lower() or 'at' in c.lower()]
 
-    # キーワード検索
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        filter_col = st.selectbox("項目", df_raw.columns.tolist(), key="delete_filter_col", label_visibility="collapsed")
-    with col2:
-        filter_op = st.selectbox("条件", ["含む", "等しい", "以上", "以下"], key="delete_filter_op", label_visibility="collapsed")
-    with col3:
-        filter_val = st.text_input("値", key="delete_filter_val", placeholder="検索", label_visibility="collapsed")
-    with col4:
-        col_search, col_clear = st.columns(2)
-        with col_search:
-            if st.button("🔍", key="delete_apply_keyword", use_container_width=True, help="検索"):
-                if filter_val:
-                    st.session_state["delete_keyword_filter_applied"] = {
-                        "col": filter_col,
-                        "op": filter_op,
-                        "val": filter_val
-                    }
-                    st.rerun()
-        with col_clear:
-            if st.button("✕", key="delete_clear", use_container_width=True, help="クリア"):
-                st.session_state.pop("delete_date_filter_applied", None)
-                st.session_state.pop("delete_keyword_filter_applied", None)
-                st.rerun()
-    
-    # フィルタ適用
-    if "delete_date_filter_applied" in st.session_state:
-        filter_info = st.session_state["delete_date_filter_applied"]
-        try:
-            df["__temp_date"] = pd.to_datetime(df[filter_info["col"]], errors='coerce').dt.date
+        if date_cols:
+            st.subheader("🗓️ 日付による絞り込み")
+            col_d1, col_d2, col_d3 = st.columns(3)
+            with col_d1:
+                date_filter_col = st.selectbox("日付項目", date_cols, key=f"date_filter_col_{key_suffix}")
             
-            if filter_info["start"]:
-                df = df[df["__temp_date"] >= filter_info["start"]]
-            if filter_info["end"]:
-                df = df[df["__temp_date"] <= filter_info["end"]]
+            # DataFrameの当該カラムをdatetime型に変換（エラーを無視して変換できるものだけ）
+            try:
+                # Supabaseからのデータは文字列なので、まずdatetimeに変換し、日付部分を取り出す
+                df["__temp_date_filter"] = pd.to_datetime(df[date_filter_col], errors='coerce').dt.date
+                date_col_ready = True
+            except:
+                date_col_ready = False
+                st.warning(f"{date_filter_col} は日付として処理できません。", icon="⚠️")
+                
+            with col_d2:
+                # 🌟 Streamlitのバグ回避のため、value=Noneではなく空のdatetime.dateオブジェクトを設定
+                start_date = st.date_input("開始日 (この日以降)", value=None, key=f"start_date_{key_suffix}")
+            with col_d3:
+                end_date = st.date_input("終了日 (この日まで)", value=None, key=f"end_date_{key_suffix}")
+                
+            if start_date or end_date:
+                if date_col_ready:
+                    temp_df = df[df["__temp_date_filter"].notna()]
+                    
+                    if start_date:
+                        temp_df = temp_df[temp_df["__temp_date_filter"] >= start_date]
+                    if end_date:
+                        temp_df = temp_df[temp_df["__temp_date_filter"] <= end_date]
+                        
+                    df = temp_df
+                    st.info(f"日付フィルタを適用中: {date_filter_col} が {start_date or '最初'} から {end_date or '最新'} の範囲")
+                
+            # テンポラリカラムを削除 (次のフィルターに影響しないように)
+            if "__temp_date_filter" in df.columns:
+                df = df.drop(columns=["__temp_date_filter"])
+
+        st.subheader("🔎 テキスト/値による絞り込み")
+        # --- (B) テキスト/値フィルタリング (既存のロジック) ---
+        cols = df.columns.tolist()
+        
+        col1, col2, col3 = st.columns([3, 2, 3])
+        with col1:
+            filter_col = st.selectbox("項目", cols, key=f"filter_col_{key_suffix}")
+        with col2:
+            filter_op = st.selectbox("条件", ["含む", "等しい"], key=f"filter_op_{key_suffix}")
+        with col3:
+            filter_val = st.text_input("検索値", key=f"filter_val_{key_suffix}")
             
-            df = df.drop(columns=["__temp_date"])
-            
-            date_range_text = f"{filter_info['start'] or '最初'} ～ {filter_info['end'] or '最新'}"
-            st.success(f"✅ 期間フィルタ適用中: **{date_range_text}** （表示: {len(df)}件）")
-        except Exception as e:
-            st.error(f"日付フィルタエラー: {str(e)}")
+        if filter_val:
+            try:
+                # フィルタリングロジック
+                if filter_op == "等しい":
+                    df = df[df[filter_col].astype(str) == filter_val]
+                elif filter_op == "含む":
+                    df = df[df[filter_col].astype(str).str.contains(filter_val, case=False, na=False)]
+            except Exception as e:
+                st.warning("フィルタリング失敗: 入力値の型を確認してください。")
+
+    # --- データフレーム（選択可能） ---
+    st.caption(f"💡 表示件数: {len(df)}件。修正または削除したい行を**クリック**して選択してください。")
     
-    if "delete_keyword_filter_applied" in st.session_state:
-        filter_info = st.session_state["delete_keyword_filter_applied"]
-        try:
-            if filter_info["op"] == "等しい":
-                df = df[df[filter_info["col"]].astype(str) == filter_info["val"]]
-            elif filter_info["op"] == "含む":
-                df = df[df[filter_info["col"]].astype(str).str.contains(filter_info["val"], case=False, na=False)]
-            elif filter_info["op"] == "以上":
-                df = df[pd.to_numeric(df[filter_info["col"]], errors='coerce') >= float(filter_info["val"])]
-            elif filter_info["op"] == "以下":
-                df = df[pd.to_numeric(df[filter_info["col"]], errors='coerce') <= float(filter_info["val"])]
-            
-            st.success(f"✅ キーワードフィルタ適用中: **{filter_info['col']}** が **{filter_info['val']}** を{filter_info['op']} （表示: {len(df)}件）")
-        except Exception as e:
-            st.error(f"フィルタリングエラー: {str(e)}")
-    
-    # データ一覧表示
-    st.caption(f"{len(df)}件")
-    
-    selection = st.dataframe(
+    # データフレーム表示（テーブル名を含む一意なキー）
+    st.dataframe(
         df,
-        key="delete_dataframe",
+        key=f"st_dataframe_{table}_{key_suffix}", 
         use_container_width=True,
         height=350,
         hide_index=True,
-        column_order=[id_col] + [c for c in df.columns if c != id_col],
-        on_select="rerun",
-        selection_mode="single-row"
+        column_order=[id_col] + [c for c in df.columns if c != id_col]
     )
     
     # 選択された行の処理
+    selected_state = st.session_state.get(f"st_dataframe_{table}_{key_suffix}", {})
+    selected_rows = selected_state.get("selection", {}).get("rows", [])
+    
     selected_row_data = None
-    
-    try:
-        if hasattr(selection, 'selection') and hasattr(selection.selection, 'rows'):
-            selected_indices = selection.selection.rows
-            if selected_indices and len(selected_indices) > 0:
-                selected_index = selected_indices[0]
-                if selected_index < len(df):
-                    selected_row_data = df.iloc[selected_index].to_dict()
-                    st.session_state["selected_row_delete"] = selected_row_data
-    except:
-        selected_row_data = st.session_state.get("selected_row_delete", None)
-    
-    # 削除確認
-    if selected_row_data:
-        selected_id = selected_row_data.get(id_col)
+    if selected_rows:
+        selected_index = selected_rows[0]
         
-        st.markdown(
-            f'<div style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); '
-            f'padding: 10px; border-radius: 8px; margin-bottom: 10px;">'
-            f'<p style="color: #333; margin: 0; font-size: 14px; font-weight: bold;">削除: ID {selected_id}</p>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-        
-        # データ詳細
-        with st.expander("詳細", expanded=False):
-            for key, value in selected_row_data.items():
-                st.text(f"{key}: {value}")
-        
-        if st.session_state.get("confirm_delete_id") != selected_id:
-            st.warning("⚠️ このデータを削除します")
-            if st.button(f"🗑️ 削除", type="secondary", key=f"init_del_{selected_id}", use_container_width=True):
-                st.session_state["confirm_delete_id"] = selected_id
-                st.rerun()
+        if selected_index < len(df):
+            selected_row_data = df.iloc[selected_index].to_dict()
+            st.session_state[f"selected_row_{key_suffix}"] = selected_row_data
+            # 選択成功メッセージ
+            st.success(f"✅ ID **{selected_row_data.get(id_col)}** の行が選択されました。下の「🎯 選択したレコードの操作」セクションをご確認ください。")
         else:
-            st.error(f"本当に削除しますか？", icon="🚨")
-            
-            col_yes, col_no = st.columns(2)
-            
-            with col_yes:
-                if st.button("削除", type="primary", key=f"yes_{selected_id}", use_container_width=True):
-                    success, result = execute_operation(supabase, table, "delete", condition=(id_col, selected_id))
-                    if success:
-                        st.success("✅ 削除しました")
-                        st.session_state.pop("confirm_delete_id", None)
-                        st.session_state.pop("selected_row_delete", None)
-                        st.cache_data.clear()
-                        st.rerun() 
-                    else:
-                        st.error(f"❌ 失敗: {result}")
-                        st.session_state.pop("confirm_delete_id", None)
-            
-            with col_no:
-                if st.button("キャンセル", key=f"no_{selected_id}", use_container_width=True):
-                    st.session_state.pop("confirm_delete_id", None)
-                    st.rerun()
+            st.session_state.pop(f"selected_row_{key_suffix}", None) # 無効な選択なら削除
+            st.warning("無効な行が選択されました。")
     else:
-        st.info("👆 削除する行をクリック")
+        # 🌟 修正: 行選択がない場合、セッションステートから情報を確実に削除
+        st.session_state.pop(f"selected_row_{key_suffix}", None)
+        st.info("☝️ 上の表から操作したい行をクリックしてください。")
+        
+    st.markdown("---")
+    
+    # 最終的にセッションステートから最新の状態を取得して返す
+    return st.session_state.get(f"selected_row_{key_suffix}")
 
 
-# ========== テーブル選択ページ ==========
-def show_table_selection(supabase, available_tables):
-    """テーブル選択専用ページ"""
+# --- ヘルパー関数: 編集フォームの表示 ---
+def show_edit_form(supabase, table, selected_row, id_col):
+    selected_id = selected_row.get(id_col)
+    st.markdown(f"#### ✍️ ID: `{selected_id}` の修正フォーム")
     
-    st.markdown("### 📋 テーブル選択")
-    
-    # 検索ボックス
-    search_query = st.text_input(
-        "🔍 テーブルを検索", 
-        placeholder="テーブル名を入力して検索...",
-        key="table_search"
-    )
-    
-    # テーブルをフィルタリング
-    if search_query:
-        filtered_tables = [t for t in available_tables if search_query.lower() in t.lower()]
-    else:
-        filtered_tables = available_tables
-    
-    if not filtered_tables:
-        st.warning("該当するテーブルが見つかりません", icon="⚠️")
-        return
-    
-    # テーブル一覧表示（カード形式）
-    st.markdown(
-        '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); '
-        'padding: 10px; border-radius: 8px; margin-bottom: 15px;">'
-        '<p style="color: white; margin: 0; font-size: 14px; font-weight: bold; text-align: center;">'
-        f'テーブル一覧 ({len(filtered_tables)}件)'
-        '</p></div>',
-        unsafe_allow_html=True
-    )
-    
-    # 3列でテーブルを表示
-    cols_per_row = 3
-    for i in range(0, len(filtered_tables), cols_per_row):
-        cols = st.columns(cols_per_row)
-        for j in range(cols_per_row):
-            idx = i + j
-            if idx < len(filtered_tables):
-                table = filtered_tables[idx]
-                
-                # 各テーブルのデータ件数を取得
-                df = get_table_data(table, limit=1000)
-                count = len(df) if df is not None else 0
-                
-                with cols[j]:
-                    # カード型のボタン
-                    if st.button(
-                        f"📊 {table}\n({count:,}件)",
-                        key=f"select_table_{table}",
-                        use_container_width=True,
-                        type="secondary"
-                    ):
-                        st.session_state["selected_table"] = table
-                        st.session_state["table_selected"] = True
-                        st.rerun()
+    # フォーム内で編集
+    with st.form(f"edit_form_{selected_id}"):
+        df_cols = get_table_columns(table)
+        upd = {}
+        # ID/Timestamp系カラムはフォームから除外
+        col_list = [c for c in df_cols if c.lower() not in ["id","created_at","updated_at"]]
+        num_cols = 3 
+
+        # フォームの入力フィールドを3列に分割して表示
+        for i in range(0, len(col_list), num_cols):
+            cols_form = st.columns(num_cols)
+            for j in range(num_cols):
+                idx = i + j
+                if idx < len(col_list):
+                    c = col_list[idx]
+                    val = selected_row.get(c, "")
+                    # 入力キーはIDを含み一意なので問題なし
+                    upd[c] = cols_form[j].text_input(c, value=str(val) if val is not None else "", key=f"edit_input_{c}_{selected_id}")
+        
+        if st.form_submit_button(f"💾 実行 - データを保存"):
+            update_payload = {k: v for k, v in upd.items()}
+            
+            success, result = execute_operation(supabase, table, "update", update_payload, condition=(id_col, selected_id))
+            
+            if success:
+                st.success("✅ データが正常に更新されました")
+                st.cache_data.clear()
+                st.rerun() 
+            else:
+                st.error(f"❌ 更新失敗: {result}")
 
 
-# ========== 操作選択ページ ==========
-def show_operation_selection(supabase, table):
-    """操作選択専用ページ（テーブル選択後）"""
-    
-    # 選択中のテーブル表示
-    df = get_table_data(table, limit=100)
-    count = len(df) if df is not None else 0
-    
-    col_back, col_table, col_count = st.columns([1, 3, 1])
-    
-    with col_back:
-        if st.button("⬅️ 戻る", use_container_width=True):
-            st.session_state["table_selected"] = False
-            st.session_state.pop("selected_table", None)
-            st.rerun()
-    
-    with col_table:
-        st.markdown(
-            f'<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); '
-            f'padding: 12px; border-radius: 8px; text-align: center;">'
-            f'<p style="color: white; margin: 0; font-size: 15px; font-weight: bold;">📋 {table}</p>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-    
-    with col_count:
-        st.metric("件数", f"{count:,}")
-    
-    # データプレビュー
-    st.markdown("**データプレビュー**")
-    if df is not None and not df.empty:
-        id_col = "id" if "id" in df.columns else df.columns[0]
-        st.dataframe(
-            df,
-            use_container_width=True,
-            height=350,
-            hide_index=True,
-            column_order=[id_col] + [c for c in df.columns if c != id_col]
-        )
-    else:
-        st.info("データなし", icon="📭")
-    
-    # 操作選択
-    st.markdown(
-        '<div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); '
-        'padding: 12px; border-radius: 8px; margin-top: 15px; margin-bottom: 10px; text-align: center;">'
-        '<p style="color: #333; margin: 0; font-size: 14px; font-weight: bold;">操作を選択してください</p>'
-        '</div>',
-        unsafe_allow_html=True
-    )
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("➕ データ追加", use_container_width=True, type="secondary", key="btn_add"):
-            st.session_state["manage_mode"] = "add"
-            st.session_state["operation_selected"] = True
-            st.rerun()
-    
-    with col2:
-        if st.button("✍️ データ編集", use_container_width=True, type="secondary", key="btn_edit"):
-            st.session_state["manage_mode"] = "edit"
-            st.session_state["operation_selected"] = True
-            st.rerun()
-    
-    with col3:
-        if st.button("🗑️ データ削除", use_container_width=True, type="secondary", key="btn_delete"):
-            st.session_state["manage_mode"] = "delete"
-            st.session_state["operation_selected"] = True
-            st.rerun()
-
-
-# ========== メイン画面 ==========
+# --- メイン描画関数 (全機能統合) ---
 def show(supabase, available_tables):
-    """データ管理のメイン画面 - 2段階フロー"""
+    st.markdown("## 📋 データ管理 (統合画面)")
+    st.markdown("---")
     
     if not available_tables:
         st.info("テーブルが存在しません。テーブル作成ページで追加してください。", icon="ℹ️")
         return
+
+    # 1. テーブル選択と件数表示
+    col_left, col_right = st.columns([4, 1])
     
-    # セッションステートの初期化
-    if "table_selected" not in st.session_state:
-        st.session_state["table_selected"] = False
+    default_table = st.session_state.get("selected_table", available_tables[0])
+    default_index = available_tables.index(default_table) if default_table in available_tables else 0
+
+    with col_left:
+        table = st.selectbox("操作するテーブルを選択", available_tables, index=default_index, key="manage_table")
     
-    if "operation_selected" not in st.session_state:
-        st.session_state["operation_selected"] = False
+    # 🌟 修正: テーブルが切り替わったら選択状態をリセット
+    if table != st.session_state.get("selected_table_actual"):
+        st.session_state["selected_table_actual"] = table
+        st.cache_data.clear()
+        st.session_state.pop("selected_row_main", None) # 選択行を強制的にリセット
+        
+    df_count = get_table_data(table, limit=500)
+    count = df_count.shape[0] if df_count is not None else 0
     
-    # フロー制御
-    if not st.session_state["table_selected"]:
-        # ステップ1: テーブル選択
-        show_table_selection(supabase, available_tables)
+    with col_right:
+        st.metric("総件数", f"{count:,}件")
+        
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 2. 新規追加機能 (プラスボタンでトグル)
+    show_add_form_toggle(supabase, table)
     
-    elif not st.session_state["operation_selected"]:
-        # ステップ2: 操作選択
-        table = st.session_state.get("selected_table")
-        if table:
-            show_operation_selection(supabase, table)
-    
+    st.markdown("---")
+
+    # 3. データ一覧・検索・選択 (コア機能)
+    st.markdown("### 📜 データ一覧・検索・選択")
+    # show_data_selection_coreはセッションステートから最新の選択行データを取得して返す
+    selected_row = show_data_selection_core(table, key_suffix="main")
+
+    # 4. 編集・削除フォームの表示
+    if selected_row:
+        # 選択行情報からIDを取得
+        df_cols = get_table_columns(table)
+        id_col = "id" if "id" in df_cols else df_cols[0]
+        selected_id = selected_row.get(id_col)
+        
+        st.markdown("---")
+        st.markdown(f"### 🎯 選択したレコードの操作 (ID: `{selected_id}`)")
+        
+        # 編集と削除の領域を定義
+        edit_col, delete_col = st.columns([2, 1])
+
+        with edit_col:
+            show_edit_form(supabase, table, selected_row, id_col)
+        
+        with delete_col:
+            st.markdown("#### 🗑️ 削除警告")
+            
+            # --- 削除の第一ステップ: 警告と確認ボタン ---
+            if st.button(f"🗑️ ID {selected_id} の削除を開始", type="secondary", key=f"init_delete_btn_{selected_id}", use_container_width=True):
+                # 削除確認フラグを立てる
+                st.session_state["confirm_delete_id"] = selected_id
+            
+            # --- 削除の第二ステップ: 最終確認フロー ---
+            if st.session_state.get("confirm_delete_id") == selected_id:
+                st.markdown("---")
+                st.error(f"⚠️ **最終確認:** ID `{selected_id}` を削除します。")
+                
+                col_yes, col_no = st.columns(2)
+                
+                with col_yes:
+                    # 削除実行
+                    if st.button("🗑️ 削除を最終確定", type="primary", key=f"final_delete_yes_{selected_id}", use_container_width=True):
+                        success, result = execute_operation(supabase, table, "delete", condition=(id_col, selected_id))
+                        if success:
+                            st.success("✅ データが正常に削除されました")
+                            st.session_state.pop("confirm_delete_id", None) # 状態クリア
+                            st.session_state.pop("selected_row_main", None) # 選択もクリア
+                            st.cache_data.clear()
+                            st.rerun() 
+                        else:
+                            st.error(f"❌ 削除失敗: {result}")
+                            st.session_state.pop("confirm_delete_id", None)
+                
+                with col_no:
+                    # キャンセルボタン (ユーザーの言う「✖ボタン」の意図を包含)
+                    if st.button("✖ キャンセル", key=f"final_delete_no_{selected_id}", use_container_width=True):
+                        st.session_state.pop("confirm_delete_id", None) # 状態クリア
+                        st.info("削除をキャンセルしました。")
+            else:
+                 st.info("👆上のボタンを押すと削除の最終確認が表示されます。")
     else:
-        # ステップ3: 実際の操作画面
-        table = st.session_state.get("selected_table")
-        mode = st.session_state.get("manage_mode", "add")
-        
-        if not table:
-            st.error("テーブルが選択されていません")
-            return
-        
-        # ヘッダー（戻るボタン付き）
-        col_back, col_info = st.columns([1, 4])
-        
-        with col_back:
-            if st.button("⬅️ 戻る", use_container_width=True):
-                st.session_state["operation_selected"] = False
-                st.rerun()
-        
-        with col_info:
-            df_count = get_table_data(table, limit=500)
-            count = df_count.shape[0] if df_count is not None else 0
-            
-            mode_text = {"add": "追加", "edit": "編集", "delete": "削除"}.get(mode, "")
-            
-            st.markdown(
-                f'<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); '
-                f'padding: 10px; border-radius: 8px; text-align: center;">'
-                f'<p style="color: white; margin: 0; font-size: 14px;">'
-                f'<strong>{table}</strong> | {mode_text}モード | {count:,}件'
-                f'</p></div>',
-                unsafe_allow_html=True
-            )
-        
-        # 各操作画面を表示
-        if mode == "add":
-            show_add_page(supabase, table)
-        elif mode == "edit":
-            show_edit_page(supabase, table)
-        elif mode == "delete":
-            show_delete_page(supabase, table)
+        # 選択されていない場合の明確な指示
+        st.markdown("""
+        ---
+        ### 🎯 選択したレコードの操作
+        データ一覧から行をクリックして選択すると、ここに**修正フォーム**と**削除オプション**が表示されます。
+        """)
