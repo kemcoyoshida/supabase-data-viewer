@@ -89,9 +89,8 @@ def show_data_selection_core(table, key_suffix):
     # ID/主キーの列を決定
     id_col = "id" if "id" in df.columns else df.columns[0]
     
-    # --- フィルタリング UI ---
-    # 検索UI（常時表示：折りたたみなし）
-    st.markdown("#### 🔎 検索（テキスト/値 + 日付）")
+    # --- フィルタリング UI（常時表示・シンプル） ---
+    st.markdown("#### 🔎 検索")
     cols = df.columns.tolist()
     q1, q2, q3 = st.columns([3, 2, 5])
     with q1:
@@ -109,33 +108,44 @@ def show_data_selection_core(table, key_suffix):
         except Exception:
             st.warning("検索に失敗しました。入力値の型をご確認ください。")
 
-    # 日付フィルタ（必要時のみ、1行でスリムに）
+    # 日付フィルタ（期間 / 同じ日）
     date_cols = [c for c in df.columns if 'date' in c.lower() or 'at' in c.lower()]
     if date_cols:
-        d1, d2, d3 = st.columns(3)
+        d0, d1, d2, d3 = st.columns([2, 3, 3, 3])
+        with d0:
+            date_mode = st.radio("種類", ["期間", "同じ日"], horizontal=True, key=f"date_mode_{key_suffix}")
         with d1:
             date_filter_col = st.selectbox("日付項目", date_cols, key=f"date_filter_col_{key_suffix}")
-        with d2:
-            start_date = st.date_input("開始日", value=None, key=f"start_date_{key_suffix}")
-        with d3:
-            end_date = st.date_input("終了日", value=None, key=f"end_date_{key_suffix}")
+        if date_mode == "期間":
+            with d2:
+                start_date = st.date_input("開始日", value=None, key=f"start_date_{key_suffix}")
+            with d3:
+                end_date = st.date_input("終了日", value=None, key=f"end_date_{key_suffix}")
+        else:
+            with d2:
+                same_date = st.date_input("対象日", value=None, key=f"same_date_{key_suffix}")
+            end_date = None
+            start_date = None
         # 変換して適用
         try:
             df["__temp_date_filter"] = pd.to_datetime(df[date_filter_col], errors='coerce').dt.date
-            if start_date or end_date:
-                temp_df = df[df["__temp_date_filter"].notna()]
+            temp_df = df[df["__temp_date_filter"].notna()]
+            if date_mode == "期間":
                 if start_date:
                     temp_df = temp_df[temp_df["__temp_date_filter"] >= start_date]
                 if end_date:
                     temp_df = temp_df[temp_df["__temp_date_filter"] <= end_date]
-                df = temp_df
+            else:
+                if same_date:
+                    temp_df = temp_df[temp_df["__temp_date_filter"] == same_date]
+            df = temp_df
         except Exception:
             pass
         if "__temp_date_filter" in df.columns:
             df = df.drop(columns=["__temp_date_filter"])
 
     # --- データフレーム（選択可能） ---
-    st.caption(f"💡 表示件数: {len(df)}件。行をクリックして選択できます。")
+    st.caption(f"表示件数: {len(df)}件")
     
     # データテーブル（選択可能）：data_editorで確実に選択できるように
     data_key = f"data_editor_{table}_{key_suffix}"
@@ -150,31 +160,9 @@ def show_data_selection_core(table, key_suffix):
         disabled=True,
     )
     
-    # 選択された行の処理
-    selected_state = st.session_state.get(data_key, {})
-    selected_rows = selected_state.get("selection", {}).get("rows", [])
-    
-    selected_row_data = None
-    if selected_rows:
-        selected_index = selected_rows[0]
-        
-        if selected_index < len(df):
-            selected_row_data = df.iloc[selected_index].to_dict()
-            st.session_state[f"selected_row_{key_suffix}"] = selected_row_data
-            # 選択成功メッセージ
-            st.success(f"✅ ID **{selected_row_data.get(id_col)}** の行が選択されました。下の「🎯 選択したレコードの操作」セクションをご確認ください。")
-        else:
-            st.session_state.pop(f"selected_row_{key_suffix}", None) # 無効な選択なら削除
-            st.warning("無効な行が選択されました。")
-    else:
-        # 🌟 修正: 行選択がない場合、セッションステートから情報を確実に削除
-        st.session_state.pop(f"selected_row_{key_suffix}", None)
-        st.info("☝️ 上の表から操作したい行をクリックしてください。")
-        
+    # 選択系UIは表示しない（閲覧専用）
     st.markdown("---")
-    
-    # 最終的にセッションステートから最新の状態を取得して返す
-    return st.session_state.get(f"selected_row_{key_suffix}")
+    return None
 
 
 # --- ヘルパー関数: 編集フォームの表示 ---
@@ -251,65 +239,4 @@ def show(supabase, available_tables):
     # show_data_selection_coreはセッションステートから最新の選択行データを取得して返す
     selected_row = show_data_selection_core(table, key_suffix="main")
 
-    # 3. データ追加（要望: 表の下に配置）
-    show_add_form_toggle(supabase, table)
-
-    # 4. 編集・削除フォームの表示
-    if selected_row:
-        # 選択行情報からIDを取得
-        df_cols = get_table_columns(table)
-        id_col = "id" if "id" in df_cols else df_cols[0]
-        selected_id = selected_row.get(id_col)
-        
-        st.markdown("---")
-        st.markdown(f"### 🎯 選択したレコードの操作 (ID: `{selected_id}`)")
-        
-        # 編集と削除の領域を定義
-        edit_col, delete_col = st.columns([2, 1])
-
-        with edit_col:
-            show_edit_form(supabase, table, selected_row, id_col)
-        
-        with delete_col:
-            st.markdown("#### 🗑️ 削除警告")
-            
-            # --- 削除の第一ステップ: 警告と確認ボタン ---
-            if st.button(f"🗑️ ID {selected_id} の削除を開始", type="secondary", key=f"init_delete_btn_{selected_id}", use_container_width=True):
-                # 削除確認フラグを立てる
-                st.session_state["confirm_delete_id"] = selected_id
-            
-            # --- 削除の第二ステップ: 最終確認フロー ---
-            if st.session_state.get("confirm_delete_id") == selected_id:
-                st.markdown("---")
-                st.error(f"⚠️ **最終確認:** ID `{selected_id}` を削除します。")
-                
-                col_yes, col_no = st.columns(2)
-                
-                with col_yes:
-                    # 削除実行
-                    if st.button("🗑️ 削除を最終確定", type="primary", key=f"final_delete_yes_{selected_id}", use_container_width=True):
-                        success, result = execute_operation(supabase, table, "delete", condition=(id_col, selected_id))
-                        if success:
-                            st.success("✅ データが正常に削除されました")
-                            st.session_state.pop("confirm_delete_id", None) # 状態クリア
-                            st.session_state.pop("selected_row_main", None) # 選択もクリア
-                            st.cache_data.clear()
-                            st.rerun() 
-                        else:
-                            st.error(f"❌ 削除失敗: {result}")
-                            st.session_state.pop("confirm_delete_id", None)
-                
-                with col_no:
-                    # キャンセルボタン (ユーザーの言う「✖ボタン」の意図を包含)
-                    if st.button("✖ キャンセル", key=f"final_delete_no_{selected_id}", use_container_width=True):
-                        st.session_state.pop("confirm_delete_id", None) # 状態クリア
-                        st.info("削除をキャンセルしました。")
-            else:
-                 st.info("👆上のボタンを押すと削除の最終確認が表示されます。")
-    else:
-        # 選択されていない場合の明確な指示
-        st.markdown("""
-        ---
-        ### 🎯 選択したレコードの操作
-        データ一覧から行をクリックして選択すると、ここに**修正フォーム**と**削除オプション**が表示されます。
-        """)
+    # 3. 追加・編集・削除の機能は表示しない（閲覧専用に）
