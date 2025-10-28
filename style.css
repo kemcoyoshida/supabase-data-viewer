@@ -14,13 +14,13 @@
 /* 基本：全体の文字サイズをやや小さめに */
 html, body, .block-container { 
     font-family: 'Noto Sans JP', 'Inter', sans-serif; 
-    font-size: 20px !important; 
+    font-size: 18px !important; 
     background: var(--bg) !important; 
     color: var(--primary-text) !important; 
 }
-h1 { font-size: 32px !important; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 5px;}
-h2 { font-size: 26px !important; color: var(--accent); }
-h3 { font-size: 22px !important; color: var(--accent-light); }
+h1 { font-size: 28px !important; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 5px;}
+h2 { font-size: 22px !important; color: var(--accent); }
+h3 { font-size: 20px !important; color: var(--accent-light); }
 
 /* カード */
 .card { 
