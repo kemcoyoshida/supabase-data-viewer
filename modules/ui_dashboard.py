@@ -34,7 +34,7 @@ def show(supabase, available_tables):
                     
                     with cols[i]:
                         # 🌟 修正ポイント: use_container_width=True を指定し、幅を均一にする
-                        if st.button(f"📄 {tbl}", key=f"dash_tbl_{tbl}", use_container_width=True):
+                        if st.button(f" {tbl}", key=f"dash_tbl_{tbl}", use_container_width=True):
                             st.session_state["selected_table"] = tbl
                             st.session_state["page"] = "データ管理"
                             st.rerun()
