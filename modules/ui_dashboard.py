@@ -4,13 +4,6 @@ from datetime import datetime
 from .supabase_utils import get_table_count, get_table_data
 
 def show(supabase, available_tables):
-    st.markdown("""
-    <div style="text-align: center; padding: 30px 0; margin-bottom: 30px;">
-        <h1 style="margin: 0; font-size: 42px;">📊 ダッシュボード</h1>
-        <p style="color: #6c757d; font-size: 18px; margin-top: 10px;">データ管理を効率的に</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
     if available_tables:
         # クラウドから最新のレコード数を取得
         # NOTE: 毎回全テーブルのレコード数を取得するのは非効率なため、
@@ -23,28 +16,25 @@ def show(supabase, available_tables):
         
         with c1:
             st.markdown(f"""
-            <div class="card" style="text-align: center; padding: 25px;">
-                <div style="font-size: 36px; margin-bottom: 10px;">📈</div>
-                <div style="font-size: 14px; color: #6c757d; margin-bottom: 8px; font-weight: 600;">総レコード数</div>
-                <div style="font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{total:,}</div>
+            <div class="metric-card">
+                <div class="metric-label">総レコード数</div>
+                <div class="metric-value">{total:,}</div>
             </div>
             """, unsafe_allow_html=True)
         
         with c2:
             st.markdown(f"""
-            <div class="card" style="text-align: center; padding: 25px;">
-                <div style="font-size: 36px; margin-bottom: 10px;">🗂️</div>
-                <div style="font-size: 14px; color: #6c757d; margin-bottom: 8px; font-weight: 600;">テーブル数</div>
-                <div style="font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{len(available_tables)}</div>
+            <div class="metric-card">
+                <div class="metric-label">テーブル数</div>
+                <div class="metric-value">{len(available_tables)}</div>
             </div>
             """, unsafe_allow_html=True)
         
         with c3:
             st.markdown(f"""
-            <div class="card" style="text-align: center; padding: 25px;">
-                <div style="font-size: 36px; margin-bottom: 10px;">🕐</div>
-                <div style="font-size: 14px; color: #6c757d; margin-bottom: 8px; font-weight: 600;">最終更新</div>
-                <div style="font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{datetime.now().strftime("%Y/%m/%d")}</div>
+            <div class="metric-card">
+                <div class="metric-label">最終更新</div>
+                <div class="metric-value" style="font-size: 24px;">{datetime.now().strftime("%Y/%m/%d")}</div>
             </div>
             """, unsafe_allow_html=True)
         

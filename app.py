@@ -22,7 +22,7 @@ from modules import (
 st.set_page_config(
     page_title="データベース管理", 
     layout="wide", 
-    page_icon="🚀",
+    page_icon="📊",
     initial_sidebar_state="expanded"
 )
 
@@ -34,9 +34,11 @@ try:
 except Exception:
     pass
 
-# ページヘッダー（装飾的な要素）
+# Looker Studio風のヘッダー
 st.markdown("""
-<div style="position: fixed; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%); z-index: 9999; animation: gradientShift 15s ease infinite;"></div>
+<div class="page-header">
+    <h1>📊 データベース管理</h1>
+</div>
 """, unsafe_allow_html=True)
 
 # Initialize supabase client (module handles secrets)
@@ -47,13 +49,7 @@ available_tables = supabase_utils.get_available_tables()
 
 # Sidebar navigation
 with st.sidebar:
-    st.markdown("""
-    <div style="text-align: center; padding: 20px 0;">
-        <div style="font-size: 48px; margin-bottom: 10px;">🚀</div>
-        <h1 style="margin: 0;">データベース管理</h1>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown("---")
+    st.markdown("### ナビゲーション")
 
     if "page" not in st.session_state:
         st.session_state["page"] = "ダッシュボード"

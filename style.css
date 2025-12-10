@@ -1,0 +1,511 @@
+/* モダンでおしゃれなデザイン */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* モダンなカラーパレット */
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #818cf8;
+  --secondary: #8b5cf6;
+  --accent: #ec4899;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  
+  /* グレースケール */
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  
+  /* テキスト */
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  
+  /* 背景 */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  
+  /* ボーダー */
+  --border-light: #e5e7eb;
+  --border-medium: #d1d5db;
+  
+  /* シャドウ */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* 基本スタイル */
+html, body, .block-container {
+    font-family: 'Inter', 'Noto Sans JP', sans-serif !important;
+    font-size: 14px !important;
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    line-height: 1.6 !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ヘッダー - モダンなグラデーションヘッダー */
+.stApp > header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%) !important;
+    height: 64px !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+/* メインコンテンツエリア */
+.main .block-container {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+    max-width: 1400px !important;
+    background: transparent !important;
+}
+
+/* 見出し */
+h1 {
+    font-size: 28px !important;
+    font-weight: 700 !important;
+    color: var(--text-primary) !important;
+    margin-bottom: 24px !important;
+    border: none !important;
+    padding: 0 !important;
+    letter-spacing: -0.5px !important;
+}
+
+h2 {
+    font-size: 22px !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    margin-top: 32px !important;
+    margin-bottom: 16px !important;
+    letter-spacing: -0.3px !important;
+}
+
+h3 {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    margin-top: 24px !important;
+    margin-bottom: 12px !important;
+}
+
+/* サイドバー */
+[data-testid="stSidebar"] {
+    background: var(--bg-primary) !important;
+    border-right: 1px solid var(--border-light) !important;
+    padding: 20px !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h3 {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    margin-bottom: 16px !important;
+    text-align: left !important;
+}
+
+/* ボタン - モダンなグラデーションボタン */
+.stButton > button {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    height: 40px !important;
+    padding: 0 20px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: var(--shadow) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.stButton > button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: var(--shadow-lg) !important;
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--secondary) 100%) !important;
+}
+
+.stButton > button:hover::before {
+    left: 100%;
+}
+
+.stButton > button:active {
+    transform: translateY(0) !important;
+    box-shadow: var(--shadow) !important;
+}
+
+/* サイドバーボタン */
+[data-testid="stSidebar"] .stButton > button {
+    width: 100% !important;
+    margin-bottom: 8px !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+}
+
+/* メトリックカード - モダンなカードデザイン */
+.metric-card {
+    background: var(--bg-primary) !important;
+    border: 1px solid var(--border-light) !important;
+    border-radius: 12px !important;
+    padding: 24px !important;
+    text-align: center !important;
+    box-shadow: var(--shadow) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+}
+
+.metric-card:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: var(--shadow-lg) !important;
+    border-color: var(--primary-light) !important;
+}
+
+.metric-label {
+    font-size: 12px !important;
+    color: var(--text-secondary) !important;
+    font-weight: 600 !important;
+    margin-bottom: 12px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+}
+
+.metric-value {
+    font-size: 36px !important;
+    font-weight: 700 !important;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2 !important;
+    letter-spacing: -1px !important;
+}
+
+/* テーブル - モダンなテーブルデザイン */
+div[data-testid="stDataFrame"] {
+    border: 1px solid var(--border-light) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    box-shadow: var(--shadow) !important;
+    background: var(--bg-primary) !important;
+}
+
+/* テーブルヘッダー */
+th {
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%) !important;
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    padding: 14px 16px !important;
+    border-bottom: 2px solid var(--border-medium) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+}
+
+/* テーブル行 */
+td {
+    padding: 14px 16px !important;
+    font-size: 14px !important;
+    border-bottom: 1px solid var(--border-light) !important;
+    transition: background-color 0.2s ease !important;
+}
+
+tbody tr {
+    transition: all 0.2s ease !important;
+}
+
+tbody tr:hover {
+    background-color: var(--gray-50) !important;
+    transform: scale(1.01) !important;
+}
+
+tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+/* 入力フィールド - モダンなデザイン */
+div[data-testid="stTextInput"] > div > div > input,
+div[data-testid="stSelectbox"] > div > div > select,
+div[data-testid="stTextArea"] > div > div > textarea {
+    border: 1.5px solid var(--border-medium) !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+    transition: all 0.2s ease !important;
+    background: var(--bg-primary) !important;
+}
+
+div[data-testid="stTextInput"] > div > div > input:focus,
+div[data-testid="stSelectbox"] > div > div > select:focus,
+div[data-testid="stTextArea"] > div > div > textarea:focus {
+    border-color: var(--primary) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ラベル */
+div[data-testid="stForm"] > div > div > div > label,
+label {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    margin-bottom: 6px !important;
+    letter-spacing: 0.2px !important;
+}
+
+/* セレクトボックスラベル */
+div[data-testid="stSelectbox"] > label,
+div[data-testid="stTextInput"] > label,
+div[data-testid="stTextArea"] > label {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    margin-bottom: 6px !important;
+}
+
+/* セレクトボックス */
+div[data-baseweb="select"] {
+    border-radius: 4px !important;
+}
+
+/* 日付入力 */
+div[data-baseweb="datepicker"] {
+    border-radius: 4px !important;
+}
+
+/* カード（汎用） - モダンなカード */
+.card {
+    background: var(--bg-primary) !important;
+    border: 1px solid var(--border-light) !important;
+    border-radius: 12px !important;
+    padding: 20px !important;
+    box-shadow: var(--shadow) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.card:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: var(--shadow-lg) !important;
+    border-color: var(--primary-light) !important;
+}
+
+/* セパレーター */
+hr {
+    border: none !important;
+    border-top: 1px solid var(--border-light) !important;
+    margin: 32px 0 !important;
+}
+
+/* メッセージ - モダンなデザイン */
+div[data-testid="stSuccess"] {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%) !important;
+    border-left: 4px solid var(--success) !important;
+    border-radius: 8px !important;
+    padding: 16px 20px !important;
+    box-shadow: var(--shadow-sm) !important;
+    border: 1px solid rgba(16, 185, 129, 0.2) !important;
+}
+
+div[data-testid="stError"] {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%) !important;
+    border-left: 4px solid var(--error) !important;
+    border-radius: 8px !important;
+    padding: 16px 20px !important;
+    box-shadow: var(--shadow-sm) !important;
+    border: 1px solid rgba(239, 68, 68, 0.2) !important;
+}
+
+div[data-testid="stInfo"] {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%) !important;
+    border-left: 4px solid var(--primary) !important;
+    border-radius: 8px !important;
+    padding: 16px 20px !important;
+    box-shadow: var(--shadow-sm) !important;
+    border: 1px solid rgba(99, 102, 241, 0.2) !important;
+}
+
+div[data-testid="stWarning"] {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%) !important;
+    border-left: 4px solid var(--warning) !important;
+    border-radius: 8px !important;
+    padding: 16px 20px !important;
+    box-shadow: var(--shadow-sm) !important;
+    border: 1px solid rgba(245, 158, 11, 0.2) !important;
+}
+
+/* キャプション */
+.caption {
+    font-size: 12px !important;
+    color: var(--text-secondary) !important;
+    font-weight: 500 !important;
+}
+
+/* エクスパンダー */
+div[data-testid="stExpander"] {
+    border: 1px solid var(--border-light) !important;
+    border-radius: 8px !important;
+    background: var(--bg-primary) !important;
+    box-shadow: var(--shadow-sm) !important;
+    margin-bottom: 16px !important;
+}
+
+div[data-testid="stExpander"] > div {
+    padding: 16px !important;
+}
+
+/* スクロールバー */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--looker-gray-light);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--looker-gray-border);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--looker-gray);
+}
+
+/* データエディター */
+div[data-testid="stDataEditor"] {
+    border: 1px solid var(--looker-gray-border) !important;
+    border-radius: 4px !important;
+}
+
+/* フォーム */
+div[data-testid="stForm"] {
+    border: 1px solid var(--looker-gray-border) !important;
+    border-radius: 4px !important;
+    padding: 16px !important;
+    background: var(--looker-white) !important;
+}
+
+/* ページヘッダー - モダンなグラデーションヘッダー */
+.page-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%) !important;
+    color: white !important;
+    padding: 24px 32px !important;
+    margin: -2rem -2rem 2rem -2rem !important;
+    border-radius: 0 0 16px 16px !important;
+    box-shadow: var(--shadow-lg) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.page-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
+    pointer-events: none;
+}
+
+.page-header h1 {
+    color: white !important;
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+/* メトリック表示 */
+[data-testid="stMetricValue"] {
+    font-size: 36px !important;
+    font-weight: 700 !important;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -1px !important;
+}
+
+[data-testid="stMetricLabel"] {
+    font-size: 12px !important;
+    color: var(--text-secondary) !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+}
+
+/* 追加のモダンなスタイル */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stApp > div {
+    animation: fadeInUp 0.5s ease-out !important;
+}
+
+/* セレクトボックス */
+div[data-baseweb="select"] {
+    border-radius: 8px !important;
+}
+
+/* 日付入力 */
+div[data-baseweb="datepicker"] {
+    border-radius: 8px !important;
+}
+
+/* フォーム */
+div[data-testid="stForm"] {
+    border: 1px solid var(--border-light) !important;
+    border-radius: 12px !important;
+    padding: 24px !important;
+    background: var(--bg-primary) !important;
+    box-shadow: var(--shadow) !important;
+}
+

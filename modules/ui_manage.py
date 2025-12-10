@@ -255,14 +255,6 @@ def show_edit_form(supabase, table, selected_row, id_col):
 
 # --- メイン描画関数 (全機能統合) ---
 def show(supabase, available_tables):
-    st.markdown("""
-    <div style="text-align: center; padding: 30px 0; margin-bottom: 30px;">
-        <h1 style="margin: 0; font-size: 42px;">📋 データ管理</h1>
-        <p style="color: #6c757d; font-size: 18px; margin-top: 10px;">データの閲覧・検索・管理</p>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown("---")
-    
     if not available_tables:
         st.info("テーブルが存在しません。テーブル作成ページで追加してください。", icon="ℹ️")
         return
@@ -291,9 +283,47 @@ def show(supabase, available_tables):
         
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 2. データ一覧・検索・選択 (コア機能)
-    st.markdown("### 📜 データ一覧・検索・選択")
+    # 2. データ追加フォーム
+    st.markdown("### ➕ データ追加")
+    with st.expander("新規レコードを追加", expanded=False):
+        cols = get_table_columns(table)
+        
+        if not cols:
+            st.warning("カラム情報が取得できません。", icon="⚠️")
+        else:
+            with st.form("add_form", clear_on_submit=True):
+                col_list = [c for c in cols if c.lower() not in ["id","created_at","updated_at"]]
+                num_cols = 3
+                new = {}
+                
+                # フォームの入力フィールドを3列に分割して表示
+                for i in range(0, len(col_list), num_cols):
+                    cols_form = st.columns(num_cols)
+                    for j in range(num_cols):
+                        idx = i + j
+                        if idx < len(col_list):
+                            c = col_list[idx]
+                            with cols_form[j]:
+                                new[c] = st.text_input(c, key=f"add_input_{table}_{c}")
+                
+                col_submit, col_clear = st.columns([1, 4])
+                with col_submit:
+                    if st.form_submit_button("💾 追加", use_container_width=True, type="primary"):
+                        payload = {k:v for k,v in new.items() if v not in [None,""]}
+                        if not payload:
+                            st.warning("入力されたデータがありません。", icon="⚠️")
+                        else:
+                            success, result = execute_operation(supabase, table, "insert", payload)
+                            if success:
+                                st.success("✅ データが正常に追加されました")
+                                st.cache_data.clear()
+                                st.rerun()
+                            else:
+                                st.error(f"❌ 追加失敗: {result}")
+
+    st.markdown("---")
+    
+    # 3. データ一覧・検索・選択 (コア機能)
+    st.markdown("### 📜 データ一覧・検索")
     # show_data_selection_coreはセッションステートから最新の選択行データを取得して返す
     selected_row = show_data_selection_core(table, key_suffix="main")
-
-    # 3. 追加・編集・削除の機能は表示しない（閲覧専用に）
