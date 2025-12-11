@@ -196,8 +196,8 @@ def get_table_columns(table_name):
         # テーブルが存在しない、またはアクセス権がない場合
         return []
 
-@st.cache_data(ttl=10)  # キャッシュ時間を10秒に短縮して最新データを取得しやすくする
-def get_table_data(table_name, limit=10000, select_cols="*"):  # デフォルトの制限を10000件に増加
+@st.cache_data(ttl=60)
+def get_table_data(table_name, limit=1000, select_cols="*"):
     client = get_client()
     try:
         q = client.table(table_name).select(select_cols if select_cols else "*")
