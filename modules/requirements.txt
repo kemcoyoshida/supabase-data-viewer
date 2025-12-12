@@ -1,4 +1,0 @@
-streamlit>=1.24
-supabase>=1.0.0
-pandas
-requests
