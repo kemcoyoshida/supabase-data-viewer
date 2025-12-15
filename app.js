@@ -7,6 +7,9 @@ let filteredData = [];
 let selectedRows = new Set();
 let currentPage = 1;
 let itemsPerPage = 20;
+let todos = [];
+let todoNotificationCheckInterval = null;
+let currentTodoFilter = 'all';
 
 // テーブル名の日本語マッピング
 const TABLE_NAME_MAP = {
@@ -47,15 +50,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupEventListeners();
         updateCurrentTime();
         setInterval(updateCurrentTime, 1000);
-        // 初期表示は一覧表示ページ
-        showPage('list');
+        
+        // Todoの読み込みと通知チェック開始
+        setTimeout(() => {
+            if (typeof loadTodos === 'function') {
+                loadTodos();
+            }
+            if (typeof startTodoNotificationCheck === 'function') {
+                startTodoNotificationCheck();
+            }
+        }, 100);
+        
+        // 初期表示はダッシュボードページ
+        showPage('dashboard');
         
         // テーブル検索のイベントリスナー
         const searchInput = document.getElementById('table-search-input');
         if (searchInput) {
-            searchInput.addEventListener('input', () => {
+            searchInput.addEventListener('input', (e) => {
                 updateTableList();
             });
+            searchInput.addEventListener('keyup', (e) => {
+                updateTableList();
+            });
+        } else {
+            console.warn('table-search-input要素が見つかりません');
         }
     } catch (error) {
         showMessage('エラー: ' + error.message, 'error');
@@ -103,12 +122,13 @@ function setupEventListeners() {
         }
     });
 
-    // カラムフィルターのEnterキー対応
-    document.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && e.target.classList.contains('column-filter')) {
-            applyFilters();
-        }
-    });
+    // カラム選択プルダウンの変更イベント対応
+    const columnSelect = document.getElementById('filter-column-select');
+    if (columnSelect) {
+        columnSelect.addEventListener('change', () => {
+            // プルダウン変更時は自動検索しない（検索実行ボタンで実行）
+        });
+    }
 
     // 新規登録
     document.getElementById('new-register').addEventListener('click', () => {
@@ -180,6 +200,82 @@ function setupEventListeners() {
     // 削除確認モーダル
     document.getElementById('cancel-delete').addEventListener('click', closeDeleteModal);
     document.getElementById('confirm-delete').addEventListener('click', confirmDelete);
+
+    // 全選択/全解除ボタン
+    const selectAllBtn = document.getElementById('select-all-btn');
+    const deselectAllBtn = document.getElementById('deselect-all-btn');
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', () => {
+            selectAllRows();
+        });
+    }
+    if (deselectAllBtn) {
+        deselectAllBtn.addEventListener('click', () => {
+            deselectAllRows();
+        });
+    }
+
+    // 通知アイコンボタン
+    const notificationBtn = document.getElementById('notification-btn');
+    const notificationDropdown = document.getElementById('notification-dropdown');
+    const notificationCloseBtn = document.getElementById('notification-close-btn');
+    
+    if (notificationBtn) {
+        notificationBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleNotificationDropdown();
+        });
+    }
+    
+    if (notificationCloseBtn) {
+        notificationCloseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeNotificationDropdown();
+        });
+    }
+
+    // 通知ドロップダウン外をクリックで閉じる
+    document.addEventListener('click', (e) => {
+        if (notificationDropdown && !notificationDropdown.contains(e.target) && 
+            notificationBtn && !notificationBtn.contains(e.target)) {
+            closeNotificationDropdown();
+        }
+    });
+
+    // タブボタンのイベントリスナー
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const tabContainer = e.target.closest('.card-header-with-tabs');
+            if (tabContainer) {
+                tabContainer.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                // タブ切り替え時の処理をここに追加可能
+            }
+        });
+    });
+
+    // ダッシュボードのTodo追加ボタン
+    const addTodoDashboardBtn = document.getElementById('add-todo-dashboard-btn');
+    if (addTodoDashboardBtn) {
+        addTodoDashboardBtn.addEventListener('click', () => {
+            if (typeof openTodoModal === 'function') {
+                openTodoModal();
+            }
+        });
+    }
+
+    // ダッシュボードのTodoフィルターボタン
+    setTimeout(() => {
+        document.querySelectorAll('.todo-dashboard-filter .filter-btn-small').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.todo-dashboard-filter .filter-btn-small').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                if (typeof updateDashboardTodos === 'function') {
+                    updateDashboardTodos();
+                }
+            });
+        });
+    }, 100);
 }
 
 // ページ表示切り替え
@@ -192,6 +288,10 @@ function showPage(pageName) {
 
     if (pageName === 'dashboard') {
         updateDashboard();
+    } else if (pageName === 'todo') {
+        if (typeof renderTodos === 'function') {
+            renderTodos();
+        }
     } else if (pageName === 'list' && currentTable) {
             loadTableData(currentTable);
         }
@@ -209,9 +309,23 @@ async function updateDashboard() {
         }
     }
 
-    document.getElementById('dashboard-total-records').textContent = totalRecords.toLocaleString('ja-JP');
-    document.getElementById('dashboard-table-count').textContent = availableTables.length;
-    document.getElementById('dashboard-last-update').textContent = new Date().toLocaleDateString('ja-JP');
+    // KPIカードの更新
+    updateKPICards(totalRecords);
+    
+    // グラフの更新
+    updateCharts();
+
+    // 通知の更新
+    updateNotifications();
+
+    // カレンダーの更新
+    updateCalendar();
+
+    // イベントリストの更新（Todoの通知時刻）
+    updateEvents();
+
+    // Todoリストの更新
+    updateDashboardTodos();
 
     // 最近使用したテーブル（最初の5つ）
     const recentContainer = document.getElementById('recent-tables');
@@ -229,6 +343,391 @@ async function updateDashboard() {
         });
         recentContainer.appendChild(item);
     });
+}
+
+// KPIカードの更新
+function updateKPICards(totalRecords) {
+    // 実際のデータに基づいて更新（現在は総レコード数を表示）
+    const productionEl = document.getElementById('kpi-production');
+    const operatingRateEl = document.getElementById('kpi-operating-rate');
+    const inventoryEl = document.getElementById('kpi-inventory');
+    const deliveryRateEl = document.getElementById('kpi-delivery-rate');
+    
+    if (productionEl) productionEl.textContent = totalRecords.toLocaleString();
+    if (operatingRateEl) operatingRateEl.textContent = '-';
+    if (inventoryEl) inventoryEl.textContent = '-';
+    if (deliveryRateEl) deliveryRateEl.textContent = '-';
+}
+
+// 通知の更新（Todoを含む）
+function updateNotifications() {
+    if (typeof updateNotificationsWithTodos === 'function') {
+        updateNotificationsWithTodos();
+    } else {
+        // フォールバック（todo.jsが読み込まれていない場合）
+        const notifications = [
+            { type: 'danger', title: '在庫不足アラート', message: '部品Aの在庫が10個以下です', time: '5分前', unread: true },
+            { type: 'warning', title: '納期遅延警告', message: '注文ID #12345の納期が迫っています', time: '15分前', unread: true }
+        ];
+        updateNotificationBadge(notifications);
+    }
+}
+
+// 通知ドロップダウンの開閉
+function toggleNotificationDropdown() {
+    const dropdown = document.getElementById('notification-dropdown');
+    if (dropdown) {
+        const isVisible = dropdown.style.display !== 'none';
+        dropdown.style.display = isVisible ? 'none' : 'flex';
+    }
+}
+
+function closeNotificationDropdown() {
+    const dropdown = document.getElementById('notification-dropdown');
+    if (dropdown) {
+        dropdown.style.display = 'none';
+    }
+}
+
+// グラフの更新
+let productionChart = null;
+let operatingRateChart = null;
+let defectRateChart = null;
+
+function updateCharts() {
+    // 月別生産量の折れ線グラフ
+    const productionCtx = document.getElementById('production-chart');
+    if (productionCtx && !productionChart) {
+        productionChart = new Chart(productionCtx, {
+            type: 'line',
+            data: {
+                labels: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+                datasets: [{
+                    label: '生産量',
+                    data: [1200, 1350, 1400, 1320, 1500, 1450, 1600, 1580, 1650, 1700, 1750, 1800],
+                    borderColor: 'rgb(107, 143, 163)',
+                    backgroundColor: 'rgba(107, 143, 163, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // 工場別稼働率の円グラフ
+    const operatingRateCtx = document.getElementById('operating-rate-chart');
+    if (operatingRateCtx && !operatingRateChart) {
+        operatingRateChart = new Chart(operatingRateCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['工場A', '工場B', '工場C', '工場D'],
+                datasets: [{
+                    data: [35, 30, 20, 15],
+                    backgroundColor: [
+                        'rgba(107, 143, 163, 0.8)',
+                        'rgba(90, 122, 143, 0.8)',
+                        'rgba(125, 160, 181, 0.8)',
+                        'rgba(107, 143, 163, 0.5)'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // 不良率の棒グラフ
+    const defectRateCtx = document.getElementById('defect-rate-chart');
+    if (defectRateCtx && !defectRateChart) {
+        defectRateChart = new Chart(defectRateCtx, {
+            type: 'bar',
+            data: {
+                labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+                datasets: [{
+                    label: '不良率 (%)',
+                    data: [2.5, 2.1, 1.8, 2.0, 1.5, 1.2],
+                    backgroundColor: 'rgba(201, 125, 125, 0.8)',
+                    borderColor: 'rgba(201, 125, 125, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5
+                    }
+                }
+            }
+        });
+    }
+
+    // アクティビティ棒グラフ
+    const activityBarCtx = document.getElementById('activity-bar-chart');
+    if (activityBarCtx) {
+        const activityBarChart = new Chart(activityBarCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Activity',
+                    data: [320, 450, 380, 420, 480, 350, 400],
+                    backgroundColor: 'rgba(107, 143, 163, 0.8)',
+                    borderColor: 'rgba(107, 143, 163, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 500
+                    }
+                }
+            }
+        });
+    }
+
+    // アクティビティ折れ線グラフ
+    const activityLineCtx = document.getElementById('activity-line-chart');
+    if (activityLineCtx) {
+        const activityLineChart = new Chart(activityLineCtx, {
+            type: 'line',
+            data: {
+                labels: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月'],
+                datasets: [{
+                    label: '2018',
+                    data: [320, 380, 350, 400, 420, 450, 480, 500],
+                    borderColor: 'rgba(201, 125, 125, 1)',
+                    backgroundColor: 'rgba(201, 125, 125, 0.1)',
+                    tension: 0.4
+                }, {
+                    label: '2017',
+                    data: [280, 320, 300, 350, 380, 400, 420, 450],
+                    borderColor: 'rgba(107, 143, 163, 1)',
+                    backgroundColor: 'rgba(107, 143, 163, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+}
+
+// カレンダーの更新
+function updateCalendar() {
+    const calendarGrid = document.getElementById('calendar-grid');
+    const monthYearEl = document.getElementById('calendar-month-year');
+    if (!calendarGrid || !monthYearEl) return;
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    
+    monthYearEl.textContent = `${year}/${String(month + 1).padStart(2, '0')} ${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][month]}`;
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - startDate.getDay());
+
+    calendarGrid.innerHTML = '';
+    
+    // 曜日ヘッダー
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    weekdays.forEach(day => {
+        const dayHeader = document.createElement('div');
+        dayHeader.className = 'calendar-day';
+        dayHeader.style.fontWeight = '600';
+        dayHeader.style.color = 'var(--text-secondary)';
+        dayHeader.textContent = day;
+        calendarGrid.appendChild(dayHeader);
+    });
+
+    // カレンダー日付
+    const currentDate = new Date(startDate);
+    for (let i = 0; i < 42; i++) {
+        const dayEl = document.createElement('div');
+        dayEl.className = 'calendar-day';
+        
+        const dayMonth = currentDate.getMonth();
+        const dayDate = currentDate.getDate();
+        
+        if (dayMonth !== month) {
+            dayEl.classList.add('other-month');
+        }
+        
+        if (dayMonth === month && dayDate === now.getDate()) {
+            dayEl.classList.add('today');
+        }
+        
+        // サンプル：20日以降を選択状態に
+        if (dayMonth === month && dayDate >= 20 && dayDate <= 31) {
+            dayEl.classList.add('selected');
+        }
+        
+        dayEl.textContent = dayDate;
+        calendarGrid.appendChild(dayEl);
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+}
+
+// イベントリストの更新（Todoの通知時刻を表示）
+function updateEvents() {
+    const eventsList = document.getElementById('events-list');
+    if (!eventsList) return;
+
+    // Todoから通知時刻があるものを取得
+    const todos = typeof loadTodos === 'function' ? loadTodos() : [];
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // 通知時刻がある未完了のTodoを取得し、日付順にソート
+    const events = todos
+        .filter(todo => !todo.completed && todo.notificationTime)
+        .map(todo => {
+            const notificationDate = new Date(todo.notificationTime);
+            return {
+                date: notificationDate,
+                time: notificationDate,
+                description: todo.title
+            };
+        })
+        .filter(event => event.date >= today) // 今日以降のもののみ
+        .sort((a, b) => a.date - b.date)
+        .slice(0, 5) // 最新5件
+        .map(event => {
+            const date = event.date;
+            const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+            const dayName = dayNames[date.getDay()];
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const hours = date.getHours();
+            const minutes = date.getMinutes();
+            const ampm = hours >= 12 ? 'pm' : 'am';
+            const displayHours = hours % 12 || 12;
+            const displayMinutes = minutes.toString().padStart(2, '0');
+            
+            return {
+                date: `${dayName} ${month}/${day}`,
+                time: `${displayHours}:${displayMinutes} ${ampm}`,
+                description: event.description
+            };
+        });
+
+    eventsList.innerHTML = '';
+    if (events.length === 0) {
+        eventsList.innerHTML = '<div class="event-item" style="text-align: center; color: var(--text-tertiary); padding: 20px;">通知予定のTodoがありません</div>';
+        return;
+    }
+
+    events.forEach(event => {
+        const eventItem = document.createElement('div');
+        eventItem.className = 'event-item';
+        eventItem.innerHTML = `
+            <div class="event-date">${event.date}</div>
+            <div class="event-time">${event.time}</div>
+            <div class="event-description">${event.description}</div>
+        `;
+        eventsList.appendChild(eventItem);
+    });
+}
+
+// 進捗インジケーターの更新
+function updateProgressIndicators() {
+    const progressContainer = document.getElementById('progress-indicators');
+    if (!progressContainer) return;
+
+    const progressData = [
+        { number: '01', value: 25, color: 'blue', description: 'Lorem ipsum dolor sit amet' },
+        { number: '02', value: 58, color: 'green', description: 'Lorem ipsum dolor sit amet' },
+        { number: '03', value: 15, color: 'red', description: 'Lorem ipsum dolor sit amet' },
+        { number: '04', value: 100, color: 'green', description: 'Lorem ipsum dolor sit amet' }
+    ];
+
+    progressContainer.innerHTML = '';
+    progressData.forEach(item => {
+        const progressItem = document.createElement('div');
+        progressItem.className = 'progress-item';
+        
+        const radius = 50;
+        const circumference = 2 * Math.PI * radius;
+        const offset = circumference - (item.value / 100) * circumference;
+        
+        progressItem.innerHTML = `
+            <div class="progress-circle-wrapper">
+                <svg class="progress-circle" width="120" height="120">
+                    <circle class="progress-circle-bg" cx="60" cy="60" r="${radius}" />
+                    <circle class="progress-circle-fill ${item.color}" 
+                            cx="60" cy="60" r="${radius}" 
+                            stroke-dasharray="${circumference}" 
+                            stroke-dashoffset="${offset}" />
+                </svg>
+                <div class="progress-circle-value">${item.value}%</div>
+            </div>
+            <div class="progress-item-number">${item.number}</div>
+            <div class="progress-item-description">${item.description}</div>
+        `;
+        progressContainer.appendChild(progressItem);
+    });
+}
+
+// アクティビティグラフの更新
+function updateActivityCharts() {
+    // この関数はupdateCharts()内で既に実装されているため、ここでは空にしておく
+    // 必要に応じて追加の処理をここに記述
 }
 
 // テーブル一覧の読み込み
@@ -288,65 +787,46 @@ function updateTableList() {
     const searchInput = document.getElementById('table-search-input');
     const searchTerm = searchInput ? searchInput.value.trim() : '';
     
+    if (!container) {
+        console.error('table-list-content要素が見つかりません');
+        return;
+    }
+    
     if (availableTables.length === 0) {
         container.innerHTML = '<p class="info">テーブルが見つかりません</p>';
         return;
     }
 
-    // あいまい検索フィルター（大文字小文字を区別しない、部分一致、複数単語対応）
+    // あいまい検索フィルター（大文字小文字を区別しない、部分一致）
     if (searchTerm === '') {
         filteredTables = [...availableTables];
     } else {
-        // 検索語を単語に分割（スペース区切り）
-        const searchWords = searchTerm.toLowerCase().trim().split(/\s+/).filter(word => word.length > 0);
+        const searchLower = searchTerm.toLowerCase().trim();
         
         filteredTables = availableTables.filter(table => {
             const displayName = getTableDisplayName(table);
             
-            // 検索対象となる文字列のバリエーションを生成
+            // テーブル名と表示名の両方を検索対象にする
             const tableLower = table.toLowerCase();
             const displayLower = displayName.toLowerCase();
-            // MachineCode -> machinecode, machine_code, machine-code なども検索
-            const camelCase = table.replace(/([A-Z])/g, ' $1').toLowerCase();
-            const snakeCase = table.replace(/_/g, ' ').toLowerCase();
-            const kebabCase = table.replace(/-/g, ' ').toLowerCase();
-            // 連続した大文字を分割（MachineCode -> Machine Code）
-            const splitCamel = table.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
             
-            // すべての検索対象文字列を結合
-            const searchTargets = [
+            // 部分一致で検索（スペースを除去したバージョンも検索対象に含める）
+            const tableNoSpaces = tableLower.replace(/\s+/g, '');
+            const displayNoSpaces = displayLower.replace(/\s+/g, '');
+            
+            // 検索語が含まれているかチェック（複数のパターンでマッチング）
+            // より確実な検索のため、すべてのバリエーションをチェック
+            const searchPatterns = [
                 tableLower,
                 displayLower,
-                camelCase,
-                snakeCase,
-                kebabCase,
-                splitCamel
-            ].join(' ');
+                tableNoSpaces,
+                displayNoSpaces
+            ];
             
-            // すべての検索語が含まれているかチェック（AND検索）
-            // または、いずれかの検索語が含まれているかチェック（OR検索）
-            // より柔軟なあいまい検索：各単語が部分的にマッチするか
-            const allWordsMatch = searchWords.every(word => {
-                // 完全一致または部分一致
-                if (searchTargets.includes(word)) {
-                    return true;
-                }
-                // あいまい検索：文字列の一部が含まれているか
-                // 例：「機械」で「機械コード」を検索、「code」で「MachineCode」を検索
-                const wordChars = word.split('');
-                // 文字列内で順序通りに文字が出現するかチェック（あいまいマッチ）
-                let targetIndex = 0;
-                for (let i = 0; i < wordChars.length; i++) {
-                    const charIndex = searchTargets.indexOf(wordChars[i], targetIndex);
-                    if (charIndex === -1) {
-                        return false;
-                    }
-                    targetIndex = charIndex + 1;
-                }
-                return true;
-            });
+            // いずれかのパターンに検索語が含まれているかチェック
+            const matches = searchPatterns.some(pattern => pattern.includes(searchLower));
             
-            return allWordsMatch;
+            return matches;
         });
     }
 
@@ -402,10 +882,18 @@ async function loadTableData(tableName) {
     }
 }
 
-// 検索フィールドの更新（テーブルのカラムに基づいて動的に生成）
+// 検索フィールドの更新（テーブルのカラムに基づいてプルダウンを生成）
 function updateSearchFields(data) {
-    const container = document.getElementById('search-fields-grid');
-    container.innerHTML = '';
+    const select = document.getElementById('filter-column-select');
+    if (!select) {
+        console.error('filter-column-select要素が見つかりません');
+        return;
+    }
+    
+    // 既存のオプションをクリア（「すべての項目を検索」以外）
+    while (select.options.length > 1) {
+        select.remove(1);
+    }
     
     if (!data || data.length === 0) {
         return;
@@ -415,17 +903,16 @@ function updateSearchFields(data) {
     const excludedCols = ['id', 'created_at', 'updated_at', 'deleted_at'];
     const searchColumns = columns.filter(col => !excludedCols.includes(col.toLowerCase()));
 
-    // 最大8個のフィールドを表示
-    const displayColumns = searchColumns.slice(0, 8);
+    // カラムをソートして追加
+    const sortedColumns = [...searchColumns].sort((a, b) => {
+        return a.localeCompare(b, 'ja');
+    });
 
-    displayColumns.forEach(col => {
-        const field = document.createElement('div');
-        field.className = 'search-field';
-        field.innerHTML = `
-            <label>${col}</label>
-            <input type="text" class="search-input column-filter" data-column="${col}" placeholder="${col}で検索">
-        `;
-        container.appendChild(field);
+    sortedColumns.forEach(col => {
+        const option = document.createElement('option');
+        option.value = col;
+        option.textContent = col;
+        select.appendChild(option);
     });
 }
 
@@ -456,7 +943,7 @@ function displayTable() {
     thead.innerHTML = '';
     const headerRow = document.createElement('tr');
     const selectTh = document.createElement('th');
-    selectTh.style.cssText = 'width: 50px; min-width: 50px; max-width: 50px; box-sizing: border-box;';
+    selectTh.style.cssText = 'width: 80px; min-width: 80px; max-width: 80px; box-sizing: border-box;';
     selectTh.textContent = '選択';
     headerRow.appendChild(selectTh);
     
@@ -489,7 +976,7 @@ function displayTable() {
         
         // 選択チェックボックス
         const selectCell = document.createElement('td');
-        selectCell.style.cssText = 'width: 50px; min-width: 50px; max-width: 50px; padding: 4px; text-align: center; box-sizing: border-box;';
+        selectCell.style.cssText = 'width: 80px; min-width: 80px; max-width: 80px; padding: 8px; text-align: center; box-sizing: border-box;';
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.checked = selectedRows.has(globalIndex);
@@ -510,7 +997,7 @@ function displayTable() {
         detailCell.style.cssText = 'padding: 4px; width: 70px; min-width: 70px; max-width: 70px; box-sizing: border-box;';
         const detailBtn = document.createElement('button');
         detailBtn.className = 'btn-secondary detail-btn';
-        detailBtn.style.cssText = 'padding: 6px 12px; font-size: 11px; width: 100%; white-space: nowrap; border-radius: 0; box-sizing: border-box;';
+        detailBtn.style.cssText = 'padding: 8px 12px; font-size: 13px; width: 100%; white-space: nowrap; border-radius: 4px; box-sizing: border-box; font-weight: 500;';
         detailBtn.textContent = '詳細';
         detailBtn.addEventListener('click', () => {
             openRegisterModal('編集', row);
@@ -549,8 +1036,8 @@ function displayTable() {
             if (duplicateData.created_at !== undefined) delete duplicateData.created_at;
             if (duplicateData.updated_at !== undefined) delete duplicateData.updated_at;
             if (duplicateData.deleted_at !== undefined) delete duplicateData.deleted_at;
-            // 新規登録モーダルを開く（データを自動入力）
-            openRegisterModal('新規登録（複製）', duplicateData);
+            // 複製モーダルを開く（データを自動入力）
+            openRegisterModal('複製', duplicateData);
         });
         actionCell.appendChild(deleteBtn);
         actionCell.appendChild(duplicateBtn);
@@ -580,21 +1067,19 @@ function updatePaginationInfo() {
 // フィルターの適用
 function applyFilters() {
     const globalSearch = document.getElementById('filter-global-search').value.trim();
-    const columnFilters = {};
-    
-    // カラム別フィルターを取得
-    document.querySelectorAll('.column-filter').forEach(input => {
-        const column = input.dataset.column;
-        const value = input.value.trim();
-        if (value) {
-            columnFilters[column] = value;
-        }
-    });
+    const columnSelect = document.getElementById('filter-column-select');
+    const selectedColumn = columnSelect ? columnSelect.value : '';
 
     filteredData = tableData.filter(row => {
-        // 全体検索（すべてのカラムを対象にしたあいまい検索）
-        if (globalSearch) {
-            const searchLower = globalSearch.toLowerCase();
+        // 検索キーワードが入力されていない場合はすべて表示
+        if (!globalSearch) {
+            return true;
+        }
+
+        const searchLower = globalSearch.toLowerCase();
+        
+        // カラムが選択されていない場合は全体検索（すべてのカラムを対象）
+        if (!selectedColumn) {
             let found = false;
             // すべてのカラムの値を確認
             for (const key in row) {
@@ -604,21 +1089,12 @@ function applyFilters() {
                     break;
                 }
             }
-            if (!found) {
-                return false;
-            }
+            return found;
+        } else {
+            // 選択されたカラムのみで検索
+            const cellValue = String(row[selectedColumn] || '').toLowerCase();
+            return cellValue.includes(searchLower);
         }
-
-        // カラム別フィルター
-        for (const column in columnFilters) {
-            const filterValue = columnFilters[column].toLowerCase();
-        const cellValue = String(row[column] || '').toLowerCase();
-            if (!cellValue.includes(filterValue)) {
-                return false;
-            }
-        }
-
-        return true;
     });
 
     currentPage = 1;
@@ -630,9 +1106,10 @@ function applyFilters() {
 // フィルターのクリア
 function clearFilters() {
     document.getElementById('filter-global-search').value = '';
-    document.querySelectorAll('.column-filter').forEach(input => {
-        input.value = '';
-    });
+    const columnSelect = document.getElementById('filter-column-select');
+    if (columnSelect) {
+        columnSelect.value = '';
+    }
     filteredData = [...tableData];
     currentPage = 1;
     selectedRows.clear();
@@ -640,11 +1117,10 @@ function clearFilters() {
     updateSelectionInfo();
 }
 
-// 全選択
+// 全選択（フィルタリングされたすべての行を選択）
 function selectAllRows() {
-    const start = (currentPage - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
-    for (let i = start; i < Math.min(end, filteredData.length); i++) {
+    // フィルタリングされたすべての行を選択
+    for (let i = 0; i < filteredData.length; i++) {
         selectedRows.add(i);
     }
     displayTable();
@@ -719,7 +1195,7 @@ async function duplicateRow(row) {
     if (duplicateData.created_at !== undefined) delete duplicateData.created_at;
     if (duplicateData.updated_at !== undefined) delete duplicateData.updated_at;
     if (duplicateData.deleted_at !== undefined) delete duplicateData.deleted_at;
-    openRegisterModal('新規登録（複製）', duplicateData);
+    openRegisterModal('複製', duplicateData);
 }
 
 // CSV出力（現在のテーブルデータを出力）

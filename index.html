@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <!-- ヘッダー -->
@@ -16,6 +18,12 @@
         <div class="header-content">
             <h1>データベース管理システム</h1>
             <div class="header-actions">
+                <div class="notification-icon-wrapper">
+                    <button class="header-icon-btn" id="notification-btn" title="通知">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="header-notification-badge">3</span>
+                    </button>
+                </div>
                 <button class="header-btn">設定</button>
                 <button class="header-btn">ログアウト</button>
             </div>
@@ -30,8 +38,8 @@
                 <h2>- メインメニュー -</h2>
             </div>
             <nav class="main-menu">
-                <button class="menu-item" data-page="dashboard">ダッシュボード</button>
-                <button class="menu-item active" data-page="list">一覧表示</button>
+                <button class="menu-item active" data-page="dashboard">ダッシュボード</button>
+                <button class="menu-item" data-page="list">一覧表示</button>
                 <button class="menu-item" data-page="register">登録</button>
                 <button class="menu-item" data-page="search">検索</button>
                 <button class="menu-item" data-page="aggregate">集計</button>
@@ -52,38 +60,138 @@
         <!-- メインコンテンツエリア -->
         <main class="content-area">
             <!-- ダッシュボードページ -->
-            <div id="dashboard-page" class="page">
-                <div class="page-title">
-                    <h2>ダッシュボード</h2>
+            <div id="dashboard-page" class="page active">
+                <div class="dashboard-header">
+                    <div>
+                        <h2>ダッシュボード</h2>
+                        <p class="dashboard-subtitle">主要指標とアクティビティを確認</p>
+                    </div>
+                    <div class="dashboard-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="検索..." />
+                    </div>
                 </div>
+
+                <!-- KPIカード -->
                 <div class="dashboard-grid">
-                    <div class="dashboard-card">
+                    <div class="dashboard-card kpi-card">
                         <div class="dashboard-card-header">
-                            <h3>総レコード数</h3>
+                            <div class="kpi-icon-wrapper">
+                                <i class="fas fa-boxes"></i>
+                            </div>
+                            <h3>生産量</h3>
                         </div>
-                        <div class="dashboard-card-value" id="dashboard-total-records">-</div>
+                        <div class="dashboard-card-value" id="kpi-production">-</div>
                     </div>
-                    <div class="dashboard-card">
+                    <div class="dashboard-card kpi-card">
                         <div class="dashboard-card-header">
-                            <h3>テーブル数</h3>
+                            <div class="kpi-icon-wrapper">
+                                <i class="fas fa-cog"></i>
+                            </div>
+                            <h3>稼働率</h3>
                         </div>
-                        <div class="dashboard-card-value" id="dashboard-table-count">-</div>
+                        <div class="dashboard-card-value" id="kpi-operating-rate">-</div>
                     </div>
-                    <div class="dashboard-card">
+                    <div class="dashboard-card kpi-card">
                         <div class="dashboard-card-header">
-                            <h3>最終更新</h3>
+                            <div class="kpi-icon-wrapper">
+                                <i class="fas fa-warehouse"></i>
+                            </div>
+                            <h3>在庫数</h3>
                         </div>
-                        <div class="dashboard-card-value" id="dashboard-last-update">-</div>
+                        <div class="dashboard-card-value" id="kpi-inventory">-</div>
+                    </div>
+                    <div class="dashboard-card kpi-card">
+                        <div class="dashboard-card-header">
+                            <div class="kpi-icon-wrapper">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <h3>納期遵守率</h3>
+                        </div>
+                        <div class="dashboard-card-value" id="kpi-delivery-rate">-</div>
                     </div>
                 </div>
-                <div class="dashboard-section">
-                    <h3>最近使用したテーブル</h3>
-                    <div id="recent-tables" class="recent-tables"></div>
+
+                <!-- 上段：アクティビティグラフ、カレンダー、イベント -->
+                <div class="dashboard-top-row">
+                    <div class="dashboard-card activity-card">
+                        <div class="card-header-with-tabs">
+                            <h3>アクティビティ</h3>
+                            <div class="tabs">
+                                <button class="tab-btn active" data-tab="daily">Daily</button>
+                                <button class="tab-btn" data-tab="weekly">Weekly</button>
+                            </div>
+                        </div>
+                        <canvas id="activity-bar-chart"></canvas>
+                    </div>
+                    <div class="dashboard-card calendar-card">
+                        <div class="card-header-with-action">
+                            <h3 id="calendar-month-year">2024/01 January</h3>
+                            <button class="icon-btn"><i class="fas fa-plus"></i></button>
+                        </div>
+                        <div id="calendar-grid" class="calendar-grid"></div>
+                    </div>
+                    <div class="dashboard-card events-card">
+                        <h3>イベント</h3>
+                        <div id="events-list" class="events-list"></div>
+                    </div>
+                </div>
+
+                <!-- 中段：折れ線グラフと進捗インジケーター -->
+                <div class="dashboard-middle-row">
+                    <div class="dashboard-card chart-card">
+                        <div class="card-header-with-tabs">
+                            <h3>アクティビティ</h3>
+                            <div class="tabs">
+                                <button class="tab-btn" data-tab="monthly">Monthly</button>
+                                <button class="tab-btn active" data-tab="weekly">Weekly</button>
+                            </div>
+                        </div>
+                        <canvas id="activity-line-chart"></canvas>
+                    </div>
+                    <div class="dashboard-card progress-card">
+                        <h3>進捗状況</h3>
+                        <div id="progress-indicators" class="progress-indicators"></div>
+                    </div>
+                </div>
+
+                <!-- 下段：グラフ・チャート -->
+                <div class="charts-grid">
+                    <div class="dashboard-card chart-card">
+                        <h3><i class="fas fa-chart-line"></i> 月別生産量</h3>
+                        <canvas id="production-chart"></canvas>
+                    </div>
+                    <div class="dashboard-card chart-card">
+                        <h3><i class="fas fa-chart-pie"></i> 工場別稼働率</h3>
+                        <canvas id="operating-rate-chart"></canvas>
+                    </div>
+                    <div class="dashboard-card chart-card">
+                        <h3><i class="fas fa-chart-bar"></i> 不良率</h3>
+                        <canvas id="defect-rate-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Todoリスト -->
+                <div class="dashboard-card todo-dashboard-card">
+                    <div class="section-header">
+                        <h3><i class="fas fa-tasks"></i> Todoリスト</h3>
+                        <button class="btn-primary btn-small" id="add-todo-dashboard-btn">
+                            <i class="fas fa-plus"></i> 追加
+                        </button>
+                    </div>
+                    <div class="todo-dashboard-filter">
+                        <button class="filter-btn-small active" data-filter="all">すべて</button>
+                        <button class="filter-btn-small" data-filter="pending">未完了</button>
+                        <button class="filter-btn-small" data-filter="completed">完了</button>
+                    </div>
+                    <div id="todo-dashboard-list" class="todo-dashboard-list">
+                        <!-- 動的に生成されます -->
+                    </div>
                 </div>
             </div>
 
             <!-- 一覧表示ページ -->
-            <div id="list-page" class="page active">
+            <div id="list-page" class="page">
                 <div class="page-title">
                     <h2 id="current-table-title">機械コード管理 - 一覧表示</h2>
                 </div>
@@ -91,11 +199,13 @@
                 <!-- 検索・フィルターセクション -->
                 <div class="search-section">
                     <div class="search-field-full">
-                        <label>🔍 全体検索（すべての項目を検索）</label>
-                        <input type="text" id="filter-global-search" class="search-input" placeholder="キーワードを入力するとすべての項目から検索します">
-                    </div>
-                    <div class="search-grid" id="search-fields-grid">
-                        <!-- 動的に生成されます -->
+                        <label>🔍 検索</label>
+                        <div class="search-row">
+                            <select id="filter-column-select" class="column-filter-select">
+                                <option value="">すべての項目を検索</option>
+                            </select>
+                            <input type="text" id="filter-global-search" class="search-input" placeholder="キーワードを入力して検索">
+                        </div>
                     </div>
                     <div class="search-actions">
                         <button id="execute-search" class="btn-primary">検索実行</button>
@@ -105,12 +215,18 @@
 
                 <!-- データ操作ボタン -->
                 <div class="data-actions">
-                    <button id="new-register" class="btn-primary">新規登録</button>
-                    <button id="csv-export" class="btn-secondary">CSV出力</button>
-                    <button id="csv-import" class="btn-secondary">CSVインポート</button>
-                    <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
-                    <div class="selection-info">
-                        <span id="selection-count">選択数: 0</span>
+                    <div class="data-actions-left">
+                        <button id="new-register" class="btn-primary">新規登録</button>
+                        <button id="csv-export" class="btn-secondary">CSV出力</button>
+                        <button id="csv-import" class="btn-secondary">CSVインポート</button>
+                        <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+                    </div>
+                    <div class="selection-controls">
+                        <span id="selection-count" class="selection-count">選択数: 0</span>
+                        <div class="selection-buttons">
+                            <button id="select-all-btn" class="btn-selection">全選択</button>
+                            <button id="deselect-all-btn" class="btn-selection">全解除</button>
+                        </div>
                     </div>
                 </div>
 
@@ -230,8 +346,28 @@
         </div>
     </div>
 
+    <!-- メッセージ表示エリア -->
+    <div id="message-area"></div>
+
+    <!-- 通知ドロップダウン -->
+    <div id="notification-dropdown" class="notification-dropdown" style="display: none;">
+        <div class="notification-dropdown-header">
+            <h4>通知</h4>
+            <button class="notification-close" id="notification-close-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="notification-dropdown-body" id="notification-dropdown-body">
+            <!-- 動的に生成されます -->
+        </div>
+        <div class="notification-dropdown-footer">
+            <a href="#" class="notification-view-all">すべて表示</a>
+        </div>
+    </div>
+
     <!-- スクリプト -->
     <script src="config.js"></script>
     <script src="app.js"></script>
+    <script src="todo.js"></script>
 </body>
 </html>

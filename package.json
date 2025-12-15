@@ -1,0 +1,27 @@
+{
+  "name": "supabase-data-viewer",
+  "version": "1.0.0",
+  "description": "Supabaseデータベースを管理するためのWebアプリケーション",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "dev": "python -m http.server 8000"
+  },
+  "keywords": [
+    "supabase",
+    "database",
+    "data-viewer",
+    "web-app"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
+
+
+
