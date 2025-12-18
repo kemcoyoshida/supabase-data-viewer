@@ -142,6 +142,130 @@ const formConfigs = {
                 ]
             }
         ]
+    },
+    // t Accept Orderテーブル
+    't Accept Order': {
+        title: '受注登録',
+        fields: [
+            {
+                name: '工事番号台',
+                label: '工事番号台',
+                type: 'select',
+                required: true,
+                width: 'half',
+                placeholder: '選択してください',
+                options: [
+                    { value: '1000番台', label: '1000番台' },
+                    { value: '2000番台', label: '2000番台' },
+                    { value: '2900番台', label: '2900番台' },
+                    { value: '3000番台', label: '3000番台' },
+                    { value: '3A00番台', label: '3A00番台' },
+                    { value: '3B00番台', label: '3B00番台' },
+                    { value: '3C00番台', label: '3C00番台' },
+                    { value: '3P00番台', label: '3P00番台' },
+                    { value: '3T00番台', label: '3T00番台' },
+                    { value: '4000番台', label: '4000番台' },
+                    { value: '4A00番台', label: '4A00番台' },
+                    { value: '4B00番台', label: '4B00番台' },
+                    { value: '4C00番台', label: '4C00番台' },
+                    { value: '4P00番台', label: '4P00番台' },
+                    { value: '4T00番台', label: '4T00番台' },
+                    { value: '5000番台', label: '5000番台' },
+                    { value: '5A00番台', label: '5A00番台' },
+                    { value: '5B00番台', label: '5B00番台' },
+                    { value: '5E00番台', label: '5E00番台' },
+                    { value: '6000番台', label: '6000番台' },
+                    { value: '7000番台', label: '7000番台' },
+                    { value: '7P00番台', label: '7P00番台' },
+                    { value: '8000番台', label: '8000番台' },
+                    { value: '8A00番台', label: '8A00番台' },
+                    { value: '8B00番台', label: '8B00番台' },
+                    { value: '8E00番台', label: '8E00番台' },
+                    { value: '9000番台', label: '9000番台' },
+                    { value: 'S000番台', label: 'S000番台' },
+                    { value: 'Z000番台', label: 'Z000番台' },
+                    { value: 'D000番台', label: 'D000番台' }
+                ]
+            },
+            {
+                name: 'Construct No',
+                label: '工事番号',
+                type: 'text',
+                required: true,
+                width: 'half',
+                placeholder: '自動生成されます',
+                button: {
+                    label: '工事番号取得',
+                    onclick: 'openConstructNumberModal'
+                }
+            },
+            {
+                name: 'Register Date',
+                label: '受注登録日',
+                type: 'date',
+                width: 'half'
+            },
+            {
+                name: 'Construct Name',
+                label: '工事名称',
+                type: 'text',
+                width: 'half'
+            },
+            {
+                name: 'Eigyo Manno',
+                label: '営業担当ｺｰﾄﾞ',
+                type: 'text',
+                width: 'half'
+            },
+            {
+                name: 'Owner Code',
+                label: '受注元ｺｰﾄﾞ',
+                type: 'text',
+                width: 'half'
+            },
+            {
+                name: 'User Code',
+                label: '納品先ｺｰﾄﾞ',
+                type: 'text',
+                width: 'half'
+            },
+            {
+                name: 'Order Price',
+                label: '受注金額',
+                type: 'number',
+                width: 'half'
+            },
+            {
+                name: 'Order Date',
+                label: '受注日',
+                type: 'date',
+                width: 'half'
+            },
+            {
+                name: 'Delivery Date',
+                label: '納期',
+                type: 'date',
+                width: 'half'
+            },
+            {
+                name: 'Dealing Doc Mitsumori',
+                label: '電子見積書',
+                type: 'text',
+                width: 'half'
+            },
+            {
+                name: 'Dealing Doc Chuumon',
+                label: '電子注文書',
+                type: 'text',
+                width: 'half'
+            },
+            {
+                name: 'Dealing Doc Seikyu',
+                label: '電子請求書',
+                type: 'text',
+                width: 'half'
+            }
+        ]
     }
 };
 

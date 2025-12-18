@@ -17,7 +17,7 @@ function loadTodos() {
     const stored = localStorage.getItem('todos');
     if (stored) {
         try {
-            todos = JSON.parse(stored);
+        todos = JSON.parse(stored);
         } catch (e) {
             console.error('Todoの読み込みエラー:', e);
             todos = [];
@@ -293,7 +293,7 @@ function openTodoModal(todoId = null) {
             titleInput.value = todo.title || '';
             descriptionInput.value = todo.description || '';
             if (typeof formatDateTimeLocal === 'function') {
-                datetimeInput.value = formatDateTimeLocal(todo.scheduledDateTime);
+            datetimeInput.value = formatDateTimeLocal(todo.scheduledDateTime);
             } else {
                 // フォールバック: datetime-local形式に変換
                 const date = new Date(todo.scheduledDateTime);
@@ -305,7 +305,7 @@ function openTodoModal(todoId = null) {
                 datetimeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
             }
             if (notificationInput) {
-                notificationInput.checked = todo.notification !== false;
+            notificationInput.checked = todo.notification !== false;
             }
             form.dataset.editId = todoId;
         }
@@ -318,7 +318,7 @@ function openTodoModal(todoId = null) {
         const defaultDate = new Date();
         defaultDate.setHours(defaultDate.getHours() + 1);
         if (typeof formatDateTimeLocal === 'function') {
-            datetimeInput.value = formatDateTimeLocal(defaultDate);
+        datetimeInput.value = formatDateTimeLocal(defaultDate);
         } else {
             // フォールバック: datetime-local形式に変換
             const year = defaultDate.getFullYear();
@@ -329,8 +329,8 @@ function openTodoModal(todoId = null) {
             datetimeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
         }
         if (notificationInput) {
-            notificationInput.checked = true;
-        }
+        notificationInput.checked = true;
+    }
     }
 
     // インラインスタイルを確実に上書き
@@ -371,14 +371,14 @@ function closeTodoModal() {
     console.log('closeTodoModal関数が呼ばれました');
     const modal = document.getElementById('todo-modal');
     if (modal) {
-        modal.style.display = 'none';
+    modal.style.display = 'none';
         modal.style.visibility = 'hidden';
         modal.style.opacity = '0';
     }
     const form = document.getElementById('todo-form');
     if (form) {
-        form.reset();
-        delete form.dataset.editId;
+    form.reset();
+    delete form.dataset.editId;
     }
 }
 
@@ -581,8 +581,15 @@ function startTodoNotificationCheck() {
     
     // 初回チェック（即座に実行）
     setTimeout(() => {
-        checkTodoNotifications();
+    checkTodoNotifications();
     }, 1000); // 1秒後に初回チェック
+    
+    // 通知を定期的に更新（1分ごと）
+    setInterval(() => {
+        if (typeof updateNotificationsWithTodos === 'function') {
+            updateNotificationsWithTodos();
+        }
+    }, 60000); // 60秒
 }
 
 // Todo通知をチェック
@@ -660,7 +667,7 @@ function showTodoNotification(todo) {
     // 10秒後に自動で閉じる（5秒から延長）
     setTimeout(() => {
         if (popup) {
-            popup.style.display = 'none';
+        popup.style.display = 'none';
         }
     }, 10000);
     
@@ -681,13 +688,18 @@ function closeTodoNotificationPopup() {
     }
 }
 
-// 通知を更新（Todoを含む）
+// 通知を更新（Todo、カレンダー予定、タスク期限を含む）
 function updateNotificationsWithTodos() {
+    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    // Todo通知
     const todoNotifications = todos
         .filter(t => !t.completed && t.notification)
         .map(t => {
             const scheduledDate = new Date(t.scheduledDateTime);
-            const now = new Date();
             const timeDiff = scheduledDate - now;
             const minutes = Math.floor(timeDiff / 60000);
             
@@ -714,12 +726,144 @@ function updateNotificationsWithTodos() {
             };
         });
     
-    // 既存の通知と統合
-    const allNotifications = [
-        ...todoNotifications,
-        { type: 'danger', title: '在庫不足アラート', message: '部品Aの在庫が10個以下です', time: '5分前', unread: true },
-        { type: 'warning', title: '納期遅延警告', message: '注文ID #12345の納期が迫っています', time: '15分前', unread: true }
-    ];
+    // カレンダー予定の通知（今日の予定で、時間が設定されているもの）
+    const calendarNotifications = [];
+    if (typeof window.calendarEvents !== 'undefined' && Array.isArray(window.calendarEvents)) {
+        const todayEvents = window.calendarEvents.filter(event => {
+            if (!event || !event.date || !event.time) return false;
+            
+            // 日付を文字列として比較
+            let eventDateStr = event.date;
+            if (eventDateStr instanceof Date || (typeof eventDateStr === 'string' && eventDateStr.includes('T'))) {
+                const d = new Date(eventDateStr);
+                eventDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            } else if (typeof eventDateStr === 'string' && eventDateStr.includes('/')) {
+                const parts = eventDateStr.split('/');
+                if (parts.length === 3) {
+                    eventDateStr = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                }
+            }
+            
+            return eventDateStr === todayStr;
+        });
+        
+        todayEvents.forEach(event => {
+            if (!event.time || event.time.trim() === '') return;
+            
+            const timeParts = event.time.trim().split(':');
+            if (timeParts.length < 2) return;
+            
+            const eventHour = parseInt(timeParts[0], 10);
+            const eventMinute = parseInt(timeParts[1], 10);
+            
+            if (isNaN(eventHour) || isNaN(eventMinute)) return;
+            
+            const eventTime = new Date();
+            eventTime.setHours(eventHour, eventMinute, 0, 0);
+            
+            const timeDiff = eventTime - now;
+            const minutes = Math.floor(timeDiff / 60000);
+            
+            // 30分以内の予定のみ通知（過去の予定も含む）
+            if (minutes <= 30 && minutes >= -60) {
+                let type = 'info';
+                let timeText = '';
+                if (minutes < 0) {
+                    type = 'danger';
+                    timeText = `${Math.abs(minutes)}分前（開始済み）`;
+                } else if (minutes === 0) {
+                    type = 'warning';
+                    timeText = '今すぐ';
+                } else {
+                    type = 'warning';
+                    timeText = `${minutes}分後`;
+                }
+                
+                calendarNotifications.push({
+                    type: type,
+                    title: `📅 予定: ${event.title || 'タイトルなし'}`,
+                    message: event.description || '',
+                    time: timeText,
+                    unread: true,
+                    eventId: event.date + '_' + event.time
+                });
+            }
+        });
+    }
+    
+    // タスクの期限通知
+    const taskNotifications = [];
+    if (typeof window.tasks !== 'undefined' && Array.isArray(window.tasks)) {
+        const todayTasks = window.tasks.filter(task => {
+            if (task.completed) return false;
+            if (!task.dueDate) return false;
+            
+            const dueDate = new Date(task.dueDate);
+            dueDate.setHours(0, 0, 0, 0);
+            const todayDate = new Date(today);
+            todayDate.setHours(0, 0, 0, 0);
+            
+            // 今日または期限切れのタスク
+            return dueDate.getTime() <= todayDate.getTime();
+        });
+        
+        todayTasks.forEach(task => {
+            const dueDate = new Date(task.dueDate);
+            dueDate.setHours(0, 0, 0, 0);
+            const todayDate = new Date(today);
+            todayDate.setHours(0, 0, 0, 0);
+            
+            const daysDiff = Math.floor((dueDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
+            
+            let type = 'warning';
+            let timeText = '';
+            if (daysDiff < 0) {
+                type = 'danger';
+                timeText = `${Math.abs(daysDiff)}日前（期限切れ）`;
+            } else if (daysDiff === 0) {
+                type = 'danger';
+                timeText = '今日が期限';
+            } else {
+                type = 'warning';
+                timeText = `${daysDiff}日後`;
+            }
+            
+            taskNotifications.push({
+                type: type,
+                title: `⏰ タスク期限: ${task.title || 'タイトルなし'}`,
+                message: task.description || '',
+                time: timeText,
+                unread: true,
+                taskId: task.id
+            });
+        });
+    }
+    
+    // すべての通知を統合
+    const allNotifications = [...todoNotifications, ...calendarNotifications, ...taskNotifications];
+    
+    // 未読状態をlocalStorageから読み込む
+    const readNotifications = JSON.parse(localStorage.getItem('readNotifications') || '[]');
+    
+    // 通知IDを生成して未読状態を設定
+    allNotifications.forEach(notification => {
+        let notificationId = '';
+        if (notification.todoId) {
+            notificationId = `todo_${notification.todoId}`;
+        } else if (notification.taskId) {
+            notificationId = `task_${notification.taskId}`;
+        } else if (notification.eventId) {
+            notificationId = `event_${notification.eventId}`;
+        }
+        
+        // 既読リストに含まれている場合は既読にする
+        if (notificationId && readNotifications.includes(notificationId)) {
+            notification.unread = false;
+        } else {
+            notification.unread = true;
+            notification.id = notificationId;
+        }
+    });
     
     const unreadCount = allNotifications.filter(n => n.unread).length;
     const badge = document.getElementById('header-notification-badge');
@@ -735,7 +879,10 @@ function updateNotificationsWithTodos() {
     const dropdownBody = document.getElementById('notification-dropdown-body');
     if (dropdownBody) {
         dropdownBody.innerHTML = '';
-        allNotifications.forEach(notification => {
+        if (allNotifications.length === 0) {
+            dropdownBody.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">通知はありません</div>';
+        } else {
+            allNotifications.forEach(notification => {
             const item = document.createElement('div');
             item.className = `notification-dropdown-item ${notification.unread ? 'unread' : ''}`;
             
@@ -759,15 +906,53 @@ function updateNotificationsWithTodos() {
                 </div>
             `;
             
-            if (notification.todoId) {
-                item.addEventListener('click', () => {
-                    showPage('todo');
-                    closeNotificationDropdown();
-                });
-            }
+            // 通知をクリックしたら既読にする
+            item.addEventListener('click', () => {
+                // 未読の場合のみ既読にする
+                if (notification.unread && notification.id) {
+                    const readNotifications = JSON.parse(localStorage.getItem('readNotifications') || '[]');
+                    if (!readNotifications.includes(notification.id)) {
+                        readNotifications.push(notification.id);
+                        localStorage.setItem('readNotifications', JSON.stringify(readNotifications));
+                        // 通知を更新して再表示
+                        updateNotificationsWithTodos();
+                    }
+                }
+                
+                // 各通知タイプに応じた処理
+                if (notification.todoId) {
+                    if (typeof showPage === 'function') {
+                        showPage('todo');
+                    }
+                    if (typeof closeNotificationDropdown === 'function') {
+                        closeNotificationDropdown();
+                    }
+                } else if (notification.taskId) {
+                    if (typeof showPage === 'function') {
+                        showPage('dashboard');
+                    }
+                    if (typeof closeNotificationDropdown === 'function') {
+                        closeNotificationDropdown();
+                    }
+                    // タスクを編集する場合は、openTaskModalを呼ぶ
+                    setTimeout(() => {
+                        if (typeof window.editTask === 'function') {
+                            window.editTask(notification.taskId);
+                        }
+                    }, 300);
+                } else if (notification.eventId) {
+                    if (typeof showPage === 'function') {
+                        showPage('dashboard');
+                    }
+                    if (typeof closeNotificationDropdown === 'function') {
+                        closeNotificationDropdown();
+                    }
+                }
+            });
             
             dropdownBody.appendChild(item);
-        });
+            });
+        }
     }
 }
 

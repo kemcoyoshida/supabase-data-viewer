@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>データベース管理システム</title>
+    <title>DataVault - データ管理プラットフォーム</title>
     <link rel="stylesheet" href="style.css">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,10 +13,56 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
+    <!-- ログインページ -->
+    <div id="login-page" class="login-page">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="login-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h1>DataVault</h1>
+                    <p class="login-subtitle">ログインして続行してください</p>
+                </div>
+                <form id="login-form" class="login-form">
+                    <div class="login-field">
+                        <label for="login-username">
+                            <i class="fas fa-user"></i>
+                            ID
+                        </label>
+                        <input type="text" id="login-username" class="login-input" placeholder="IDを入力" required autofocus>
+                    </div>
+                    <div class="login-field">
+                        <label for="login-password">
+                            <i class="fas fa-lock"></i>
+                            パスワード
+                        </label>
+                        <input type="password" id="login-password" class="login-input" placeholder="パスワードを入力" required>
+                    </div>
+                    <div class="login-options">
+                        <label class="login-checkbox">
+                            <input type="checkbox" id="login-remember">
+                            <span>ログイン状態を保持</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="login-btn">
+                        <span>ログイン</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </form>
+                <div class="login-footer">
+                    <p>© 2025 DataVault</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- メインアプリケーション（ログイン後に表示） -->
+    <div id="main-app" class="main-app" style="display: none;">
     <!-- ヘッダー -->
     <header class="top-header">
         <div class="header-content">
-            <h1>データベース管理システム</h1>
+            <h1>DataVault</h1>
             <div class="header-actions">
                 <div class="notification-icon-wrapper">
                     <button class="header-icon-btn" id="notification-btn" title="通知">
@@ -40,7 +86,7 @@
             <nav class="main-menu">
                 <button class="menu-item active" data-page="dashboard">
                     <i class="fas fa-home"></i>
-                    <span>ダッシュボード</span>
+                    <span></span>
                 </button>
                 <button class="menu-item" data-page="list">
                     <i class="fas fa-list"></i>
@@ -78,7 +124,6 @@
             <div id="dashboard-page" class="page active">
                 <div class="dashboard-header">
                     <div>
-                        <h2>ダッシュボード</h2>
                     </div>
                 </div>
 
@@ -186,6 +231,9 @@
                 <div class="data-actions">
                     <div class="data-actions-left">
                     <button id="new-register" class="btn-primary">新規登録</button>
+                    <button id="refresh-table" class="btn-secondary" title="テーブルデータを更新">
+                        <i class="fas fa-sync-alt"></i> 更新
+                    </button>
                     <button id="csv-export" class="btn-secondary">CSV出力</button>
                     <button id="csv-import" class="btn-secondary">CSVインポート</button>
                     <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
@@ -237,6 +285,7 @@
                     <button class="register-btn" data-type="surplus-search">余り品検索</button>
                     <button class="register-btn" data-type="project-shipping">工事番号出荷登録</button>
                     <button class="register-btn" data-type="budget">部品単位予算登録</button>
+                    <button class="register-btn" data-type="construct-number">工事番号採番</button>
                 </div>
             </div>
 
@@ -297,6 +346,9 @@
                 <div id="today-events-list" class="sidebar-events-list">
                     <div class="sidebar-empty">予定はありません</div>
                 </div>
+                <button id="add-today-event-btn" class="btn-primary btn-small" style="width: 100%; margin-top: 8px;">
+                    <i class="fas fa-plus"></i> 予定を追加
+                </button>
             </div>
             
             <div class="right-sidebar-section">
@@ -436,34 +488,45 @@
                 <h3 id="calendar-event-form-title">予定を追加</h3>
                 <button class="modal-close" onclick="closeCalendarEventFormModal()">&times;</button>
             </div>
-            <div class="modal-body register-modal-body">
-                <form id="calendar-event-form" class="register-form">
-                    <div class="form-field form-field-full">
-                        <label>日付</label>
-                        <input type="text" id="calendar-event-date" class="form-input" readonly>
+            <div class="modal-body register-modal-body" style="display: flex; gap: 20px; align-items: flex-start;">
+                <!-- 左：この日の予定（メイン表示） -->
+                <div id="calendar-event-form-events-list" class="calendar-event-form-events-list" style="flex: 1.2; min-width: 0; max-height: calc(90vh - 120px); overflow-y: auto; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div class="calendar-event-form-events-header" style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px;">📅 この日の予定</div>
+                    <div id="calendar-event-form-events-content" class="calendar-event-form-events-content">
+                        <div class="sidebar-empty" style="font-size: 13px;">予定はありません</div>
                     </div>
-                    <div class="form-field form-field-full">
-                        <label>タイトル <span class="required">*</span></label>
-                        <input type="text" id="calendar-event-title" class="form-input" required placeholder="予定のタイトル">
-                    </div>
-                    <div class="form-field form-field-full">
-                        <label>時間</label>
-                        <input type="text" id="calendar-event-time" class="form-input" placeholder="例: 10:00">
-                    </div>
-                    <div class="form-field form-field-full">
-                        <label>詳細</label>
-                        <textarea id="calendar-event-description" class="form-input" rows="3" placeholder="予定の詳細"></textarea>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn-secondary" onclick="closeCalendarEventFormModal()">キャンセル</button>
-                        <button type="submit" class="btn-primary">保存</button>
-                    </div>
-                </form>
+                </div>
+                
+                <!-- 右：入力フォーマット -->
+                <div style="flex: 1; min-width: 280px;">
+                    <form id="calendar-event-form" class="register-form">
+                        <div class="form-field form-field-full">
+                            <label>日付</label>
+                            <input type="text" id="calendar-event-date" class="form-input" readonly>
+                        </div>
+                        <div class="form-field form-field-full">
+                            <label>タイトル <span class="required">*</span></label>
+                            <input type="text" id="calendar-event-title" class="form-input" required placeholder="予定のタイトル">
+                        </div>
+                        <div class="form-field form-field-full">
+                            <label>時間</label>
+                            <input type="text" id="calendar-event-time" class="form-input" placeholder="例: 10:00">
+                        </div>
+                        <div class="form-field form-field-full">
+                            <label>詳細</label>
+                            <textarea id="calendar-event-description" class="form-input" rows="3" placeholder="予定の詳細"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="closeCalendarEventFormModal()">キャンセル</button>
+                            <button type="submit" class="btn-primary">保存</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 設定モーダル -->
+    <!-- 設定モーダル（目次） -->
     <div id="settings-modal" class="modal-overlay" style="display: none;">
         <div class="modal-container register-modal-container">
             <div class="modal-header register-modal-header">
@@ -473,12 +536,127 @@
                 </button>
             </div>
             <div class="modal-body register-modal-body">
+                <div class="settings-menu">
+                    <div class="settings-menu-item" onclick="openSettingsPage('user-management')">
+                        <div class="settings-menu-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="settings-menu-content">
+                            <h4>ユーザー管理</h4>
+                            <p>パソコンユーザーごとのIDとパスワードを管理</p>
+                        </div>
+                        <i class="fas fa-chevron-right settings-menu-arrow"></i>
+                    </div>
+                    <div class="settings-menu-item" onclick="openSettingsPage('company-calendar')">
+                        <div class="settings-menu-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="settings-menu-content">
+                            <h4>会社カレンダー管理</h4>
+                            <p>土日以外の休日を登録・管理</p>
+                        </div>
+                        <i class="fas fa-chevron-right settings-menu-arrow"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ユーザー管理モーダル -->
+    <div id="user-management-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <button class="modal-back-btn" onclick="closeSettingsPage('user-management')" title="戻る">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h3>ユーザー管理</h3>
+                <button class="modal-close" onclick="closeSettingsPage('user-management')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body register-modal-body">
                 <div class="settings-section">
-                    <h4 class="settings-section-title">
-                        <i class="fas fa-calendar-alt"></i> 会社カレンダー管理
-                    </h4>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h4 class="settings-section-title">
+                            <i class="fas fa-users"></i> ユーザー一覧
+                        </h4>
+                        <button class="btn-primary btn-small" onclick="openUserFormModal()">
+                            <i class="fas fa-plus"></i> ユーザーを追加
+                        </button>
+                    </div>
+                    <div id="user-list" class="user-list">
+                        <!-- 動的に生成されます -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ユーザー追加・編集モーダル -->
+    <div id="user-form-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <h3 id="user-form-title">ユーザーを追加</h3>
+                <button class="modal-close" onclick="closeUserFormModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <form id="user-form" class="register-form" onsubmit="event.preventDefault(); saveUser(); return false;">
+                    <div class="form-field form-field-full">
+                        <label>PC名 / ユーザー名 <span class="required">*</span></label>
+                        <input type="text" id="user-pc-name" class="form-input" required placeholder="例: PC-001 または 山田太郎">
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>ログインID <span class="required">*</span></label>
+                        <input type="text" id="user-login-id" class="form-input" required placeholder="ログイン時に使用するID">
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>パスワード <span id="password-required" class="required">*</span></label>
+                        <input type="password" id="user-password" class="form-input" placeholder="パスワードを入力（4文字以上）" minlength="4">
+                        <div class="field-note" id="password-note">新規追加時は必須、編集時は変更する場合のみ入力してください</div>
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>パスワード（確認） <span id="password-confirm-required" class="required">*</span></label>
+                        <input type="password" id="user-password-confirm" class="form-input" placeholder="パスワードを再入力" minlength="4">
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>部署</label>
+                        <input type="text" id="user-department" class="form-input" placeholder="部署名を入力（任意）">
+                        <div class="field-note">部署名を入力してください（任意）</div>
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>
+                            <input type="checkbox" id="user-is-admin" style="width: auto; margin-right: 8px;">
+                            管理者権限
+                        </label>
+                        <div class="field-note">管理者は全部署の情報を閲覧・管理できます</div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="closeUserFormModal()">キャンセル</button>
+                        <button type="submit" class="btn-primary">保存</button>
+                    </div>
+                    <input type="hidden" id="user-edit-id" value="">
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 会社カレンダー管理モーダル -->
+    <div id="company-calendar-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <button class="modal-back-btn" onclick="closeSettingsPage('company-calendar')" title="戻る">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h3>会社カレンダー管理</h3>
+                <button class="modal-close" onclick="closeSettingsPage('company-calendar')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <div class="settings-section">
                     <p class="settings-section-description">土日以外の休日を登録・管理します</p>
-                    
                     <form id="company-calendar-form">
                         <div class="form-field">
                             <label>日付 <span class="required">*</span></label>
@@ -526,6 +704,36 @@
             <div class="delete-confirm-actions">
                 <button class="btn-secondary" id="delete-confirm-cancel">キャンセル</button>
                 <button class="btn-danger" id="delete-confirm-ok">削除する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 掲示板詳細表示モーダル -->
+    <div id="bulletin-detail-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <h3 id="bulletin-detail-title">掲示板の詳細</h3>
+                <button class="modal-close" onclick="closeBulletinDetailModal()">&times;</button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <div class="bulletin-detail-content">
+                    <div class="form-field form-field-full">
+                        <label>日付</label>
+                        <div id="bulletin-detail-date" class="bulletin-detail-value"></div>
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>内容</label>
+                        <div id="bulletin-detail-text" class="bulletin-detail-value" style="white-space: pre-wrap; line-height: 1.6;"></div>
+                    </div>
+                    <div class="form-field form-field-full" id="bulletin-detail-files-container" style="display: none;">
+                        <label>添付ファイル</label>
+                        <div id="bulletin-detail-files" class="bulletin-detail-files-list"></div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeBulletinDetailModal()">閉じる</button>
+                    <button type="button" class="btn-primary" id="bulletin-detail-edit-btn">編集</button>
+                </div>
             </div>
         </div>
     </div>
@@ -631,6 +839,151 @@
             <div class="custom-calendar-actions">
                 <button class="calendar-action-btn clear-btn" id="calendar-clear">クリア</button>
                 <button class="calendar-action-btn today-btn" id="calendar-today">今日</button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- ログアウト確認モーダル -->
+    <div id="logout-confirm-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content logout-confirm-modal-content">
+            <div class="logout-confirm-header">
+                <div class="logout-confirm-icon">
+                    <i class="fas fa-sign-out-alt"></i>
+                </div>
+                <h3>ログアウトの確認</h3>
+            </div>
+            <div class="logout-confirm-body">
+                <p>ログアウトしますか？</p>
+                <p class="logout-confirm-note">再度ログインする必要があります。</p>
+            </div>
+            <div class="logout-confirm-actions">
+                <button class="btn-secondary" id="logout-confirm-cancel">キャンセル</button>
+                <button class="btn-primary" id="logout-confirm-ok">ログアウト</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 工事番号取得モーダル -->
+    <div id="construct-number-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container" style="max-width: 1200px;">
+            <div class="modal-header register-modal-header">
+                <h3>工事番号採番</h3>
+                <button class="modal-close" onclick="closeConstructNumberModal()">&times;</button>
+            </div>
+            <div class="modal-body register-modal-body" style="display: flex; gap: 20px; align-items: flex-start;">
+                <!-- 左側：入力フォーム -->
+                <div style="flex: 1; min-width: 300px;">
+                    <form id="construct-number-form" class="register-form" onsubmit="event.preventDefault(); getConstructNumber(); return false;">
+                        <div class="form-field form-field-full">
+                            <label>工事番号台 <span class="required">*</span></label>
+                            <select id="construct-number-select" name="工事番号台" class="form-input" required>
+                                <option value="">選択してください</option>
+                                <option value="1000番台">1000番台</option>
+                                <option value="2000番台">2000番台</option>
+                                <option value="2900番台">2900番台</option>
+                                <option value="3000番台">3000番台</option>
+                                <option value="3A00番台">3A00番台</option>
+                                <option value="3B00番台">3B00番台</option>
+                                <option value="3C00番台">3C00番台</option>
+                                <option value="3P00番台">3P00番台</option>
+                                <option value="3T00番台">3T00番台</option>
+                                <option value="4000番台">4000番台</option>
+                                <option value="4A00番台">4A00番台</option>
+                                <option value="4B00番台">4B00番台</option>
+                                <option value="4C00番台">4C00番台</option>
+                                <option value="4P00番台">4P00番台</option>
+                                <option value="4T00番台">4T00番台</option>
+                                <option value="5000番台">5000番台</option>
+                                <option value="5A00番台">5A00番台</option>
+                                <option value="5B00番台">5B00番台</option>
+                                <option value="5E00番台">5E00番台</option>
+                                <option value="6000番台">6000番台</option>
+                                <option value="7000番台">7000番台</option>
+                                <option value="7P00番台">7P00番台</option>
+                                <option value="8000番台">8000番台</option>
+                                <option value="8A00番台">8A00番台</option>
+                                <option value="8B00番台">8B00番台</option>
+                                <option value="8E00番台">8E00番台</option>
+                                <option value="9000番台">9000番台</option>
+                                <option value="S000番台">S000番台</option>
+                                <option value="Z000番台">Z000番台</option>
+                                <option value="D000番台">D000番台</option>
+                            </select>
+                        </div>
+                        <div class="form-field form-field-full">
+                            <label>取得された工事番号</label>
+                            <input type="text" id="construct-number-result" class="form-input" readonly style="background-color: #e8f5e9; font-weight: bold; font-size: 20px; text-align: center; padding: 12px;">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="closeConstructNumberModal()">キャンセル</button>
+                            <button type="submit" class="btn-primary">工事番号取得</button>
+                            <button type="button" class="btn-primary" id="apply-construct-number-btn" onclick="applyConstructNumber()" style="display: none;">登録フォームに適用</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- 右側：使用済み一覧 -->
+                <div style="flex: 1; min-width: 400px; background: #f8f9fa; border-radius: 8px; padding: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="margin: 0; font-size: 16px; font-weight: 600;">使用済み工事番号一覧</h4>
+                        <div>
+                            <button type="button" class="btn-secondary btn-small" onclick="clearUsedConstructNumbers()" style="padding: 4px 8px; font-size: 12px;">全削除</button>
+                            <button type="button" class="btn-secondary btn-small" onclick="exportUsedConstructNumbers()" style="padding: 4px 8px; font-size: 12px; margin-left: 4px;">CSV出力</button>
+                        </div>
+                    </div>
+                    <div style="max-height: 400px; overflow-y: auto; background: white; border-radius: 4px; border: 1px solid #ddd;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead style="background: #f0f0f0; position: sticky; top: 0; z-index: 10;">
+                                <tr>
+                                    <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd; font-size: 13px; font-weight: 600;">工事番号</th>
+                                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #ddd; font-size: 13px; font-weight: 600;">日付</th>
+                                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #ddd; font-size: 13px; font-weight: 600;">状態</th>
+                                </tr>
+                            </thead>
+                            <tbody id="used-construct-numbers-list-inline">
+                                <tr>
+                                    <td colspan="3" style="text-align: center; padding: 20px; color: #999;">使用済み工事番号はありません</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用済み工事番号一覧モーダル -->
+    <div id="used-construct-numbers-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container" style="max-width: 900px;">
+            <div class="modal-header register-modal-header">
+                <h3>使用済み工事番号一覧</h3>
+                <button class="modal-close" onclick="closeUsedConstructNumbersModal()">&times;</button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <button type="button" class="btn-secondary btn-small" onclick="clearUsedConstructNumbers()">全削除</button>
+                        <button type="button" class="btn-secondary btn-small" onclick="exportUsedConstructNumbers()" style="margin-left: 8px;">CSV出力</button>
+                    </div>
+                </div>
+                <div style="max-height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px;">
+                    <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: #f0f0f0; position: sticky; top: 0;">
+                            <tr>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">工事番号</th>
+                                <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd; font-weight: 600;">日付</th>
+                                <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd; font-weight: 600;">状態</th>
+                            </tr>
+                        </thead>
+                        <tbody id="used-construct-numbers-list">
+                            <!-- 動的に生成されます -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeUsedConstructNumbersModal()">閉じる</button>
+                </div>
             </div>
         </div>
     </div>

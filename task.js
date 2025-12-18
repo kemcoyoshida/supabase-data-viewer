@@ -16,6 +16,10 @@ function loadTasks() {
     } else {
         tasks = [];
     }
+    // window.tasksを更新（右サイドバーの期限タスク表示用）
+    if (typeof window !== 'undefined') {
+        window.tasks = tasks;
+    }
     renderTasks();
     return tasks;
 }
@@ -23,6 +27,10 @@ function loadTasks() {
 // タスクの保存（ローカルストレージへ）
 function saveTasks() {
     localStorage.setItem('tasks', JSON.stringify(tasks));
+    // window.tasksを更新（右サイドバーの期限タスク表示用）
+    if (typeof window !== 'undefined') {
+        window.tasks = tasks;
+    }
     renderTasks();
 }
 
@@ -58,6 +66,19 @@ function renderTasks() {
         const taskCard = document.createElement('div');
         taskCard.className = `task-card ${task.completed ? 'completed' : ''} priority-${task.priority || 'medium'}`;
         taskCard.draggable = true;
+        taskCard.dataset.taskId = task.id;
+        
+        // ドラッグ開始イベント
+        taskCard.addEventListener('dragstart', (e) => {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', task.id.toString());
+            taskCard.style.opacity = '0.5';
+        });
+        
+        // ドラッグ終了イベント
+        taskCard.addEventListener('dragend', (e) => {
+            taskCard.style.opacity = '1';
+        });
         
         const dueDate = task.dueDate ? new Date(task.dueDate) : null;
         const now = new Date();
@@ -155,6 +176,64 @@ function renderTasks() {
     if (completedCount === 0 && kanbanCompleted.children.length === 0) {
         kanbanCompleted.innerHTML = '<div class="kanban-empty">✨ タスクがありません</div>';
     }
+    
+    // ドラッグ&ドロップ機能を設定
+    setupKanbanDragAndDrop();
+}
+
+// カンバンボードのドラッグ&ドロップ機能を設定
+function setupKanbanDragAndDrop() {
+    const columns = [
+        { element: document.getElementById('kanban-pending'), status: 'pending' },
+        { element: document.getElementById('kanban-in-progress'), status: 'in-progress' },
+        { element: document.getElementById('kanban-completed'), status: 'completed' }
+    ];
+    
+    columns.forEach(column => {
+        if (!column.element) return;
+        
+        // ドラッグオーバーイベント（ドロップ可能にする）
+        column.element.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            column.element.classList.add('drag-over');
+        });
+        
+        // ドラッグリーブイベント（ハイライトを解除）
+        column.element.addEventListener('dragleave', (e) => {
+            column.element.classList.remove('drag-over');
+        });
+        
+        // ドロップイベント
+        column.element.addEventListener('drop', (e) => {
+            e.preventDefault();
+            column.element.classList.remove('drag-over');
+            
+            const taskId = parseInt(e.dataTransfer.getData('text/plain'));
+            if (isNaN(taskId)) return;
+            
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            // 空メッセージを削除
+            const emptyMessage = column.element.querySelector('.kanban-empty');
+            if (emptyMessage) {
+                emptyMessage.remove();
+            }
+            
+            // ステータスを更新
+            if (column.status === 'completed') {
+                task.completed = true;
+                task.status = 'completed';
+            } else {
+                task.completed = false;
+                task.status = column.status;
+            }
+            
+            // タスクを保存して再表示
+            saveTasks();
+        });
+    });
 }
 
 // タスクモーダルを開く
@@ -427,6 +506,8 @@ function updateRightSidebarStatus(pendingCount, inProgressCount, completedCount)
         window.loadTasks = loadTasks;
         window.renderTasks = renderTasks;
         window.updateRightSidebarStatus = updateRightSidebarStatus;
+        // tasks配列をグローバルに公開（右サイドバーの期限タスク表示用）
+        window.tasks = tasks;
         
         // タスクフィルターのイベントリスナー
         const setupTaskFilters = () => {

@@ -4,8 +4,9 @@
   "description": "Supabaseデータベースを管理するためのWebアプリケーション",
   "main": "index.html",
   "scripts": {
-    "start": "python -m http.server 8000",
-    "dev": "python -m http.server 8000"
+    "start": "npx http-server -p 8080 -o",
+    "dev": "npx http-server -p 8080 -o",
+    "server": "npx http-server -p 8080 -o"
   },
   "keywords": [
     "supabase",
