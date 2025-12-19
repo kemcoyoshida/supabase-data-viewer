@@ -25,7 +25,11 @@ const TABLE_NAME_MAP = {
     'suppliers': '仕入先管理',
     'projects': 'プロジェクト管理',
     'employees': '社員管理',
-    'users': 'ユーザー管理'
+    'users': 'ユーザー管理',
+    'T_StaffCode': '社員コード管理',
+    't_staffcode': '社員コード管理',
+    't_staff_code': '社員コード管理',
+    'StaffCode': '社員コード管理'
 };
 
 // カラム名の日本語マッピング（一般的なカラム名）
@@ -186,7 +190,141 @@ const COLUMN_NAME_MAP = {
     'Dealing Doc Chuumon': '電子注文書',
     'dealing_doc_seikyu': '電子請求書',
     'dealingDocSeikyu': '電子請求書',
-    'Dealing Doc Seikyu': '電子請求書'
+    'Dealing Doc Seikyu': '電子請求書',
+    // T_StaffCodeテーブルのカラム名
+    'RegiNo': '登録番号',
+    'regiNo': '登録番号',
+    'Regino': '登録番号',
+    'regino': '登録番号',
+    'regi_no': '登録番号',
+    'StaffCode': '社員番号',
+    'staffCode': '社員番号',
+    'Staffcode': '社員番号',
+    'staffcode': '社員番号',
+    'staff_code': '社員番号',
+    'StaffName': '氏名',
+    'staffName': '氏名',
+    'Staffname': '氏名',
+    'staffname': '氏名',
+    'staff_name': '氏名',
+    'Reading': 'フリガナ',
+    'reading': 'フリガナ',
+    'DepaCode': '部署コード',
+    'depaCode': '部署コード',
+    'Depacode': '部署コード',
+    'depacode': '部署コード',
+    'depa_code': '部署コード',
+    'SubDepaCode': 'サブ部署コード',
+    'subDepaCode': 'サブ部署コード',
+    'Subdepacode': 'サブ部署コード',
+    'subdepacode': 'サブ部署コード',
+    'sub_depa_code': 'サブ部署コード',
+    'OldDepaCode': '旧部署コード',
+    'oldDepaCode': '旧部署コード',
+    'Olddepacode': '旧部署コード',
+    'olddepacode': '旧部署コード',
+    'old_depa_code': '旧部署コード',
+    'WorkDepa': '勤務地/勤務部署',
+    'workDepa': '勤務地/勤務部署',
+    'Workdepa': '勤務地/勤務部署',
+    'workdepa': '勤務地/勤務部署',
+    'work_depa': '勤務地/勤務部署',
+    'TcpIp': 'IPアドレス',
+    'tcpIp': 'IPアドレス',
+    'Tcpip': 'IPアドレス',
+    'tcpip': 'IPアドレス',
+    'tcp_ip': 'IPアドレス',
+    'LoginID': 'ログインID',
+    'loginID': 'ログインID',
+    'Loginid': 'ログインID',
+    'loginid': 'ログインID',
+    'login_id': 'ログインID',
+    'LoginPassword': 'パスワード',
+    'loginPassword': 'パスワード',
+    'Loginpassword': 'パスワード',
+    'loginpassword': 'パスワード',
+    'login_password': 'パスワード',
+    'StaffCross': 'スタッフ区分等',
+    'staffCross': 'スタッフ区分等',
+    'Staffcross': 'スタッフ区分等',
+    'staffcross': 'スタッフ区分等',
+    'staff_cross': 'スタッフ区分等',
+    'MailAddress': 'メールアドレス',
+    'mailAddress': 'メールアドレス',
+    'Mailaddress': 'メールアドレス',
+    'mailaddress': 'メールアドレス',
+    'mail_address': 'メールアドレス',
+    'SQLusername': 'SQLユーザ名',
+    'sqlUsername': 'SQLユーザ名',
+    'Sqlusername': 'SQLユーザ名',
+    'sqlusername': 'SQLユーザ名',
+    'sql_username': 'SQLユーザ名',
+    'SQLusergroup': 'SQLグループ',
+    'sqlUsergroup': 'SQLグループ',
+    'Sqlusergroup': 'SQLグループ',
+    'sqlusergroup': 'SQLグループ',
+    'sql_usergroup': 'SQLグループ',
+    'TelNo': '電話番号',
+    'telNo': '電話番号',
+    'Telno': '電話番号',
+    'telno': '電話番号',
+    'tel_no': '電話番号',
+    'FaxNo': 'FAX番号',
+    'faxNo': 'FAX番号',
+    'Faxno': 'FAX番号',
+    'faxno': 'FAX番号',
+    'fax_no': 'FAX番号',
+    'InternalTelNo': '内線番号',
+    'internalTelNo': '内線番号',
+    'Internaltelno': '内線番号',
+    'internaltelno': '内線番号',
+    'internal_tel_no': '内線番号',
+    'CellPhone': '携帯電話',
+    'cellPhone': '携帯電話',
+    'Cellphone': '携帯電話',
+    'cellphone': '携帯電話',
+    'cell_phone': '携帯電話',
+    'Position': '役職',
+    'position': '役職',
+    'YukyuZan': '有給残日数',
+    'yukyuZan': '有給残日数',
+    'yukyu_zan': '有給残日数',
+    'YukyuZanDate': '有給残更新日',
+    'yukyuZanDate': '有給残更新日',
+    'yukyu_zan_date': '有給残更新日',
+    'NuyusyaDate': '入社年月日',
+    'nuyusyaDate': '入社年月日',
+    'nuyusya_date': '入社年月日',
+    'DaikyuZan': '代休残',
+    'daikyuZan': '代休残',
+    'daikyu_zan': '代休残',
+    'DaikyuZanDate': '代休残更新日',
+    'daikyuZanDate': '代休残更新日',
+    'daikyu_zan_date': '代休残更新日',
+    'FurikyuZan': '振休残',
+    'furikyuZan': '振休残',
+    'furikyu_zan': '振休残',
+    'FurikyuZanDate': '振休残更新日',
+    'furikyuZanDate': '振休残更新日',
+    'furikyu_zan_date': '振休残更新日',
+    'HankyuCount': '半休消化回数',
+    'hankyuCount': '半休消化回数',
+    'hankyu_count': '半休消化回数',
+    'HankyuCountDate': '半休カウント日',
+    'hankyuCountDate': '半休カウント日',
+    'hankyu_count_date': '半休カウント日',
+    'FixedSalary': '固定給/基本給等',
+    'fixedSalary': '固定給/基本給等',
+    'fixed_salary': '固定給/基本給等',
+    'SubAccount': 'サブアカウント',
+    'subAccount': 'サブアカウント',
+    'sub_account': 'サブアカウント',
+    'HankyuWarningMailFor9': '半休警告メール(9回)',
+    'hankyuWarningMailFor9': '半休警告メール(9回)',
+    'hankyu_warning_mail_for9': '半休警告メール(9回)',
+    'HankyuWarningMailFor10': '半休警告メール(10回)',
+    'hankyuWarningMailFor10': '半休警告メール(10回)',
+    'hankyu_warning_mail_for10': '半休警告メール(10回)'
 };
 
 // カラム名を日本語に変換する関数
@@ -196,6 +334,23 @@ function getColumnDisplayName(columnName) {
     // 完全一致でマッピングを確認
     if (COLUMN_NAME_MAP[columnName]) {
         return COLUMN_NAME_MAP[columnName];
+    }
+    
+    // 大文字小文字を区別しない検索（複数のパターンを試す）
+    const variations = [
+        columnName,                                    // 元のまま
+        columnName.toLowerCase(),                      // すべて小文字
+        columnName.toUpperCase(),                     // すべて大文字
+        columnName.charAt(0).toUpperCase() + columnName.slice(1).toLowerCase(), // 最初だけ大文字
+        columnName.replace(/([A-Z])/g, '_$1').toLowerCase(), // カメルケースをスネークケースに
+        columnName.replace(/_/g, ''),                 // アンダースコアを削除
+        columnName.replace(/_/g, '').charAt(0).toUpperCase() + columnName.replace(/_/g, '').slice(1).toLowerCase() // アンダースコア削除後、最初だけ大文字
+    ];
+    
+    for (const variation of variations) {
+        if (COLUMN_NAME_MAP[variation]) {
+            return COLUMN_NAME_MAP[variation];
+        }
     }
     
     // スネークケースを変換（例: user_name -> ユーザー名）
@@ -214,6 +369,14 @@ function getColumnDisplayName(columnName) {
     const camelCase = columnName.charAt(0).toLowerCase() + columnName.slice(1);
     if (COLUMN_NAME_MAP[camelCase]) {
         return COLUMN_NAME_MAP[camelCase];
+    }
+    
+    // 部分一致で検索（大文字小文字を区別しない）
+    const colLower = columnName.toLowerCase();
+    for (const [key, value] of Object.entries(COLUMN_NAME_MAP)) {
+        if (key.toLowerCase() === colLower) {
+            return value;
+        }
     }
     
     // アンダースコアをスペースに変換して読みやすくする
@@ -4654,13 +4817,7 @@ function generateWorkTicketFormPage(container) {
                     <div class="work-ticket-field-group">
                         <label><i class="fas fa-user"></i> 作業者</label>
                         <select name="worker" id="work-ticket-worker" class="form-input">
-                            <option value="総務">総務</option>
-                            <option value="品質保証部">品質保証部</option>
-                            <option value="管理部">管理部</option>
-                            <option value="操業部">操業部</option>
-                            <option value="電気技術部">電気技術部</option>
-                            <option value="製造管理部">製造管理部</option>
-                            <option value="明石製造部">明石製造部</option>
+                            <option value="">読み込み中...</option>
                         </select>
                     </div>
                     <div class="work-ticket-field-group">
@@ -4812,6 +4969,9 @@ function generateWorkTicketFormPage(container) {
     
     // 職種の選択肢を読み込む
     loadJobTypesForWorkTicket();
+    
+    // 作業者の選択肢を読み込む
+    loadWorkersForWorkTicket();
 }
 
 // 職種の選択肢を読み込む
@@ -4854,6 +5014,77 @@ async function loadJobTypesForWorkTicket() {
     } catch (err) {
         console.warn('職種データの読み込み中にエラーが発生しました:', err);
         setDefaultJobTypes();
+    }
+}
+
+// 作業者の選択肢を読み込む
+async function loadWorkersForWorkTicket() {
+    try {
+        if (!supabase) {
+            console.warn('Supabaseクライアントが初期化されていません');
+            setDefaultWorkers();
+            return;
+        }
+        
+        // T_StaffCodeテーブルから従業員データを取得
+        const { data, error } = await supabase
+            .from('T_StaffCode')
+            .select('StaffCode, StaffName, Reading')
+            .order('StaffName');
+        
+        if (error) {
+            console.warn('作業者データの読み込みに失敗しました:', error);
+            // エラーが発生した場合は、デフォルトの選択肢を設定
+            setDefaultWorkers();
+            return;
+        }
+        
+        const workerSelect = document.getElementById('work-ticket-worker');
+        if (workerSelect && data) {
+            workerSelect.innerHTML = '<option value="">選択してください</option>';
+            data.forEach(worker => {
+                const option = document.createElement('option');
+                // カラム名のバリエーションに対応
+                const staffName = worker.StaffName || worker.Staffname || worker.staffName || worker.staffname || '';
+                const staffCode = worker.StaffCode || worker.Staffcode || worker.staffCode || worker.staffcode || '';
+                const reading = worker.Reading || worker.reading || '';
+                
+                // 表示名: 氏名（社員番号）の形式
+                let displayName = staffName;
+                if (staffCode) {
+                    displayName += ` (${staffCode})`;
+                }
+                if (reading && reading !== '-') {
+                    displayName += ` [${reading}]`;
+                }
+                
+                option.value = staffCode || staffName;
+                option.textContent = displayName || '不明';
+                option.dataset.staffName = staffName;
+                option.dataset.staffCode = staffCode;
+                workerSelect.appendChild(option);
+            });
+        }
+    } catch (err) {
+        console.warn('作業者データの読み込み中にエラーが発生しました:', err);
+        setDefaultWorkers();
+    }
+}
+
+// デフォルトの作業者選択肢を設定
+function setDefaultWorkers() {
+    const workerSelect = document.getElementById('work-ticket-worker');
+    if (workerSelect) {
+        workerSelect.innerHTML = `
+            <option value="">選択してください</option>
+            <option value="総務">総務</option>
+            <option value="品質保証部">品質保証部</option>
+            <option value="管理部">管理部</option>
+            <option value="操業部">操業部</option>
+            <option value="電気技術部">電気技術部</option>
+            <option value="製造管理部">製造管理部</option>
+            <option value="明石製造部">明石製造部</option>
+        `;
     }
 }
 
