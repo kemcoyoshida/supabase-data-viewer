@@ -4,9 +4,8 @@
   "description": "Supabaseデータベースを管理するためのWebアプリケーション",
   "main": "index.html",
   "scripts": {
-    "start": "npx http-server -p 8080 -o",
-    "dev": "npx http-server -p 8080 -o",
-    "server": "npx http-server -p 8080 -o"
+    "start": "live-server --port=5500",
+    "dev": "live-server --port=5500"
   },
   "keywords": [
     "supabase",
@@ -20,10 +19,10 @@
     "type": "git",
     "url": ""
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
 }
-
-
-
-

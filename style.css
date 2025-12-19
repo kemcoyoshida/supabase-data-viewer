@@ -1448,7 +1448,8 @@ html, body {
     border-collapse: collapse;
     border-spacing: 0;
     font-size: 12px;
-    table-layout: fixed;
+    table-layout: auto;
+    min-width: 100%;
 }
 
 .data-table th,
@@ -1461,7 +1462,7 @@ html, body {
 .data-table th {
     background: var(--primary);
     color: white;
-    padding: 14px 12px;
+    padding: 10px 8px;
     text-align: center;
     font-weight: 600;
     border-bottom: 2px solid var(--primary-dark);
@@ -1469,26 +1470,33 @@ html, body {
     position: sticky;
     top: 0;
     z-index: 10;
-    font-size: 13px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 13px !important;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
     letter-spacing: 0.3px;
+    min-height: 44px;
+    line-height: 1.3;
+    min-width: 80px;
+    max-width: 150px;
 }
 
 .data-table td {
-    padding: 10px 8px;
+    padding: 8px 6px;
     border-bottom: 1px solid var(--border-light);
     border-top: 1px solid var(--border-light);
     transition: all 0.2s;
-    font-size: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 12px !important;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
     vertical-align: middle;
     text-align: center;
     border-left: 1px solid var(--border-light);
     border-right: 1px solid var(--border-light);
+    line-height: 1.3;
+    min-height: 38px;
+    max-width: 150px;
 }
 
 .data-table tbody tr:hover {
@@ -1647,40 +1655,85 @@ html, body {
 .search-buttons,
 .aggregate-buttons {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    padding: 20px 0;
 }
 
 .register-btn,
 .search-btn,
 .aggregate-btn {
-    padding: 10px 16px;
-    background: var(--bg-primary);
-    border: 1px solid var(--border-light);
-    border-radius: 0;
-    text-align: center;
-    font-size: 13px;
+    padding: 24px 20px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 2px solid var(--border-light);
+    border-radius: 16px;
+    text-align: left;
+    font-size: 14px;
     color: var(--text-primary);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: normal;
     word-break: break-word;
-    box-shadow: var(--shadow-sm);
-    font-weight: 500;
-    line-height: 1.5;
-    height: 38px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+    font-weight: 600;
+    line-height: 1.6;
+    min-height: 90px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    position: relative;
+    overflow: hidden;
+    gap: 12px;
+}
+
+.register-btn i,
+.search-btn i,
+.aggregate-btn i {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.register-btn::before,
+.search-btn::before,
+.aggregate-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    transform: scaleY(0);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.register-btn:hover::before,
+.search-btn:hover::before,
+.aggregate-btn:hover::before {
+    transform: scaleY(1);
 }
 
 .register-btn:hover,
 .search-btn:hover,
 .aggregate-btn:hover {
-    background: var(--bg-tertiary);
+    background: linear-gradient(135deg, #ffffff 0%, rgba(74, 144, 226, 0.05) 100%);
     border-color: var(--primary);
-    box-shadow: var(--shadow);
+    box-shadow: 0 8px 24px rgba(74, 144, 226, 0.2), 0 4px 8px rgba(0, 0, 0, 0.08);
     color: var(--primary);
+    transform: translateY(-4px);
+}
+
+.register-btn:hover i,
+.search-btn:hover i,
+.aggregate-btn:hover i {
+    transform: scale(1.15) rotate(5deg);
+    color: var(--primary);
+}
+
+.register-btn:active,
+.search-btn:active,
+.aggregate-btn:active {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.15), 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 /* モーダル */
@@ -1730,10 +1783,108 @@ html, body {
 }
 
 .register-modal-container {
-    border: 3px solid var(--primary);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    border: none;
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
     max-height: 90vh;
-    max-width: 600px;
+    max-width: 900px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    overflow: hidden;
+    position: relative;
+}
+
+.register-modal-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 50%, var(--primary) 100%);
+    z-index: 1;
+}
+
+/* 工事番号採番モーダル専用スタイル */
+#construct-number-modal .register-modal-container {
+    max-width: 1400px;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+#construct-number-modal .register-modal-body {
+    background: var(--bg-secondary);
+}
+
+#construct-number-result {
+    transition: all 0.3s ease;
+}
+
+#construct-number-result:not(:empty) {
+    animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(78, 205, 196, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 20px 5px rgba(78, 205, 196, 0.6);
+    }
+}
+
+#copy-construct-number {
+    transition: all 0.2s ease;
+}
+
+#copy-construct-number:hover {
+    transform: scale(1.2);
+    opacity: 1 !important;
+}
+
+/* 使用済み一覧テーブルのスタイル */
+#used-construct-numbers-list-inline tr {
+    transition: all 0.2s ease;
+}
+
+#used-construct-numbers-list-inline tr:hover {
+    background: rgba(74, 144, 226, 0.05) !important;
+    transform: translateX(2px);
+}
+
+#used-construct-numbers-list-inline td {
+    transition: all 0.2s ease;
+}
+
+/* ボタンスタイル改善 */
+.btn-small {
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-small:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+}
+
+/* スクロールバーのスタイル */
+#used-construct-numbers-list-inline::-webkit-scrollbar {
+    width: 8px;
+}
+
+#used-construct-numbers-list-inline::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+#used-construct-numbers-list-inline::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
+}
+
+#used-construct-numbers-list-inline::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
 }
 
 /* カレンダー予定フォームモーダルは幅を広げる */
@@ -1743,40 +1894,65 @@ html, body {
 }
 
 .register-modal-header {
-    background: var(--primary);
-    padding: 16px 20px;
-    border-bottom: 3px solid var(--primary-dark);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    padding: 24px 28px;
+    border-bottom: none;
     flex-shrink: 0;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.register-modal-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
 }
 
 .register-modal-header h3 {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
     color: white;
     margin: 0;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.register-modal-header h3::before {
+    content: '📝';
+    font-size: 24px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .modal-close {
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
     color: white;
-    font-size: 24px;
+    font-size: 20px;
     cursor: pointer;
     padding: 0;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
-    border-radius: 0;
+    font-weight: 600;
 }
 
 .modal-close:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.25);
     border-color: rgba(255, 255, 255, 0.5);
-    transform: scale(1.1);
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .register-modal-body {
@@ -1908,13 +2084,419 @@ html, body {
 .register-form {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0;
 }
 
 .form-fields {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    padding: 8px 0;
+}
+
+/* 作業票登録フォーム専用スタイル */
+.work-ticket-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.work-ticket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border-radius: 16px;
+    color: white;
+    box-shadow: 0 4px 16px rgba(74, 144, 226, 0.3);
+    margin-bottom: 8px;
+}
+
+.work-ticket-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.work-ticket-date-controls {
+    display: flex;
+    align-items: center;
     gap: 12px;
+}
+
+.work-ticket-date-controls button {
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.work-ticket-date-controls button:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.work-ticket-header-right {
+    display: flex;
+    gap: 12px;
+}
+
+.work-ticket-main-content {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+    min-width: 0;
+}
+
+.work-ticket-section {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 2px solid var(--border-light);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.work-ticket-section:hover {
+    box-shadow: 0 8px 28px rgba(74, 144, 226, 0.15);
+    border-color: var(--primary-light);
+    transform: translateY(-2px);
+}
+
+.work-ticket-section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.work-ticket-section-title i {
+    color: var(--primary);
+    font-size: 20px;
+}
+
+.work-ticket-section-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.work-ticket-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.work-ticket-field-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.5;
+}
+
+.work-ticket-field-group label i {
+    color: var(--primary);
+    font-size: 12px;
+}
+
+.work-ticket-field-group input,
+.work-ticket-field-group select,
+.work-ticket-field-group textarea {
+    padding: 14px 18px;
+    border: 2px solid var(--border-light);
+    border-radius: 12px;
+    font-size: 15px;
+    font-family: inherit;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #ffffff;
+    width: 100%;
+    box-sizing: border-box;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    min-height: 48px;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+.work-ticket-field-group input:hover,
+.work-ticket-field-group select:hover,
+.work-ticket-field-group textarea:hover {
+    border-color: var(--primary-light);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.12);
+    transform: translateY(-1px);
+}
+
+.work-ticket-field-group input:focus,
+.work-ticket-field-group select:focus,
+.work-ticket-field-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.1), 0 4px 16px rgba(74, 144, 226, 0.2);
+    transform: translateY(-2px);
+    background: #ffffff;
+}
+
+.work-ticket-radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px;
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    border-radius: 12px;
+    border: 2px solid var(--border-light);
+    min-width: 0;
+}
+
+.work-ticket-radio-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: white;
+    border: 2px solid var(--border-light);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.work-ticket-radio-item span {
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.5;
+}
+
+.work-ticket-radio-item:hover {
+    border-color: var(--primary-light);
+    background: linear-gradient(135deg, rgba(74, 144, 226, 0.05) 0%, rgba(107, 163, 232, 0.1) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.15);
+}
+
+.work-ticket-radio-item input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+.work-ticket-radio-item input[type="radio"]:checked + span {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.work-ticket-checkbox-group {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.work-ticket-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: white;
+    border: 2px solid var(--border-light);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    min-width: 0;
+}
+
+.work-ticket-checkbox-item span {
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.5;
+}
+
+.work-ticket-checkbox-item:hover {
+    border-color: var(--primary-light);
+    background: linear-gradient(135deg, rgba(74, 144, 226, 0.05) 0%, rgba(107, 163, 232, 0.1) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.15);
+}
+
+.work-ticket-checkbox-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+.work-ticket-action-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.work-ticket-action-buttons button {
+    flex: 1;
+    padding: 14px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.work-ticket-action-buttons .btn-clear {
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    color: var(--text-primary);
+    border: 2px solid var(--border-light);
+}
+
+.work-ticket-action-buttons .btn-clear:hover {
+    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.work-ticket-action-buttons .btn-add {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    box-shadow: 0 4px 16px rgba(74, 144, 226, 0.3);
+}
+
+.work-ticket-action-buttons .btn-add:hover {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(74, 144, 226, 0.4);
+}
+
+.work-ticket-list-table {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 2px solid var(--border-light);
+    overflow-x: auto;
+    overflow-y: visible;
+    min-width: 0;
+}
+
+.work-ticket-list-table table {
+    width: 100%;
+    min-width: 1200px;
+    border-collapse: collapse;
+}
+
+.work-ticket-list-table th {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 16px 12px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.4;
+    min-width: 80px;
+}
+
+.work-ticket-list-table th:first-child {
+    border-top-left-radius: 12px;
+}
+
+.work-ticket-list-table th:last-child {
+    border-top-right-radius: 12px;
+}
+
+.work-ticket-list-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 14px;
+    color: var(--text-primary);
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.5;
+    max-width: 200px;
+}
+
+.work-ticket-list-table tr:hover {
+    background: linear-gradient(135deg, rgba(74, 144, 226, 0.05) 0%, rgba(107, 163, 232, 0.1) 100%);
+}
+
+.work-ticket-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    margin-top: 8px;
+}
+
+.work-ticket-total {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.work-ticket-total input {
+    padding: 12px 20px;
+    border: 2px solid var(--primary);
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    background: white;
+    min-width: 200px;
+    text-align: right;
 }
 
 .form-field-full {
@@ -1946,13 +2528,34 @@ html, body {
 }
 
 .form-field label {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    letter-spacing: 0.3px;
+    position: relative;
+    padding-left: 4px;
+}
+
+.form-field label::after {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 18px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.form-field:focus-within label::after {
+    opacity: 1;
 }
 
 .form-field .field-note {
@@ -1962,37 +2565,41 @@ html, body {
     line-height: 1.4;
 }
 
-.form-field label::before {
-    content: '✨';
-    font-size: 12px;
-    opacity: 0.7;
-}
 
 .form-field input,
 .form-field select,
 .form-field textarea {
-    padding: 12px 16px;
+    padding: 14px 18px;
     border: 2px solid var(--border-light);
-    border-radius: 10px;
+    border-radius: 12px;
     font-size: 15px;
     font-family: inherit;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    background: var(--bg-primary);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #ffffff;
     width: 100%;
     box-sizing: border-box;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
-    min-height: 44px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    min-height: 48px;
     line-height: 1.5;
+    color: var(--text-primary);
+}
+
+.form-field input:hover,
+.form-field select:hover,
+.form-field textarea:hover {
+    border-color: var(--primary-light);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.12), 0 2px 4px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
 }
 
 .form-field input:focus,
 .form-field select:focus,
 .form-field textarea:focus {
     outline: none;
-    border-color: var(--color-dusty-purple);
-    box-shadow: 0 0 0 4px rgba(181, 165, 196, 0.15), 0 4px 12px rgba(181, 165, 196, 0.1);
-    background: white;
-    transform: translateY(-1px);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.1), 0 4px 16px rgba(74, 144, 226, 0.2), 0 2px 4px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+    background: #ffffff;
 }
 
 /* カレンダー入力（date input）のスタイル - 他のフィールドと統一 */
@@ -2159,11 +2766,23 @@ html, body {
 .form-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-light);
-    margin-top: 4px;
+    gap: 12px;
+    padding-top: 24px;
+    border-top: 2px solid var(--border-light);
+    margin-top: 24px;
     flex-shrink: 0;
+    position: relative;
+}
+
+.form-actions::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, var(--primary) 50%, transparent 100%);
 }
 
 /* メッセージ */
@@ -2171,10 +2790,11 @@ html, body {
     position: fixed;
     top: 60px;
     right: 20px;
-    z-index: 3000;
+    z-index: 20000 !important;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    pointer-events: none;
 }
 
 .message {
@@ -2215,6 +2835,17 @@ html, body {
     to {
         transform: translateX(0);
         opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-20px);
     }
 }
 

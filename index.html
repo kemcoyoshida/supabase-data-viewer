@@ -13,52 +13,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
-    <!-- ログインページ -->
-    <div id="login-page" class="login-page">
-        <div class="login-container">
-            <div class="login-card">
-                <div class="login-header">
-                    <div class="login-icon">
-                        <i class="fas fa-database"></i>
-                    </div>
-                    <h1>DataVault</h1>
-                    <p class="login-subtitle">ログインして続行してください</p>
-                </div>
-                <form id="login-form" class="login-form">
-                    <div class="login-field">
-                        <label for="login-username">
-                            <i class="fas fa-user"></i>
-                            ID
-                        </label>
-                        <input type="text" id="login-username" class="login-input" placeholder="IDを入力" required autofocus>
-                    </div>
-                    <div class="login-field">
-                        <label for="login-password">
-                            <i class="fas fa-lock"></i>
-                            パスワード
-                        </label>
-                        <input type="password" id="login-password" class="login-input" placeholder="パスワードを入力" required>
-                    </div>
-                    <div class="login-options">
-                        <label class="login-checkbox">
-                            <input type="checkbox" id="login-remember">
-                            <span>ログイン状態を保持</span>
-                        </label>
-                    </div>
-                    <button type="submit" class="login-btn">
-                        <span>ログイン</span>
-                        <i class="fas fa-arrow-right"></i>
-                    </button>
-                </form>
-                <div class="login-footer">
-                    <p>© 2025 DataVault</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- メインアプリケーション（ログイン後に表示） -->
-    <div id="main-app" class="main-app" style="display: none;">
+    <!-- メインアプリケーション -->
+    <div id="main-app" class="main-app">
     <!-- ヘッダー -->
     <header class="top-header">
         <div class="header-content">
@@ -71,7 +27,6 @@
                     </button>
                 </div>
                 <button class="header-btn">設定</button>
-                <button class="header-btn">ログアウト</button>
             </div>
         </div>
     </header>
@@ -269,23 +224,212 @@
 
             <!-- 登録ページ -->
             <div id="register-page" class="page">
-                <div class="page-title">
-                    <h2>登録・編集</h2>
+                <div class="page-title" style="margin-bottom: 8px;">
+                    <h2 style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 28px; font-weight: 700; letter-spacing: 0.5px;">登録・編集</h2>
                 </div>
                 <div class="register-buttons">
-                    <button class="register-btn" data-type="work-ticket">作業票の登録</button>
-                    <button class="register-btn" data-type="barcode">バーコードリーダー版 作業票の登録</button>
-                    <button class="register-btn" data-type="misc-purchase">諸掛購入登録</button>
-                    <button class="register-btn" data-type="misc-delivery">諸掛納入処理</button>
-                    <button class="register-btn" data-type="delivery-approval">納期承認</button>
-                    <button class="register-btn" data-type="shipping">出荷管理</button>
-                    <button class="register-btn" data-type="outsource-delivery">外注・材料 納入処理</button>
-                    <button class="register-btn" data-type="parts-delivery">購入部品 納入処理</button>
-                    <button class="register-btn" data-type="surplus-register">余り品登録</button>
-                    <button class="register-btn" data-type="surplus-search">余り品検索</button>
-                    <button class="register-btn" data-type="project-shipping">工事番号出荷登録</button>
-                    <button class="register-btn" data-type="budget">部品単位予算登録</button>
-                    <button class="register-btn" data-type="construct-number">工事番号採番</button>
+                    <button class="register-btn" data-type="work-ticket" onclick="showPage('work-ticket')">
+                        <i class="fas fa-clipboard-list" style="font-size: 24px; margin-right: 12px; color: var(--primary); flex-shrink: 0;"></i>
+                        <span>作業票の登録</span>
+                    </button>
+                    <button class="register-btn" data-type="barcode">
+                        <i class="fas fa-barcode" style="font-size: 24px; margin-right: 12px; color: var(--primary); flex-shrink: 0;"></i>
+                        <span>バーコードリーダー版<br>作業票の登録</span>
+                    </button>
+                    <button class="register-btn" data-type="misc-purchase">
+                        <i class="fas fa-shopping-cart" style="font-size: 24px; margin-right: 12px; color: var(--primary); flex-shrink: 0;"></i>
+                        <span>諸掛購入登録</span>
+                    </button>
+                    <button class="register-btn" data-type="misc-delivery">
+                        <i class="fas fa-truck" style="font-size: 24px; margin-right: 12px; color: var(--primary); flex-shrink: 0;"></i>
+                        <span>諸掛納入処理</span>
+                    </button>
+                    <button class="register-btn" data-type="delivery-approval">
+                        <i class="fas fa-check-circle" style="font-size: 24px; margin-right: 12px; color: var(--primary); flex-shrink: 0;"></i>
+                        <span>納期承認</span>
+                    </button>
+                    <button class="register-btn" data-type="shipping">
+                        <i class="fas fa-shipping-fast" style="font-size: 24px; margin-right: 12px; color: var(--primary); flex-shrink: 0;"></i>
+                        <span>出荷管理</span>
+                    </button>
+                    <button class="register-btn" data-type="outsource-delivery">
+                        <i class="fas fa-handshake" style="font-size: 24px; margin-right: 12px; color: var(--primary); flex-shrink: 0;"></i>
+                        <span>外注・材料<br>納入処理</span>
+                    </button>
+                    <button class="register-btn" data-type="parts-delivery">
+                        <i class="fas fa-cogs" style="font-size: 24px; margin-right: 12px; color: var(--primary); flex-shrink: 0;"></i>
+                        <span>購入部品<br>納入処理</span>
+                    </button>
+                    <button class="register-btn" data-type="surplus-register">
+                        <i class="fas fa-box" style="font-size: 24px; margin-right: 12px; color: var(--primary); flex-shrink: 0;"></i>
+                        <span>余り品登録</span>
+                    </button>
+                    <button class="register-btn" data-type="surplus-search">
+                        <i class="fas fa-search" style="font-size: 24px; margin-right: 12px; color: var(--primary); flex-shrink: 0;"></i>
+                        <span>余り品検索</span>
+                    </button>
+                    <button class="register-btn" data-type="project-shipping">
+                        <i class="fas fa-file-export" style="font-size: 24px; margin-right: 12px; color: var(--primary); flex-shrink: 0;"></i>
+                        <span>工事番号出荷登録</span>
+                    </button>
+                    <button class="register-btn" data-type="budget">
+                        <i class="fas fa-yen-sign" style="font-size: 24px; margin-right: 12px; color: var(--primary); flex-shrink: 0;"></i>
+                        <span>部品単位予算登録</span>
+                    </button>
+                    <button class="register-btn" data-type="construct-number" onclick="showPage('construct-number');">
+                        <i class="fas fa-hashtag" style="font-size: 24px; margin-right: 12px; color: var(--primary); flex-shrink: 0;"></i>
+                        <span>工事番号採番</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 作業票登録ページ -->
+            <div id="work-ticket-page" class="page">
+                <div id="work-ticket-page-content" style="padding: 24px; height: 100%; overflow-y: auto;">
+                    <!-- 動的に生成されます -->
+                </div>
+            </div>
+
+            <!-- 工事番号採番ページ -->
+            <div id="construct-number-page" class="page">
+                <div class="page-title" style="flex-shrink: 0;">
+                    <h2>工事番号採番システム</h2>
+                </div>
+                <div style="padding: 24px; flex: 1; overflow: hidden; min-height: 0; display: flex; flex-direction: column; justify-content: flex-start; align-items: center;">
+                    <div style="display: flex; gap: 24px; align-items: flex-start; flex: 1; min-height: 0; max-width: calc(100vw - 600px); width: calc(100vw - 600px); justify-content: center; margin-left: 2cm;">
+                        <!-- 左側：入力フォーム -->
+                        <div style="flex: 0 0 420px; max-width: 420px; min-width: 380px; display: flex; flex-direction: column;">
+                            <div style="background: linear-gradient(135deg, rgba(74, 144, 226, 0.05) 0%, rgba(74, 144, 226, 0.02) 100%); border-radius: 16px; padding: 20px; border: 2px solid rgba(74, 144, 226, 0.1); display: flex; flex-direction: column;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-shrink: 0; justify-content: center;">
+                                    <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">新規工事番号取得</h4>
+                                </div>
+                                <form id="construct-number-form-page" class="register-form" onsubmit="event.preventDefault(); if(typeof getConstructNumberPage === 'function') { getConstructNumberPage(); } return false;" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+                                    <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                                        <div class="form-field form-field-full" style="flex-shrink: 0;">
+                                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px; justify-content: center;">
+                                                工事番号台 <span class="required">*</span>
+                                            </label>
+                                            <select id="construct-number-select-page" name="工事番号台" class="form-input" required style="font-size: 14px; padding: 12px;">
+                                                <option value="">選択してください</option>
+                                                <optgroup label="1000番台系">
+                                                    <option value="1000番台">1000番台</option>
+                                                </optgroup>
+                                                <optgroup label="2000番台系">
+                                                    <option value="2000番台">2000番台</option>
+                                                    <option value="2900番台">2900番台</option>
+                                                </optgroup>
+                                                <optgroup label="3000番台系">
+                                                    <option value="3000番台">3000番台</option>
+                                                    <option value="3A00番台">3A00番台</option>
+                                                    <option value="3B00番台">3B00番台</option>
+                                                    <option value="3C00番台">3C00番台</option>
+                                                    <option value="3P00番台">3P00番台</option>
+                                                    <option value="3T00番台">3T00番台</option>
+                                                </optgroup>
+                                                <optgroup label="4000番台系">
+                                                    <option value="4000番台">4000番台</option>
+                                                    <option value="4A00番台">4A00番台</option>
+                                                    <option value="4B00番台">4B00番台</option>
+                                                    <option value="4C00番台">4C00番台</option>
+                                                    <option value="4P00番台">4P00番台</option>
+                                                    <option value="4T00番台">4T00番台</option>
+                                                </optgroup>
+                                                <optgroup label="5000番台系">
+                                                    <option value="5000番台">5000番台</option>
+                                                    <option value="5A00番台">5A00番台</option>
+                                                    <option value="5B00番台">5B00番台</option>
+                                                    <option value="5E00番台">5E00番台</option>
+                                                </optgroup>
+                                                <optgroup label="6000番台系">
+                                                    <option value="6000番台">6000番台</option>
+                                                </optgroup>
+                                                <optgroup label="7000番台系">
+                                                    <option value="7000番台">7000番台</option>
+                                                    <option value="7P00番台">7P00番台</option>
+                                                </optgroup>
+                                                <optgroup label="8000番台系">
+                                                    <option value="8000番台">8000番台</option>
+                                                    <option value="8A00番台">8A00番台</option>
+                                                    <option value="8B00番台">8B00番台</option>
+                                                    <option value="8E00番台">8E00番台</option>
+                                                </optgroup>
+                                                <optgroup label="9000番台系">
+                                                    <option value="9000番台">9000番台</option>
+                                                </optgroup>
+                                                <optgroup label="その他">
+                                                    <option value="S000番台">S000番台</option>
+                                                    <option value="Z000番台">Z000番台</option>
+                                                    <option value="D000番台">D000番台</option>
+                                                </optgroup>
+                                            </select>
+                                        </div>
+                                        <div class="form-field form-field-full" style="margin-top: 20px; flex-shrink: 0;">
+                                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px; justify-content: center;">
+                                                取得された工事番号
+                                            </label>
+                                            <div style="position: relative;">
+                                                <input type="text" id="construct-number-result-page" class="form-input" readonly style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); font-weight: 700; font-size: 24px; text-align: center; padding: 16px; border: 3px solid var(--success); border-radius: 12px; letter-spacing: 2px; color: #2e7d32; word-break: break-all;">
+                                                <div style="position: absolute; top: 8px; right: 12px; color: var(--success); font-size: 18px; opacity: 0.6;">
+                                                    <i class="fas fa-copy" id="copy-construct-number-page" style="cursor: pointer;" onclick="copyConstructNumberPage()" title="コピー"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-actions" style="margin-top: 20px; gap: 10px; display: flex; flex-direction: column; flex-shrink: 0;">
+                                            <div style="display: flex; gap: 10px; justify-content: center;">
+                                                <button type="submit" class="btn-primary" style="flex: 1; min-width: 140px; max-width: 300px; font-size: 13px; padding: 10px; white-space: nowrap;">
+                                                    <i class="fas fa-magic"></i> 工事番号取得
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <!-- 右側：使用済み一覧 -->
+                        <div style="flex: 0 0 300px; max-width: 300px; min-width: 250px; display: flex; flex-direction: column; max-height: 100%;">
+                            <div style="background: white; border-radius: 16px; padding: 20px; border: 2px solid var(--border-light); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); display: flex; flex-direction: column; max-height: 100%; overflow: hidden;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; flex-shrink: 0;">
+                                    <div style="display: flex; align-items: center; gap: 6px; margin: 0 auto;">
+                                        <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">運用中工事番号一覧</h4>
+                                        <button type="button" class="btn-secondary btn-small" id="edit-all-used-btn-page" onclick="editAllUsedConstructNumbers()" style="padding: 6px 10px; font-size: 11px; white-space: nowrap; margin-left: 8px;">
+                                            <i class="fas fa-cog"></i> 一括編集
+                                        </button>
+                                    </div>
+                                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                        <button type="button" class="btn-secondary btn-small" id="import-csv-btn-page" onclick="importUsedConstructNumbersCSV()" style="padding: 6px 10px; font-size: 11px; white-space: nowrap;">
+                                            <i class="fas fa-file-import"></i> CSVインポート
+                                        </button>
+                                        <button type="button" class="btn-secondary btn-small" onclick="exportUsedConstructNumbers()" style="padding: 6px 10px; font-size: 11px; white-space: nowrap;">
+                                            <i class="fas fa-file-export"></i> CSV出力
+                                        </button>
+                                    </div>
+                                </div>
+                                <div style="flex: 1; overflow-y: auto; overflow-x: auto; background: #fafafa; border-radius: 12px; border: 1px solid var(--border-light); min-height: 0; max-height: calc(100vh - 300px);">
+                                    <table style="width: 100%; border-collapse: collapse; min-width: 200px; margin: 0 auto;">
+                                        <thead style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); position: sticky; top: 0; z-index: 10;">
+                                            <tr>
+                                                <th style="padding: 8px 10px; text-align: center; color: white; font-size: 11px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">
+                                                    工事番号
+                                                </th>
+                                                <th style="padding: 8px 10px; text-align: center; color: white; font-size: 11px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">
+                                                    日付
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="used-construct-numbers-list-page">
+                                            <tr>
+                                                <td colspan="3" style="text-align: center; padding: 40px; color: var(--text-tertiary);">
+                                                    <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 12px; opacity: 0.3; display: block;"></i>
+                                                    <span style="font-size: 13px;">運用中工事番号はありません</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -363,6 +507,38 @@
 
     <!-- メッセージ表示エリア -->
     <div id="message-area"></div>
+
+    <!-- 詳細表示モーダル -->
+    <div id="detail-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <h3 id="detail-modal-title">詳細</h3>
+                <button class="modal-close" id="detail-modal-close">&times;</button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <div id="detail-modal-content" class="form-fields"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="close-detail-modal">閉じる</button>
+                    <button type="button" class="btn-primary" id="edit-from-detail-modal">編集</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 確認ダイアログモーダル -->
+    <div id="confirm-dialog-modal" class="modal-overlay" style="display: none; z-index: 50000 !important;">
+        <div class="modal-container" style="max-width: 500px; border-radius: 20px; background: white; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); position: relative; z-index: 50001 !important;">
+            <div class="modal-body" style="padding: 40px; text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+                <h3 id="confirm-dialog-title" style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; line-height: 1.4;"></h3>
+                <p id="confirm-dialog-message" style="font-size: 15px; color: var(--text-secondary); margin-bottom: 32px; line-height: 1.6;"></p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button type="button" id="confirm-dialog-cancel" class="btn-secondary" style="min-width: 120px; padding: 12px 24px; font-size: 15px; font-weight: 600;">キャンセル</button>
+                    <button type="button" id="confirm-dialog-ok" class="btn-primary" style="min-width: 120px; padding: 12px 24px; font-size: 15px; font-weight: 600;"></button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- 登録・編集モーダル（中央表示） -->
     <div id="register-modal" class="modal-overlay" style="display: none;">
@@ -537,6 +713,16 @@
             </div>
             <div class="modal-body register-modal-body">
                 <div class="settings-menu">
+                    <div class="settings-menu-item" onclick="openSettingsPage('permission-settings')">
+                        <div class="settings-menu-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="settings-menu-content">
+                            <h4>権限設定</h4>
+                            <p>運用中工事番号一覧の編集・削除権限を設定</p>
+                        </div>
+                        <i class="fas fa-chevron-right settings-menu-arrow"></i>
+                    </div>
                     <div class="settings-menu-item" onclick="openSettingsPage('user-management')">
                         <div class="settings-menu-icon">
                             <i class="fas fa-users"></i>
@@ -708,6 +894,23 @@
         </div>
     </div>
 
+    <!-- 工事番号適用確認モーダル -->
+    <div id="construct-number-confirm-modal" class="modal-overlay" style="display: none; z-index: 10002 !important;">
+        <div class="modal-content delete-confirm-modal-content" style="max-width: 400px;">
+            <div class="delete-confirm-header">
+                <div class="delete-confirm-icon" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; font-size: 24px;">✓</div>
+                <h3>工事番号の適用</h3>
+            </div>
+            <div class="delete-confirm-body">
+                <p id="construct-number-confirm-message">工事番号「<strong id="construct-number-confirm-value"></strong>」を使用しますか？</p>
+            </div>
+            <div class="delete-confirm-actions">
+                <button class="btn-secondary" id="construct-number-confirm-cancel">キャンセル</button>
+                <button class="btn-primary" id="construct-number-confirm-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 掲示板詳細表示モーダル -->
     <div id="bulletin-detail-modal" class="modal-overlay" style="display: none;">
         <div class="modal-container register-modal-container">
@@ -844,109 +1047,149 @@
     </div>
     </div>
 
-    <!-- ログアウト確認モーダル -->
-    <div id="logout-confirm-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content logout-confirm-modal-content">
-            <div class="logout-confirm-header">
-                <div class="logout-confirm-icon">
-                    <i class="fas fa-sign-out-alt"></i>
-                </div>
-                <h3>ログアウトの確認</h3>
-            </div>
-            <div class="logout-confirm-body">
-                <p>ログアウトしますか？</p>
-                <p class="logout-confirm-note">再度ログインする必要があります。</p>
-            </div>
-            <div class="logout-confirm-actions">
-                <button class="btn-secondary" id="logout-confirm-cancel">キャンセル</button>
-                <button class="btn-primary" id="logout-confirm-ok">ログアウト</button>
-            </div>
-        </div>
-    </div>
 
     <!-- 工事番号取得モーダル -->
     <div id="construct-number-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-container register-modal-container" style="max-width: 1200px;">
+        <div class="modal-container register-modal-container" style="max-width: 1400px; width: 95%; height: 90vh; max-height: 800px; display: flex; flex-direction: column; margin: 0;">
             <div class="modal-header register-modal-header">
-                <h3>工事番号採番</h3>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-hashtag" style="font-size: 24px;"></i>
+                    <h3>工事番号採番システム</h3>
+                </div>
                 <button class="modal-close" onclick="closeConstructNumberModal()">&times;</button>
             </div>
-            <div class="modal-body register-modal-body" style="display: flex; gap: 20px; align-items: flex-start;">
+            <div class="modal-body register-modal-body" style="display: flex; gap: 24px; align-items: stretch; padding: 24px; flex: 1; overflow: hidden; height: 100%;">
                 <!-- 左側：入力フォーム -->
-                <div style="flex: 1; min-width: 300px;">
-                    <form id="construct-number-form" class="register-form" onsubmit="event.preventDefault(); getConstructNumber(); return false;">
-                        <div class="form-field form-field-full">
-                            <label>工事番号台 <span class="required">*</span></label>
-                            <select id="construct-number-select" name="工事番号台" class="form-input" required>
-                                <option value="">選択してください</option>
-                                <option value="1000番台">1000番台</option>
-                                <option value="2000番台">2000番台</option>
-                                <option value="2900番台">2900番台</option>
-                                <option value="3000番台">3000番台</option>
-                                <option value="3A00番台">3A00番台</option>
-                                <option value="3B00番台">3B00番台</option>
-                                <option value="3C00番台">3C00番台</option>
-                                <option value="3P00番台">3P00番台</option>
-                                <option value="3T00番台">3T00番台</option>
-                                <option value="4000番台">4000番台</option>
-                                <option value="4A00番台">4A00番台</option>
-                                <option value="4B00番台">4B00番台</option>
-                                <option value="4C00番台">4C00番台</option>
-                                <option value="4P00番台">4P00番台</option>
-                                <option value="4T00番台">4T00番台</option>
-                                <option value="5000番台">5000番台</option>
-                                <option value="5A00番台">5A00番台</option>
-                                <option value="5B00番台">5B00番台</option>
-                                <option value="5E00番台">5E00番台</option>
-                                <option value="6000番台">6000番台</option>
-                                <option value="7000番台">7000番台</option>
-                                <option value="7P00番台">7P00番台</option>
-                                <option value="8000番台">8000番台</option>
-                                <option value="8A00番台">8A00番台</option>
-                                <option value="8B00番台">8B00番台</option>
-                                <option value="8E00番台">8E00番台</option>
-                                <option value="9000番台">9000番台</option>
-                                <option value="S000番台">S000番台</option>
-                                <option value="Z000番台">Z000番台</option>
-                                <option value="D000番台">D000番台</option>
-                            </select>
+                <div style="flex: 0 0 420px; max-width: 420px; min-width: 380px; display: flex; flex-direction: column; height: 100%;">
+                    <div style="background: linear-gradient(135deg, rgba(74, 144, 226, 0.05) 0%, rgba(74, 144, 226, 0.02) 100%); border-radius: 16px; padding: 20px; border: 2px solid rgba(74, 144, 226, 0.1); height: 100%; display: flex; flex-direction: column;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-shrink: 0;">
+                            <i class="fas fa-magic" style="color: var(--primary); font-size: 16px;"></i>
+                            <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">新規工事番号取得</h4>
                         </div>
-                        <div class="form-field form-field-full">
-                            <label>取得された工事番号</label>
-                            <input type="text" id="construct-number-result" class="form-input" readonly style="background-color: #e8f5e9; font-weight: bold; font-size: 20px; text-align: center; padding: 12px;">
-                        </div>
-                        <div class="form-actions">
-                            <button type="button" class="btn-secondary" onclick="closeConstructNumberModal()">キャンセル</button>
-                            <button type="submit" class="btn-primary">工事番号取得</button>
-                            <button type="button" class="btn-primary" id="apply-construct-number-btn" onclick="applyConstructNumber()" style="display: none;">登録フォームに適用</button>
-                        </div>
-                    </form>
+                        <form id="construct-number-form" class="register-form" onsubmit="event.preventDefault(); getConstructNumber(); return false;" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+                            <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                                <div class="form-field form-field-full" style="flex-shrink: 0;">
+                                    <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                    <i class="fas fa-list" style="color: var(--primary);"></i>
+                                    工事番号台 <span class="required">*</span>
+                                </label>
+                                    <select id="construct-number-select" name="工事番号台" class="form-input" required style="font-size: 14px; padding: 12px;">
+                                    <option value="">選択してください</option>
+                                    <option value="1000番台">1000番台</option>
+                                    <option value="2000番台">2000番台</option>
+                                    <option value="2900番台">2900番台</option>
+                                    <option value="3000番台">3000番台</option>
+                                    <option value="3A00番台">3A00番台</option>
+                                    <option value="3B00番台">3B00番台</option>
+                                    <option value="3C00番台">3C00番台</option>
+                                    <option value="3P00番台">3P00番台</option>
+                                    <option value="3T00番台">3T00番台</option>
+                                    <option value="4000番台">4000番台</option>
+                                    <option value="4A00番台">4A00番台</option>
+                                    <option value="4B00番台">4B00番台</option>
+                                    <option value="4C00番台">4C00番台</option>
+                                    <option value="4P00番台">4P00番台</option>
+                                    <option value="4T00番台">4T00番台</option>
+                                    <option value="5000番台">5000番台</option>
+                                    <option value="5A00番台">5A00番台</option>
+                                    <option value="5B00番台">5B00番台</option>
+                                    <option value="5E00番台">5E00番台</option>
+                                    <option value="6000番台">6000番台</option>
+                                    <option value="7000番台">7000番台</option>
+                                    <option value="7P00番台">7P00番台</option>
+                                    <option value="8000番台">8000番台</option>
+                                    <option value="8A00番台">8A00番台</option>
+                                    <option value="8B00番台">8B00番台</option>
+                                    <option value="8E00番台">8E00番台</option>
+                                    <option value="9000番台">9000番台</option>
+                                    <option value="S000番台">S000番台</option>
+                                    <option value="Z000番台">Z000番台</option>
+                                    <option value="D000番台">D000番台</option>
+                                </select>
+                            </div>
+                                <div class="form-field form-field-full" style="margin-top: 20px; flex-shrink: 0;">
+                                    <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                                    取得された工事番号
+                                </label>
+                                <div style="position: relative;">
+                                        <input type="text" id="construct-number-result" class="form-input" readonly style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); font-weight: 700; font-size: 24px; text-align: center; padding: 16px; border: 3px solid var(--success); border-radius: 12px; letter-spacing: 2px; color: #2e7d32; word-break: break-all;">
+                                        <div style="position: absolute; top: 8px; right: 12px; color: var(--success); font-size: 18px; opacity: 0.6;">
+                                        <i class="fas fa-copy" id="copy-construct-number" style="cursor: pointer;" onclick="copyConstructNumber()" title="コピー"></i>
+                                    </div>
+                                </div>
+                                    <div style="margin-top: 8px; font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; line-height: 1.4;">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>この番号は自動的に使用済みとして記録されます</span>
+                                </div>
+                            </div>
+                            </div>
+                            <div class="form-actions" style="margin-top: 20px; gap: 10px; display: flex; flex-direction: column; flex-shrink: 0;">
+                                <div style="display: flex; gap: 10px;">
+                                    <button type="button" class="btn-secondary" onclick="closeConstructNumberModal()" style="flex: 1; min-width: 120px; font-size: 13px; padding: 10px; white-space: nowrap;">
+                                    <i class="fas fa-times"></i> キャンセル
+                                </button>
+                                    <button type="submit" class="btn-primary" style="flex: 1; min-width: 140px; font-size: 13px; padding: 10px; white-space: nowrap;">
+                                    <i class="fas fa-magic"></i> 工事番号取得
+                                </button>
+                                </div>
+                                <button type="button" class="btn-primary" id="apply-construct-number-btn" onclick="applyConstructNumber()" style="display: none; width: 100%; margin-top: 0; font-size: 13px; padding: 10px; white-space: nowrap;">
+                                    <i class="fas fa-check-circle"></i> この番号を使用
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
                 
                 <!-- 右側：使用済み一覧 -->
-                <div style="flex: 1; min-width: 400px; background: #f8f9fa; border-radius: 8px; padding: 16px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h4 style="margin: 0; font-size: 16px; font-weight: 600;">使用済み工事番号一覧</h4>
-                        <div>
-                            <button type="button" class="btn-secondary btn-small" onclick="clearUsedConstructNumbers()" style="padding: 4px 8px; font-size: 12px;">全削除</button>
-                            <button type="button" class="btn-secondary btn-small" onclick="exportUsedConstructNumbers()" style="padding: 4px 8px; font-size: 12px; margin-left: 4px;">CSV出力</button>
+                <div style="flex: 1; min-width: 350px; display: flex; flex-direction: column; height: 100%;">
+                    <div style="background: white; border-radius: 16px; padding: 20px; border: 2px solid var(--border-light); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); height: 100%; display: flex; flex-direction: column;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-history" style="color: var(--primary); font-size: 16px;"></i>
+                                <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">使用済み工事番号一覧</h4>
+                            </div>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                <button type="button" class="btn-secondary btn-small" id="import-csv-btn" onclick="importUsedConstructNumbersCSV()" style="padding: 6px 10px; font-size: 11px; white-space: nowrap;">
+                                    <i class="fas fa-file-import"></i> CSVインポート
+                                </button>
+                                <button type="button" class="btn-secondary btn-small" onclick="exportUsedConstructNumbers()" style="padding: 6px 10px; font-size: 11px; white-space: nowrap;">
+                                    <i class="fas fa-file-export"></i> CSV出力
+                                </button>
+                                <button type="button" class="btn-secondary btn-small" id="clear-used-btn" onclick="clearUsedConstructNumbers()" style="padding: 6px 10px; font-size: 11px; display: none; white-space: nowrap;">
+                                    <i class="fas fa-trash"></i> 全削除
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    <div style="max-height: 400px; overflow-y: auto; background: white; border-radius: 4px; border: 1px solid #ddd;">
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <thead style="background: #f0f0f0; position: sticky; top: 0; z-index: 10;">
-                                <tr>
-                                    <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd; font-size: 13px; font-weight: 600;">工事番号</th>
-                                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #ddd; font-size: 13px; font-weight: 600;">日付</th>
-                                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #ddd; font-size: 13px; font-weight: 600;">状態</th>
-                                </tr>
-                            </thead>
-                            <tbody id="used-construct-numbers-list-inline">
-                                <tr>
-                                    <td colspan="3" style="text-align: center; padding: 20px; color: #999;">使用済み工事番号はありません</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div style="flex: 1; overflow-y: auto; overflow-x: auto; background: #fafafa; border-radius: 12px; border: 1px solid var(--border-light); min-height: 0;">
+                            <table style="width: 100%; border-collapse: collapse; min-width: 280px;">
+                                <thead style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); position: sticky; top: 0; z-index: 10;">
+                                    <tr>
+                                        <th style="padding: 10px 12px; text-align: left; color: white; font-size: 12px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">
+                                            <i class="fas fa-hashtag" style="margin-right: 4px;"></i>工事番号
+                                        </th>
+                                        <th style="padding: 10px 12px; text-align: center; color: white; font-size: 12px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">
+                                            <i class="fas fa-calendar" style="margin-right: 4px;"></i>日付
+                                        </th>
+                                        <th id="action-header" style="padding: 10px 12px; text-align: center; color: white; font-size: 12px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); width: 70px; display: none;">
+                                            <i class="fas fa-cog"></i>操作
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="used-construct-numbers-list-inline">
+                                    <tr>
+                                        <td colspan="3" style="text-align: center; padding: 40px; color: var(--text-tertiary);">
+                                            <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 12px; opacity: 0.3; display: block;"></i>
+                                            <span style="font-size: 13px;">使用済み工事番号はありません</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div style="margin-top: 16px; padding: 10px; background: rgba(74, 144, 226, 0.05); border-radius: 8px; font-size: 11px; color: var(--text-secondary); line-height: 1.4; flex-shrink: 0;">
+                            <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
+                            <span id="used-count-display">使用済み: 0件</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -973,7 +1216,6 @@
                             <tr>
                                 <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">工事番号</th>
                                 <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd; font-weight: 600;">日付</th>
-                                <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd; font-weight: 600;">状態</th>
                             </tr>
                         </thead>
                         <tbody id="used-construct-numbers-list">
