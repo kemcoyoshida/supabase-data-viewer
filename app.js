@@ -1,11 +1,11 @@
 // Supabaseクライアントの初期化
-let supabase;
+// グローバル変数としてsupabaseを定義（重複宣言を防ぐ）
 if (typeof window.supabaseClient === 'undefined') {
     window.supabaseClient = null;
 }
-// グローバル変数としてsupabaseを定義（重複宣言を防ぐ）
-if (typeof window.supabase === 'undefined') {
-    window.supabase = null;
+// supabaseクライアントを取得する関数（重複宣言を防ぐ）
+function getSupabaseClient() {
+    return window.supabaseClient;
 }
 let availableTables = [];
 let currentTable = null;
@@ -33,10 +33,7 @@ const TABLE_NAME_MAP = {
     'projects': 'プロジェクト管理',
     'employees': '社員管理',
     'users': 'ユーザー管理',
-    'T_StaffCode': '社員コード管理',
-    't_staffcode': '社員コード管理',
-    't_staff_code': '社員コード管理',
-    'StaffCode': '社員コード管理'
+    // テーブル名は英語のまま表示するため、マッピングを削除
 };
 
 // カラム名の日本語マッピング（一般的なカラム名）
@@ -331,7 +328,135 @@ const COLUMN_NAME_MAP = {
     'hankyu_warning_mail_for9': '半休警告メール(9回)',
     'HankyuWarningMailFor10': '半休警告メール(10回)',
     'hankyuWarningMailFor10': '半休警告メール(10回)',
-    'hankyu_warning_mail_for10': '半休警告メール(10回)'
+    'hankyu_warning_mail_for10': '半休警告メール(10回)',
+    // T_CompanyCodeテーブルのカラム名
+    'CompanyCode': '会社コード',
+    'companyCode': '会社コード',
+    'company_code': '会社コード',
+    'UrikakeCode': '売掛コード',
+    'urikakeCode': '売掛コード',
+    'urikake_code': '売掛コード',
+    'KaikakeCode': '買掛コード',
+    'kaikakeCode': '買掛コード',
+    'kaikake_code': '買掛コード',
+    'CompanyName': '会社名',
+    'companyName': '会社名',
+    'company_name': '会社名',
+    'ShortName': '略称',
+    'shortName': '略称',
+    'short_name': '略称',
+    'Reading': 'フリガナ',
+    'reading': 'フリガナ',
+    'ReadingRegister': '登録用フリガナ',
+    'readingRegister': '登録用フリガナ',
+    'reading_register': '登録用フリガナ',
+    'Nationality': '国籍',
+    'nationality': '国籍',
+    'PostalCode': '郵便番号',
+    'postalCode': '郵便番号',
+    'postal_code': '郵便番号',
+    'Address1': '住所1',
+    'address1': '住所1',
+    'address_1': '住所1',
+    'Address2': '住所2',
+    'address2': '住所2',
+    'address_2': '住所2',
+    'TEL': '電話番号',
+    'tel': '電話番号',
+    'FAX': 'FAX番号',
+    'fax': 'FAX番号',
+    'ClassCustomer': '得意先区分',
+    'classCustomer': '得意先区分',
+    'class_customer': '得意先区分',
+    'ClassSupply': '仕入先区分',
+    'classSupply': '仕入先区分',
+    'class_supply': '仕入先区分',
+    'ClassProcess': '外注先区分',
+    'classProcess': '外注先区分',
+    'class_process': '外注先区分',
+    'ClassGeneAffair': '総務区分',
+    'classGeneAffair': '総務区分',
+    'class_gene_affair': '総務区分',
+    'ClassOther': 'その他区分',
+    'classOther': 'その他区分',
+    'class_other': 'その他区分',
+    'AccountCode': '勘定科目コード',
+    'accountCode': '勘定科目コード',
+    'account_code': '勘定科目コード',
+    'Spare1': '予備1',
+    'spare1': '予備1',
+    'spare_1': '予備1',
+    'Spare2': '予備2',
+    'spare2': '予備2',
+    'spare_2': '予備2',
+    'CompanyCross': '会社区分',
+    'companyCross': '会社区分',
+    'company_cross': '会社区分',
+    'Tantou': '担当者名',
+    'tantou': '担当者名',
+    'Department': '部署名',
+    'department': '部署名',
+    'Bank': '銀行名',
+    'bank': '銀行名',
+    'TransFee1': '振込手数料1',
+    'transFee1': '振込手数料1',
+    'trans_fee1': '振込手数料1',
+    'TransFee2': '振込手数料2',
+    'transFee2': '振込手数料2',
+    'trans_fee2': '振込手数料2',
+    'TransFee3': '振込手数料3',
+    'transFee3': '振込手数料3',
+    'trans_fee3': '振込手数料3',
+    'TransFee4': '振込手数料4',
+    'transFee4': '振込手数料4',
+    'trans_fee4': '振込手数料4',
+    'Payment': '支払条件',
+    'payment': '支払条件',
+    'ClassForKeiri': '経理用区分',
+    'classForKeiri': '経理用区分',
+    'class_for_keiri': '経理用区分',
+    'MailAddress': 'メールアドレス',
+    'mailAddress': 'メールアドレス',
+    'mail_address': 'メールアドレス',
+    'KaigaiGaichuFlg': '海外外注フラグ',
+    'kaigaiGaichuFlg': '海外外注フラグ',
+    'kaigai_gaichu_flg': '海外外注フラグ',
+    'BearTransFeeFlg': '手数料負担フラグ',
+    'bearTransFeeFlg': '手数料負担フラグ',
+    'bear_trans_fee_flg': '手数料負担フラグ',
+    'DealingDocMitsumoriFlg': '見積書発行フラグ',
+    'dealingDocMitsumoriFlg': '見積書発行フラグ',
+    'dealing_doc_mitsumori_flg': '見積書発行フラグ',
+    'DealingDocSeikyuFlg': '請求書発行フラグ',
+    'dealingDocSeikyuFlg': '請求書発行フラグ',
+    'dealing_doc_seikyu_flg': '請求書発行フラグ',
+    'DealingDocChumonFlg': '注文書発行フラグ',
+    'dealingDocChumonFlg': '注文書発行フラグ',
+    'dealing_doc_chumon_flg': '注文書発行フラグ',
+    'DealingDocNouhinFlg': '納品書発行フラグ',
+    'dealingDocNouhinFlg': '納品書発行フラグ',
+    'dealing_doc_nouhin_flg': '納品書発行フラグ',
+    'DealingDocRyousyuFlg': '領収書発行フラグ',
+    'dealingDocRyousyuFlg': '領収書発行フラグ',
+    'dealing_doc_ryousyu_flg': '領収書発行フラグ',
+    'DealingDocKensyuFlg': '検収書発行フラグ',
+    'dealingDocKensyuFlg': '検収書発行フラグ',
+    'dealing_doc_kensyu_flg': '検収書発行フラグ',
+    'TaxCarryUpDown': '端数処理',
+    'taxCarryUpDown': '端数処理',
+    'tax_carry_up_down': '端数処理',
+    'TaxCalcWay': '税計算方法',
+    'taxCalcWay': '税計算方法',
+    'tax_calc_way': '税計算方法',
+    'TaxDecimalCalc': '消費税小数処理',
+    'taxDecimalCalc': '消費税小数処理',
+    'tax_decimal_calc': '消費税小数処理',
+    'MailAddress2': 'メールアドレス2',
+    'mailAddress2': 'メールアドレス2',
+    'mail_address2': 'メールアドレス2',
+    'MailAddress3': 'メールアドレス3',
+    'mailAddress3': 'メールアドレス3',
+    'mail_address3': 'メールアドレス3'
 };
 
 // カラム名を日本語に変換する関数
@@ -872,8 +997,8 @@ async function initializeApp() {
                         console.log('Supabaseクライアントを初期化します...');
                         if (!window.supabaseClient) {
                             try {
-                                supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
-                                window.supabaseClient = supabase;
+                                const client = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+                                window.supabaseClient = client;
                                 console.log('Supabaseクライアントの初期化が完了しました');
                                 resolve();
                             } catch (error) {
@@ -882,7 +1007,6 @@ async function initializeApp() {
                                 reject(error);
                             }
                         } else {
-                            supabase = window.supabaseClient;
                             console.log('既存のSupabaseクライアントを使用します');
                             resolve();
                         }
@@ -1432,7 +1556,7 @@ async function updateDashboard() {
     let totalRecords = 0;
     for (const table of availableTables) {
         try {
-            const { count } = await supabase.from(table).select('*', { count: 'exact', head: true });
+            const { count } = await getSupabaseClient().from(table).select('*', { count: 'exact', head: true });
             totalRecords += count || 0;
         } catch (e) {
             // エラーは無視
@@ -4162,7 +4286,7 @@ async function loadTables() {
     
     try {
         // Supabaseクライアントが初期化されているか確認
-        if (!supabase) {
+        if (!getSupabaseClient()) {
             if (container) {
                 container.innerHTML = '<p class="info">Supabaseクライアントの初期化に失敗しました</p>';
             }
@@ -4209,7 +4333,7 @@ async function loadTables() {
             const commonTables = ['machines', 'machine_codes', 'items', 'products', 'orders', 't Accept Order', '取引先'];
             for (const tableName of commonTables) {
                 try {
-                    const { error } = await supabase.from(tableName).select('id').limit(1);
+                    const { error } = await getSupabaseClient().from(tableName).select('id').limit(1);
                     if (!error) {
                         availableTables.push(tableName);
                         console.log('テーブルが見つかりました:', tableName);
@@ -4366,25 +4490,51 @@ function updateTableList() {
 async function loadTableData(tableName) {
     if (!tableName) return;
 
+    console.log('テーブルデータの読み込みを開始:', tableName);
+    
     try {
-        const { data, error, count } = await supabase
+        // テーブル名にスペースが含まれる場合は、そのまま使用（Supabaseは引用符で自動処理）
+        const { data, error, count } = await getSupabaseClient()
             .from(tableName)
             .select('*', { count: 'exact' })
             .limit(10000);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Supabaseエラー:', error);
+            console.error('エラー詳細:', error.message, error.details, error.hint);
+            throw error;
+        }
+
+        console.log('データ取得成功:', {
+            tableName: tableName,
+            dataCount: data ? data.length : 0,
+            totalCount: count
+        });
 
         tableData = data || [];
         filteredData = [...tableData];
         currentPage = 1;
         selectedRows.clear();
         
+        if (tableData.length === 0) {
+            console.warn('テーブルは存在しますが、データが0件です:', tableName);
+            showMessage('テーブル「' + getTableDisplayName(tableName) + '」にはデータがありません', 'info');
+        }
+        
         updateTableTitle(tableName);
         updateSearchFields(tableData);
         displayTable();
         updateSelectionInfo();
     } catch (error) {
-        showMessage('データの取得に失敗しました: ' + error.message, 'error');
+        console.error('テーブルデータ読み込みエラー:', error);
+        const errorMessage = error.message || '不明なエラー';
+        const errorDetails = error.details ? ' (' + error.details + ')' : '';
+        showMessage('データの取得に失敗しました: ' + errorMessage + errorDetails, 'error');
+        
+        // テーブルが存在しない場合のメッセージ
+        if (errorMessage.includes('relation') || errorMessage.includes('does not exist')) {
+            showMessage('テーブル「' + tableName + '」が見つかりません。テーブル名を確認してください。', 'error');
+        }
     }
 }
 
@@ -4682,7 +4832,7 @@ async function confirmDelete() {
             return;
         }
 
-        const { error } = await supabase
+        const { error } = await getSupabaseClient()
             .from(currentTable)
             .delete()
             .eq('id', id);
@@ -4820,7 +4970,7 @@ async function importFromCSV(file) {
         for (let i = 0; i < rows.length; i += batchSize) {
             const batch = rows.slice(i, i + batchSize);
             
-            const { data, error } = await supabase
+            const { data, error } = await getSupabaseClient()
                 .from(currentTable)
                 .insert(batch)
                 .select();
@@ -5255,7 +5405,7 @@ async function loadJobTypesForWorkTicket() {
 // 作業者の選択肢を読み込む
 async function loadWorkersForWorkTicket() {
     try {
-        if (!supabase) {
+        if (!getSupabaseClient()) {
             console.warn('Supabaseクライアントが初期化されていません');
             setDefaultWorkers();
             return;
@@ -5277,7 +5427,7 @@ async function loadWorkersForWorkTicket() {
         const tableNames = ['T_StaffCode', 't_staffcode', 't_staff_code', 'StaffCode'];
         
         for (const tableName of tableNames) {
-            const result = await supabase
+            const result = await getSupabaseClient()
                 .from(tableName)
                 .select('*')
                 .limit(10); // まず10件だけ取得してテスト
@@ -5285,7 +5435,7 @@ async function loadWorkersForWorkTicket() {
             if (!result.error && result.data && result.data.length > 0) {
                 console.log(`テーブル "${tableName}" からデータを取得しました`);
                 // 全件取得
-                const fullResult = await supabase
+                const fullResult = await getSupabaseClient()
                     .from(tableName)
                     .select('*');
                 if (!fullResult.error) {
@@ -6707,7 +6857,7 @@ async function saveRecord() {
             console.log('編集ID:', editId);
             
             // 更新
-            const { data: updatedData, error } = await supabase
+            const { data: updatedData, error } = await getSupabaseClient()
                 .from(currentTable)
                 .update(updateData)
                 .eq('id', editId)
@@ -6734,7 +6884,7 @@ async function saveRecord() {
             closeModal();
         } else {
             // 新規登録
-            const { data: insertedData, error } = await supabase
+            const { data: insertedData, error } = await getSupabaseClient()
                 .from(currentTable)
                 .insert(data)
                 .select();
