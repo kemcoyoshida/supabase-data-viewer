@@ -1,5 +1,8 @@
 // Supabaseクライアントの初期化
 let supabase;
+if (typeof window.supabaseClient === 'undefined') {
+    window.supabaseClient = null;
+}
 let availableTables = [];
 let currentTable = null;
 let tableData = [];
@@ -866,7 +869,12 @@ async function initializeApp() {
         }
         
         console.log('Supabaseクライアントを初期化します...');
-        supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+        if (!window.supabaseClient) {
+            supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+            window.supabaseClient = supabase;
+        } else {
+            supabase = window.supabaseClient;
+        }
         console.log('Supabaseクライアントの初期化が完了しました');
         
         // テーブル一覧を読み込む（先に実行）
@@ -1223,6 +1231,18 @@ function setupEventListeners() {
         });
     });
 
+    // 掲示板追加ボタン
+    const addBulletinBtn = document.getElementById('add-bulletin-btn');
+    if (addBulletinBtn) {
+        addBulletinBtn.addEventListener('click', () => {
+            if (typeof openBulletinModal === 'function') {
+                openBulletinModal();
+            } else {
+                console.error('openBulletinModal関数が見つかりません');
+            }
+        });
+    }
+    
     // ダッシュボードのTodo追加ボタン
     const addTodoDashboardBtn = document.getElementById('add-todo-dashboard-btn');
     if (addTodoDashboardBtn) {
@@ -1775,6 +1795,7 @@ function renderBulletins() {
 
 // 掲示板モーダルを開く
 function openBulletinModal(bulletinId = null) {
+    console.log('openBulletinModal called with:', bulletinId);
     const modal = document.getElementById('bulletin-modal');
     const titleEl = document.getElementById('bulletin-modal-title');
     const dateEl = document.getElementById('bulletin-date');
