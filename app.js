@@ -5026,47 +5026,92 @@ async function loadWorkersForWorkTicket() {
             return;
         }
         
-        // T_StaffCodeテーブルから従業員データを取得
-        const { data, error } = await supabase
-            .from('T_StaffCode')
-            .select('StaffCode, StaffName, Reading')
-            .order('StaffName');
+        const workerSelect = document.getElementById('work-ticket-worker');
+        if (!workerSelect) {
+            console.warn('作業者セレクトボックスが見つかりません');
+            return;
+        }
         
-        if (error) {
-            console.warn('作業者データの読み込みに失敗しました:', error);
+        // まず読み込み中を表示
+        workerSelect.innerHTML = '<option value="">読み込み中...</option>';
+        
+        // T_StaffCodeテーブルから従業員データを取得（すべてのカラムを取得して確認）
+        // 複数のテーブル名のパターンを試す
+        let data = null;
+        let error = null;
+        const tableNames = ['T_StaffCode', 't_staffcode', 't_staff_code', 'StaffCode'];
+        
+        for (const tableName of tableNames) {
+            const result = await supabase
+                .from(tableName)
+                .select('*')
+                .limit(10); // まず10件だけ取得してテスト
+            
+            if (!result.error && result.data && result.data.length > 0) {
+                console.log(`テーブル "${tableName}" からデータを取得しました`);
+                // 全件取得
+                const fullResult = await supabase
+                    .from(tableName)
+                    .select('*');
+                if (!fullResult.error) {
+                    data = fullResult.data;
+                    error = null;
+                } else {
+                    error = fullResult.error;
+                }
+                break;
+            } else {
+                console.log(`テーブル "${tableName}" の取得に失敗:`, result.error);
+                if (result.error) {
+                    error = result.error;
+                }
+            }
+        }
+        
+        if (error || !data) {
+            console.error('作業者データの読み込みエラー:', error);
+            console.error('エラー詳細:', error.message, error.details, error.hint);
             // エラーが発生した場合は、デフォルトの選択肢を設定
             setDefaultWorkers();
             return;
         }
         
-        const workerSelect = document.getElementById('work-ticket-worker');
-        if (workerSelect && data) {
-            workerSelect.innerHTML = '<option value="">選択してください</option>';
-            data.forEach(worker => {
+        console.log('取得した作業者データ:', data);
+        console.log('データ件数:', data ? data.length : 0);
+        
+        if (!data || data.length === 0) {
+            console.warn('作業者データが取得できませんでした');
+            setDefaultWorkers();
+            return;
+        }
+        
+        workerSelect.innerHTML = '<option value="">選択してください</option>';
+        let addedCount = 0;
+        
+        data.forEach(worker => {
+            // カラム名のバリエーションに対応（大文字小文字の違いに対応）
+            const staffName = worker.StaffName || worker.Staffname || worker.staffName || worker.staffname || 
+                            worker['StaffName'] || worker['Staffname'] || worker['staffName'] || worker['staffname'] || '';
+            
+            console.log('処理中の作業者:', worker, '氏名:', staffName);
+            
+            if (staffName && staffName.trim() !== '' && staffName !== '-') {
                 const option = document.createElement('option');
-                // カラム名のバリエーションに対応
-                const staffName = worker.StaffName || worker.Staffname || worker.staffName || worker.staffname || '';
-                const staffCode = worker.StaffCode || worker.Staffcode || worker.staffCode || worker.staffcode || '';
-                const reading = worker.Reading || worker.reading || '';
-                
-                // 表示名: 氏名（社員番号）の形式
-                let displayName = staffName;
-                if (staffCode) {
-                    displayName += ` (${staffCode})`;
-                }
-                if (reading && reading !== '-') {
-                    displayName += ` [${reading}]`;
-                }
-                
-                option.value = staffCode || staffName;
-                option.textContent = displayName || '不明';
-                option.dataset.staffName = staffName;
-                option.dataset.staffCode = staffCode;
+                option.value = staffName.trim();
+                option.textContent = staffName.trim();
                 workerSelect.appendChild(option);
-            });
+                addedCount++;
+            }
+        });
+        
+        console.log('追加された作業者数:', addedCount);
+        
+        if (addedCount === 0) {
+            console.warn('有効な作業者データが見つかりませんでした。デフォルトを表示します。');
+            setDefaultWorkers();
         }
     } catch (err) {
-        console.warn('作業者データの読み込み中にエラーが発生しました:', err);
+        console.error('作業者データの読み込み中にエラーが発生しました:', err);
         setDefaultWorkers();
     }
 }
