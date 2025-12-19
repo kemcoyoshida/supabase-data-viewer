@@ -1709,6 +1709,14 @@ function loadBulletins() {
     if (saved) {
         try {
             bulletins = JSON.parse(saved);
+            // 既存の掲示板にcreatedAtがない場合は追加（IDを基準に）
+            bulletins.forEach(bulletin => {
+                if (!bulletin.createdAt) {
+                    // IDを基準に作成時刻を推定（古いものほど過去の時刻）
+                    const baseTime = new Date('2024-01-01').getTime();
+                    bulletin.createdAt = new Date(baseTime + (bulletin.id || 0) * 1000).toISOString();
+                }
+            });
         } catch (e) {
             bulletins = [];
         }
@@ -1730,10 +1738,15 @@ function saveBulletins() {
     // グローバルに公開（通知機能で使用）
     window.bulletins = bulletins;
     renderBulletins();
-    // 通知を更新
-    if (typeof updateNotifications === 'function') {
-        updateNotifications();
-    }
+    // 通知を更新（少し遅延して確実に更新）
+    setTimeout(() => {
+        if (typeof updateNotifications === 'function') {
+            updateNotifications();
+        }
+        if (typeof updateNotificationsWithTodos === 'function') {
+            updateNotificationsWithTodos();
+        }
+    }, 100);
 }
 
 // 掲示板を表示
@@ -1748,9 +1761,16 @@ function renderBulletins() {
         return;
     }
     
-    // 日付でソート（新しい順）
+    // 作成時刻とIDでソート（新しい順、同じ時刻の場合はIDの大きい順）
     const sortedBulletins = [...bulletins].sort((a, b) => {
-        return new Date(b.date) - new Date(a.date);
+        // まず作成時刻で比較
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (a.id || 0);
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (b.id || 0);
+        if (timeB !== timeA) {
+            return timeB - timeA; // 新しい順
+        }
+        // 作成時刻が同じ場合はIDで比較
+        return (b.id || 0) - (a.id || 0);
     });
     
     sortedBulletins.forEach((bulletin, index) => {
@@ -1948,12 +1968,20 @@ function addBulletinNotification(bulletinId) {
     }
 }
 
+// ユーザーごとの既読状態を取得するキーを生成
+function getReadBulletinsKey() {
+    const loginId = localStorage.getItem('loginId') || 'guest';
+    return `readBulletins_${loginId}`;
+}
+
 // 掲示板の通知を既読にする
 function markBulletinAsRead(bulletinId) {
-    const readBulletins = JSON.parse(localStorage.getItem('readBulletins') || '[]');
+    const key = getReadBulletinsKey();
+    const readBulletins = JSON.parse(localStorage.getItem(key) || '[]');
     if (!readBulletins.includes(bulletinId)) {
         readBulletins.push(bulletinId);
-        localStorage.setItem('readBulletins', JSON.stringify(readBulletins));
+        localStorage.setItem(key, JSON.stringify(readBulletins));
+        console.log(`ユーザー ${localStorage.getItem('loginId') || 'guest'} が掲示板 ${bulletinId} を既読にしました`);
         // 通知を更新
         if (typeof updateNotifications === 'function') {
             updateNotifications();
@@ -2078,23 +2106,37 @@ function saveBulletin() {
     } else {
         // 新規追加
         const newId = bulletins.length > 0 ? Math.max(...bulletins.map(b => b.id)) + 1 : 1;
+        const now = new Date();
         bulletins.push({
             id: newId,
             date: date,
             text: text,
-            files: selectedFiles.length > 0 ? [...selectedFiles] : []
+            files: selectedFiles.length > 0 ? [...selectedFiles] : [],
+            createdAt: now.toISOString() // 作成時刻を追加
         });
-        // 新規追加時は通知を追加（未読状態）
-        addBulletinNotification(newId);
+        console.log('新しい掲示板を追加しました:', newId, bulletins[bulletins.length - 1]);
     }
     
     selectedFiles = []; // 選択ファイルをクリア
     saveBulletins();
     closeBulletinModal();
-    // 通知を更新
-    if (typeof updateNotifications === 'function') {
-        updateNotifications();
-    }
+    
+    // 通知を更新（少し遅延して確実に更新）
+    setTimeout(() => {
+        console.log('掲示板保存後の通知更新');
+        console.log('window.bulletins:', window.bulletins);
+        console.log('bulletins:', bulletins);
+        // window.bulletinsを確実に更新
+        window.bulletins = bulletins;
+        // まずupdateNotificationsを呼ぶ（これがupdateNotificationsWithTodosを呼ぶ）
+        if (typeof updateNotifications === 'function') {
+            updateNotifications();
+        }
+        // 念のため直接updateNotificationsWithTodosも呼ぶ
+        if (typeof updateNotificationsWithTodos === 'function') {
+            updateNotificationsWithTodos();
+        }
+    }, 500);
 }
 
 // 掲示板を削除

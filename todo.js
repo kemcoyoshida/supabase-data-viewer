@@ -700,13 +700,25 @@ function markEventNotificationAsRead(eventId) {
 }
 
 // 掲示板の通知を既読にする
+// ユーザーごとの既読状態を取得するキーを生成
+function getReadBulletinsKey() {
+    const loginId = localStorage.getItem('loginId') || 'guest';
+    return `readBulletins_${loginId}`;
+}
+
 function markBulletinNotificationAsRead(bulletinId) {
-    const readBulletins = JSON.parse(localStorage.getItem('readBulletins') || '[]');
+    const loginId = localStorage.getItem('loginId') || 'guest';
+    console.log(`ユーザー ${loginId} が掲示板通知を既読にします:`, bulletinId);
+    const key = getReadBulletinsKey();
+    const readBulletins = JSON.parse(localStorage.getItem(key) || '[]');
     if (!readBulletins.includes(bulletinId)) {
         readBulletins.push(bulletinId);
-        localStorage.setItem('readBulletins', JSON.stringify(readBulletins));
+        localStorage.setItem(key, JSON.stringify(readBulletins));
+        console.log(`ユーザー ${loginId} の既読リストに追加しました:`, readBulletins);
         // 通知を更新
-        updateNotificationsWithTodos();
+        if (typeof updateNotificationsWithTodos === 'function') {
+            updateNotificationsWithTodos();
+        }
     }
 }
 
@@ -874,13 +886,32 @@ function updateNotificationsWithTodos() {
     
     // 掲示板の通知
     const bulletinNotifications = [];
-    if (typeof window.bulletins !== 'undefined' && Array.isArray(window.bulletins)) {
-        const readBulletins = JSON.parse(localStorage.getItem('readBulletins') || '[]');
-        window.bulletins.forEach(bulletin => {
-            if (!readBulletins.includes(bulletin.id)) {
+    // localStorageから直接読み込む（window.bulletinsが更新されていない可能性があるため）
+    const savedBulletins = localStorage.getItem('bulletins');
+    let bulletinsToCheck = [];
+    if (savedBulletins) {
+        try {
+            bulletinsToCheck = JSON.parse(savedBulletins);
+        } catch (e) {
+            console.warn('掲示板データのパースに失敗しました:', e);
+        }
+    }
+    // window.bulletinsも確認
+    if (typeof window.bulletins !== 'undefined' && Array.isArray(window.bulletins) && window.bulletins.length > 0) {
+        bulletinsToCheck = window.bulletins;
+    }
+    
+    if (bulletinsToCheck && bulletinsToCheck.length > 0) {
+        // ユーザーごとの既読状態を取得
+        const key = getReadBulletinsKey();
+        const readBulletins = JSON.parse(localStorage.getItem(key) || '[]');
+        const loginId = localStorage.getItem('loginId') || 'guest';
+        console.log(`ユーザー ${loginId} の既読リスト:`, readBulletins);
+        bulletinsToCheck.forEach(bulletin => {
+            if (bulletin && bulletin.id && !readBulletins.includes(bulletin.id)) {
                 const date = new Date(bulletin.date);
                 const dateStr = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
-                const textPreview = bulletin.text.length > 50 ? bulletin.text.substring(0, 50) + '...' : bulletin.text;
+                const textPreview = bulletin.text && bulletin.text.length > 50 ? bulletin.text.substring(0, 50) + '...' : (bulletin.text || '');
                 
                 bulletinNotifications.push({
                     type: 'info',
