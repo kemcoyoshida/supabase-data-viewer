@@ -78,14 +78,14 @@
             <!-- ダッシュボードページ -->
             <div id="dashboard-page" class="page active">
                 <!-- 掲示板 -->
-                <div class="dashboard-card bulletin-card" style="margin-bottom: 20px;">
-                    <div class="section-header">
+                <div class="dashboard-card bulletin-card" style="margin-bottom: 20px; cursor: pointer;" onclick="showPage('bulletin')" title="クリックして掲示板ページを開く">
+                    <div class="section-header" onclick="event.stopPropagation();">
                         <h3>掲示板</h3>
                         <button class="btn-primary btn-small" id="add-bulletin-btn">
                             <i class="fas fa-plus"></i> 追加
                         </button>
                     </div>
-                    <div class="bulletin-list" id="bulletin-list">
+                    <div class="bulletin-list" id="bulletin-list" onclick="event.stopPropagation();">
                         <!-- 動的に生成されます -->
                     </div>
                 </div>
@@ -152,6 +152,27 @@
                     </div>
                 </div>
 
+            </div>
+
+            <!-- 掲示板ページ -->
+            <div id="bulletin-page" class="page">
+                <div class="page-title">
+                    <h2>掲示板</h2>
+                    <button class="btn-secondary" onclick="showPage('dashboard')">
+                        <i class="fas fa-arrow-left"></i> ダッシュボードに戻る
+                    </button>
+                </div>
+                <div class="dashboard-card bulletin-card-full" style="margin-bottom: 20px;">
+                    <div class="section-header">
+                        <h3>掲示板</h3>
+                        <button class="btn-primary btn-small" id="add-bulletin-btn-full">
+                            <i class="fas fa-plus"></i> 追加
+                        </button>
+                    </div>
+                    <div class="bulletin-list-full" id="bulletin-list-full">
+                        <!-- 動的に生成されます -->
+                    </div>
+                </div>
             </div>
 
             <!-- 一覧表示ページ -->

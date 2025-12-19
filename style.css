@@ -3001,10 +3001,35 @@ html, body {
 /* 掲示板カード */
 .bulletin-card {
     min-height: 200px;
-    max-height: 300px;
+    max-height: 450px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.bulletin-card:hover {
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+    transform: translateY(-2px);
+}
+
+.bulletin-card-full {
+    min-height: 400px;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.bulletin-list-full {
+    flex: 1;
+    padding: 12px 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 500px;
+    /* スクロールバーのスタイル */
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) var(--bg-secondary);
 }
 
 .bulletin-list {
@@ -3012,7 +3037,7 @@ html, body {
     padding: 12px 0;
     overflow-y: auto;
     overflow-x: hidden;
-    max-height: 250px;
+    max-height: 400px;
     min-height: 0;
     /* スクロールバーのスタイル */
     scrollbar-width: thin;
@@ -3792,7 +3817,7 @@ html, body {
 }
 
 .calendar-card {
-    min-height: 600px;
+    min-height: 500px;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -5447,7 +5472,7 @@ html, body {
     border-left-color: #E91E63;
     max-width: 100%;
     overflow: hidden;
-    min-height: 600px;
+    min-height: 500px;
     height: 100%;
     flex-shrink: 0;
     position: relative;

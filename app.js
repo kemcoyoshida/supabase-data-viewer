@@ -3,6 +3,10 @@ let supabase;
 if (typeof window.supabaseClient === 'undefined') {
     window.supabaseClient = null;
 }
+// グローバル変数としてsupabaseを定義（重複宣言を防ぐ）
+if (typeof window.supabase === 'undefined') {
+    window.supabase = null;
+}
 let availableTables = [];
 let currentTable = null;
 let tableData = [];
@@ -858,24 +862,55 @@ async function initializeApp() {
         console.log('initializeApp: 初期化を開始します');
         
         // Supabaseクライアントの初期化（先に実行）
-        if (typeof window.supabase === 'undefined') {
-            console.error('Supabaseライブラリが読み込まれていません');
-            const container = document.getElementById('table-list-content');
-            if (container) {
-                container.innerHTML = '<p class="info">Supabaseライブラリの読み込みに失敗しました。ページをリロードしてください。</p>';
-            }
-            showMessage('Supabaseライブラリの読み込みに失敗しました。ページをリロードしてください。', 'error');
+        // window.supabaseはCDNから読み込まれるため、少し待つ
+        let retryCount = 0;
+        const maxRetries = 20;
+        const initSupabase = async () => {
+            return new Promise((resolve, reject) => {
+                const checkSupabase = () => {
+                    if (typeof window.supabase !== 'undefined' && window.supabase) {
+                        console.log('Supabaseクライアントを初期化します...');
+                        if (!window.supabaseClient) {
+                            try {
+                                supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+                                window.supabaseClient = supabase;
+                                console.log('Supabaseクライアントの初期化が完了しました');
+                                resolve();
+                            } catch (error) {
+                                console.error('Supabaseクライアントの初期化に失敗しました:', error);
+                                showMessage('Supabaseクライアントの初期化に失敗しました: ' + error.message, 'error');
+                                reject(error);
+                            }
+                        } else {
+                            supabase = window.supabaseClient;
+                            console.log('既存のSupabaseクライアントを使用します');
+                            resolve();
+                        }
+                    } else {
+                        retryCount++;
+                        if (retryCount < maxRetries) {
+                            setTimeout(checkSupabase, 100);
+                        } else {
+                            console.error('Supabaseライブラリが読み込まれていません');
+                            const container = document.getElementById('table-list-content');
+                            if (container) {
+                                container.innerHTML = '<p class="info">Supabaseライブラリの読み込みに失敗しました。ページをリロードしてください。</p>';
+                            }
+                            showMessage('Supabaseライブラリの読み込みに失敗しました。ページをリロードしてください。', 'error');
+                            reject(new Error('Supabaseライブラリが読み込まれていません'));
+                        }
+                    }
+                };
+                checkSupabase();
+            });
+        };
+        
+        try {
+            await initSupabase();
+        } catch (error) {
+            console.error('Supabase初期化エラー:', error);
             return;
         }
-        
-        console.log('Supabaseクライアントを初期化します...');
-        if (!window.supabaseClient) {
-            supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
-            window.supabaseClient = supabase;
-        } else {
-            supabase = window.supabaseClient;
-        }
-        console.log('Supabaseクライアントの初期化が完了しました');
         
         // テーブル一覧を読み込む（先に実行）
         console.log('テーブル一覧の読み込みを開始します...');
@@ -1234,7 +1269,21 @@ function setupEventListeners() {
     // 掲示板追加ボタン
     const addBulletinBtn = document.getElementById('add-bulletin-btn');
     if (addBulletinBtn) {
-        addBulletinBtn.addEventListener('click', () => {
+        addBulletinBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 親要素のクリックイベントを防ぐ
+            if (typeof openBulletinModal === 'function') {
+                openBulletinModal();
+            } else {
+                console.error('openBulletinModal関数が見つかりません');
+            }
+        });
+    }
+    
+    // 掲示板ページの追加ボタン
+    const addBulletinBtnFull = document.getElementById('add-bulletin-btn-full');
+    if (addBulletinBtnFull) {
+        addBulletinBtnFull.addEventListener('click', (e) => {
+            e.stopPropagation();
             if (typeof openBulletinModal === 'function') {
                 openBulletinModal();
             } else {
@@ -1361,6 +1410,11 @@ function showPage(pageName) {
                     goToToday();
                 }
             }, 200);
+        }, 100);
+    } else if (pageName === 'bulletin') {
+        // 掲示板ページを開いた時の初期化
+        setTimeout(() => {
+            renderBulletinsFull();
         }, 100);
     } else if (pageName === 'todo') {
         if (typeof renderTodos === 'function') {
@@ -1726,6 +1780,7 @@ function loadBulletins() {
     // グローバルに公開（通知機能で使用）
     window.bulletins = bulletins;
     renderBulletins();
+    renderBulletinsFull(); // フルページ版も更新
     // 通知を更新
     if (typeof updateNotifications === 'function') {
         updateNotifications();
@@ -1738,6 +1793,7 @@ function saveBulletins() {
     // グローバルに公開（通知機能で使用）
     window.bulletins = bulletins;
     renderBulletins();
+    renderBulletinsFull(); // フルページ版も更新
     // 通知を更新（少し遅延して確実に更新）
     setTimeout(() => {
         if (typeof updateNotifications === 'function') {
@@ -1747,6 +1803,70 @@ function saveBulletins() {
             updateNotificationsWithTodos();
         }
     }, 100);
+}
+
+// 掲示板を表示（フルページ版）
+function renderBulletinsFull() {
+    const listEl = document.getElementById('bulletin-list-full');
+    if (!listEl) return;
+    
+    listEl.innerHTML = '';
+    
+    if (bulletins.length === 0) {
+        listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">掲示板がありません</div>';
+        return;
+    }
+    
+    // 作成時刻とIDでソート（新しい順、同じ時刻の場合はIDの大きい順）
+    const sortedBulletins = [...bulletins].sort((a, b) => {
+        // まず作成時刻で比較
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (a.id || 0);
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (b.id || 0);
+        if (timeB !== timeA) {
+            return timeB - timeA; // 新しい順
+        }
+        // 作成時刻が同じ場合はIDで比較
+        return (b.id || 0) - (a.id || 0);
+    });
+    
+    sortedBulletins.forEach((bulletin, index) => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'bulletin-item';
+        itemEl.onclick = () => showBulletinDetail(bulletin.id);
+        
+        const date = new Date(bulletin.date);
+        const dateStr = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+        
+        let filesHtml = '';
+        if (bulletin.files && bulletin.files.length > 0) {
+            filesHtml = `<div class="bulletin-files">
+                ${bulletin.files.map((file, fileIndex) => {
+                    const fileIcon = getFileIcon(file.type || file.name);
+                    return `
+                    <a href="#" class="bulletin-file-link" onclick="event.stopPropagation(); viewBulletinFile(${bulletin.id}, ${fileIndex}); return false;" title="表示: ${escapeHtml(file.name)}">
+                        <i class="${fileIcon}"></i> ${escapeHtml(file.name)}
+                    </a>
+                `;
+                }).join('')}
+            </div>`;
+        }
+        
+        itemEl.innerHTML = `
+            <div class="bulletin-item-content">
+                <span class="bulletin-date">${dateStr}</span>
+                <span class="bulletin-dot">●</span>
+                <span class="bulletin-text">${escapeHtml(bulletin.text)}</span>
+            </div>
+            <div class="bulletin-item-right">
+                ${filesHtml}
+                <button class="bulletin-action-btn delete" onclick="event.stopPropagation(); deleteBulletin(${bulletin.id})" title="削除">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        
+        listEl.appendChild(itemEl);
+    });
 }
 
 // 掲示板を表示
@@ -1957,12 +2077,13 @@ function closeBulletinModal() {
 }
 
 // 掲示板を編集
-// 掲示板の通知を追加
+// 掲示板の通知を追加（この関数は現在使用されていませんが、互換性のため残しています）
 function addBulletinNotification(bulletinId) {
     const bulletin = bulletins.find(b => b.id === bulletinId);
     if (!bulletin) return;
     
-    const readBulletins = JSON.parse(localStorage.getItem('readBulletins') || '[]');
+    const key = getReadBulletinsKey();
+    const readBulletins = JSON.parse(localStorage.getItem(key) || '[]');
     if (!readBulletins.includes(bulletinId)) {
         // 既読リストに追加しない（通知を表示するため）
     }
