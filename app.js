@@ -1680,6 +1680,8 @@ window.saveKPI = saveKPI;
 
 // 掲示板の管理
 let bulletins = [];
+// グローバルに公開（通知機能で使用）
+window.bulletins = bulletins;
 
 // 掲示板を読み込む
 function loadBulletins() {
@@ -1693,13 +1695,25 @@ function loadBulletins() {
     } else {
         bulletins = [];
     }
+    // グローバルに公開（通知機能で使用）
+    window.bulletins = bulletins;
     renderBulletins();
+    // 通知を更新
+    if (typeof updateNotifications === 'function') {
+        updateNotifications();
+    }
 }
 
 // 掲示板を保存
 function saveBulletins() {
     localStorage.setItem('bulletins', JSON.stringify(bulletins));
+    // グローバルに公開（通知機能で使用）
+    window.bulletins = bulletins;
     renderBulletins();
+    // 通知を更新
+    if (typeof updateNotifications === 'function') {
+        updateNotifications();
+    }
 }
 
 // 掲示板を表示
@@ -1902,10 +1916,41 @@ function closeBulletinModal() {
 }
 
 // 掲示板を編集
+// 掲示板の通知を追加
+function addBulletinNotification(bulletinId) {
+    const bulletin = bulletins.find(b => b.id === bulletinId);
+    if (!bulletin) return;
+    
+    const readBulletins = JSON.parse(localStorage.getItem('readBulletins') || '[]');
+    if (!readBulletins.includes(bulletinId)) {
+        // 既読リストに追加しない（通知を表示するため）
+    }
+}
+
+// 掲示板の通知を既読にする
+function markBulletinAsRead(bulletinId) {
+    const readBulletins = JSON.parse(localStorage.getItem('readBulletins') || '[]');
+    if (!readBulletins.includes(bulletinId)) {
+        readBulletins.push(bulletinId);
+        localStorage.setItem('readBulletins', JSON.stringify(readBulletins));
+        // 通知を更新
+        if (typeof updateNotifications === 'function') {
+            updateNotifications();
+        }
+        // todo.jsの関数も呼ぶ
+        if (typeof markBulletinNotificationAsRead === 'function') {
+            markBulletinNotificationAsRead(bulletinId);
+        }
+    }
+}
+
 // 掲示板の詳細を表示
 function showBulletinDetail(bulletinId) {
     const bulletin = bulletins.find(b => b.id === bulletinId);
     if (!bulletin) return;
+    
+    // 通知を既読にする
+    markBulletinAsRead(bulletinId);
     
     const modal = document.getElementById('bulletin-detail-modal');
     const dateEl = document.getElementById('bulletin-detail-date');
@@ -2018,11 +2063,17 @@ function saveBulletin() {
             text: text,
             files: selectedFiles.length > 0 ? [...selectedFiles] : []
         });
+        // 新規追加時は通知を追加（未読状態）
+        addBulletinNotification(newId);
     }
     
     selectedFiles = []; // 選択ファイルをクリア
     saveBulletins();
     closeBulletinModal();
+    // 通知を更新
+    if (typeof updateNotifications === 'function') {
+        updateNotifications();
+    }
 }
 
 // 掲示板を削除

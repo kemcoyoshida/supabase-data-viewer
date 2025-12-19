@@ -688,6 +688,28 @@ function closeTodoNotificationPopup() {
     }
 }
 
+// 予定の通知を既読にする
+function markEventNotificationAsRead(eventId) {
+    const readEventNotifications = JSON.parse(localStorage.getItem('readEventNotifications') || '[]');
+    if (!readEventNotifications.includes(eventId)) {
+        readEventNotifications.push(eventId);
+        localStorage.setItem('readEventNotifications', JSON.stringify(readEventNotifications));
+        // 通知を更新
+        updateNotificationsWithTodos();
+    }
+}
+
+// 掲示板の通知を既読にする
+function markBulletinNotificationAsRead(bulletinId) {
+    const readBulletins = JSON.parse(localStorage.getItem('readBulletins') || '[]');
+    if (!readBulletins.includes(bulletinId)) {
+        readBulletins.push(bulletinId);
+        localStorage.setItem('readBulletins', JSON.stringify(readBulletins));
+        // 通知を更新
+        updateNotificationsWithTodos();
+    }
+}
+
 // 通知を更新（Todo、カレンダー予定、タスク期限を含む）
 function updateNotificationsWithTodos() {
     const now = new Date();
@@ -764,8 +786,13 @@ function updateNotificationsWithTodos() {
             const timeDiff = eventTime - now;
             const minutes = Math.floor(timeDiff / 60000);
             
-            // 30分以内の予定のみ通知（過去の予定も含む）
-            if (minutes <= 30 && minutes >= -60) {
+            // 10分前から通知（開始後も通知を開くまで消えない）
+            const readEventNotifications = JSON.parse(localStorage.getItem('readEventNotifications') || '[]');
+            const eventId = event.date + '_' + event.time;
+            const isRead = readEventNotifications.includes(eventId);
+            
+            // 10分前から、または開始済みでも未読の場合
+            if ((minutes <= 10 && minutes >= -1440) && !isRead) {
                 let type = 'info';
                 let timeText = '';
                 if (minutes < 0) {
@@ -774,9 +801,11 @@ function updateNotificationsWithTodos() {
                 } else if (minutes === 0) {
                     type = 'warning';
                     timeText = '今すぐ';
-                } else {
+                } else if (minutes <= 10) {
                     type = 'warning';
                     timeText = `${minutes}分後`;
+                } else {
+                    return; // 10分前より前は通知しない
                 }
                 
                 calendarNotifications.push({
@@ -785,7 +814,11 @@ function updateNotificationsWithTodos() {
                     message: event.description || '',
                     time: timeText,
                     unread: true,
-                    eventId: event.date + '_' + event.time
+                    eventId: eventId,
+                    onClick: () => {
+                        // 通知をクリックしたら既読にする
+                        markEventNotificationAsRead(eventId);
+                    }
                 });
             }
         });
@@ -839,22 +872,53 @@ function updateNotificationsWithTodos() {
         });
     }
     
+    // 掲示板の通知
+    const bulletinNotifications = [];
+    if (typeof window.bulletins !== 'undefined' && Array.isArray(window.bulletins)) {
+        const readBulletins = JSON.parse(localStorage.getItem('readBulletins') || '[]');
+        window.bulletins.forEach(bulletin => {
+            if (!readBulletins.includes(bulletin.id)) {
+                const date = new Date(bulletin.date);
+                const dateStr = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+                const textPreview = bulletin.text.length > 50 ? bulletin.text.substring(0, 50) + '...' : bulletin.text;
+                
+                bulletinNotifications.push({
+                    type: 'info',
+                    title: `📢 新しい掲示板: ${dateStr}`,
+                    message: textPreview,
+                    time: dateStr,
+                    unread: true,
+                    bulletinId: bulletin.id,
+                    onClick: () => {
+                        // 通知をクリックしたら詳細を表示
+                        if (typeof window.showBulletinDetail === 'function') {
+                            window.showBulletinDetail(bulletin.id);
+                        }
+                        markBulletinNotificationAsRead(bulletin.id);
+                    }
+                });
+            }
+        });
+    }
+    
     // すべての通知を統合
-    const allNotifications = [...todoNotifications, ...calendarNotifications, ...taskNotifications];
+    const allNotifications = [...todoNotifications, ...calendarNotifications, ...taskNotifications, ...bulletinNotifications];
     
     // 未読状態をlocalStorageから読み込む
     const readNotifications = JSON.parse(localStorage.getItem('readNotifications') || '[]');
     
-    // 通知IDを生成して未読状態を設定
-    allNotifications.forEach(notification => {
-        let notificationId = '';
-        if (notification.todoId) {
-            notificationId = `todo_${notification.todoId}`;
-        } else if (notification.taskId) {
-            notificationId = `task_${notification.taskId}`;
-        } else if (notification.eventId) {
-            notificationId = `event_${notification.eventId}`;
-        }
+        // 通知IDを生成して未読状態を設定
+        allNotifications.forEach(notification => {
+            let notificationId = '';
+            if (notification.todoId) {
+                notificationId = `todo_${notification.todoId}`;
+            } else if (notification.taskId) {
+                notificationId = `task_${notification.taskId}`;
+            } else if (notification.eventId) {
+                notificationId = `event_${notification.eventId}`;
+            } else if (notification.bulletinId) {
+                notificationId = `bulletin_${notification.bulletinId}`;
+            }
         
         // 既読リストに含まれている場合は既読にする
         if (notificationId && readNotifications.includes(notificationId)) {
@@ -941,11 +1005,28 @@ function updateNotificationsWithTodos() {
                         }
                     }, 300);
                 } else if (notification.eventId) {
+                    // 予定の通知を既読にする
+                    markEventNotificationAsRead(notification.eventId);
                     if (typeof showPage === 'function') {
                         showPage('dashboard');
                     }
                     if (typeof closeNotificationDropdown === 'function') {
                         closeNotificationDropdown();
+                    }
+                } else if (notification.bulletinId) {
+                    // 掲示板の通知を既読にする
+                    markBulletinNotificationAsRead(notification.bulletinId);
+                    if (typeof showPage === 'function') {
+                        showPage('dashboard');
+                    }
+                    if (typeof closeNotificationDropdown === 'function') {
+                        closeNotificationDropdown();
+                    }
+                    // 掲示板の詳細を表示
+                    if (typeof window.showBulletinDetail === 'function') {
+                        setTimeout(() => {
+                            window.showBulletinDetail(notification.bulletinId);
+                        }, 300);
                     }
                 }
             });

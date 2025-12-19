@@ -5394,7 +5394,7 @@ html, body {
 
 /* ダッシュボードタスクリスト */
 .task-list-card {
-    margin-top: 0;
+    margin-top: -1cm;
     display: flex !important;
     flex-direction: column !important;
     visibility: visible !important;
