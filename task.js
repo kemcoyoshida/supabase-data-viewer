@@ -257,6 +257,9 @@ function openTaskModal(taskId = null) {
         return;
     }
 
+    // 削除ボタンの表示/非表示を制御
+    const deleteBtn = document.getElementById('task-delete-btn');
+    
     if (taskId) {
         // 編集モード
         const task = tasks.find(t => t.id === taskId);
@@ -278,6 +281,12 @@ function openTaskModal(taskId = null) {
                 statusInput.value = task.status || 'pending';
             }
             form.dataset.editId = taskId;
+            
+            // 削除ボタンを表示
+            if (deleteBtn) {
+                deleteBtn.style.display = 'inline-block';
+                deleteBtn.dataset.taskId = taskId;
+            }
         }
     } else {
         // 新規作成モード
@@ -286,6 +295,12 @@ function openTaskModal(taskId = null) {
         delete form.dataset.editId;
         priorityInput.value = 'medium';
         statusInput.value = 'pending';
+        
+        // 削除ボタンを非表示
+        if (deleteBtn) {
+            deleteBtn.style.display = 'none';
+            deleteBtn.dataset.taskId = '';
+        }
     }
 
     modal.style.display = 'flex';
@@ -427,6 +442,29 @@ function editTask(taskId) {
     openTaskModal(taskId);
 }
 
+// モーダルからタスクを削除
+function deleteTaskFromModal() {
+    const form = document.getElementById('task-form');
+    if (!form || !form.dataset.editId) {
+        console.error('編集モードではありません');
+        return;
+    }
+    
+    const taskId = parseInt(form.dataset.editId, 10);
+    if (!taskId) {
+        console.error('タスクIDが取得できません');
+        return;
+    }
+    
+    // モーダルを閉じてから削除を実行
+    closeTaskModal();
+    
+    // 少し遅延してから削除を実行（モーダルが閉じるのを待つ）
+    setTimeout(() => {
+        deleteTask(taskId);
+    }, 100);
+}
+
 // タスクを削除
 function deleteTask(taskId) {
     const task = tasks.find(t => t.id === taskId);
@@ -441,6 +479,13 @@ function deleteTask(taskId) {
             () => {
                 tasks = tasks.filter(t => t.id !== taskId);
                 saveTasks();
+                renderTasks();
+                
+                // 右サイドバーの期限タスクを更新
+                if (typeof updateDueTasks === 'function') {
+                    updateDueTasks();
+                }
+                
                 if (typeof showMessage === 'function') {
                     showMessage('タスクを削除しました', 'success');
                 } else {
@@ -453,6 +498,7 @@ function deleteTask(taskId) {
         if (confirm(`「${taskTitle}」を削除しますか？`)) {
             tasks = tasks.filter(t => t.id !== taskId);
             saveTasks();
+            renderTasks();
             
             // 右サイドバーの期限タスクを更新
             if (typeof updateDueTasks === 'function') {
@@ -503,6 +549,7 @@ function updateRightSidebarStatus(pendingCount, inProgressCount, completedCount)
         window.toggleTaskComplete = toggleTaskComplete;
         window.editTask = editTask;
         window.deleteTask = deleteTask;
+        window.deleteTaskFromModal = deleteTaskFromModal;
         window.loadTasks = loadTasks;
         window.renderTasks = renderTasks;
         window.updateRightSidebarStatus = updateRightSidebarStatus;

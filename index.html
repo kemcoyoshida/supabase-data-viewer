@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KEMPO - 日下部電機 データ管理プラットフォーム</title>
+    <title>データベース管理 - 日下部電機 データ管理プラットフォーム</title>
     <link rel="stylesheet" href="style.css">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -18,7 +18,7 @@
     <!-- ヘッダー -->
     <header class="top-header">
         <div class="header-content">
-            <h1>KEMPO</h1>
+            <h1>データベース管理</h1>
             <div class="header-actions">
                 <div class="notification-icon-wrapper">
                     <button class="header-icon-btn" id="notification-btn" title="通知">
@@ -409,19 +409,19 @@
                         <!-- 右側：使用済み一覧 -->
                         <div style="flex: 0 0 300px; max-width: 300px; min-width: 250px; display: flex; flex-direction: column; max-height: 100%;">
                             <div style="background: white; border-radius: 16px; padding: 20px; border: 2px solid var(--border-light); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); display: flex; flex-direction: column; max-height: 100%; overflow: hidden;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; flex-shrink: 0;">
-                                    <div style="display: flex; align-items: center; gap: 6px; margin: 0 auto;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; flex-shrink: 0; position: relative;">
+                                    <div style="flex: 1; display: flex; justify-content: center;">
                                         <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">運用中工事番号一覧</h4>
-                                        <button type="button" class="btn-secondary btn-small" id="edit-all-used-btn-page" onclick="editAllUsedConstructNumbers()" style="padding: 6px 10px; font-size: 11px; white-space: nowrap; margin-left: 8px;">
-                                            <i class="fas fa-cog"></i> 一括編集
-                                        </button>
                                     </div>
-                                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                    <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
                                         <button type="button" class="btn-secondary btn-small" id="import-csv-btn-page" onclick="importUsedConstructNumbersCSV()" style="padding: 6px 10px; font-size: 11px; white-space: nowrap;">
                                             <i class="fas fa-file-import"></i> CSVインポート
                                         </button>
                                         <button type="button" class="btn-secondary btn-small" onclick="exportUsedConstructNumbers()" style="padding: 6px 10px; font-size: 11px; white-space: nowrap;">
                                             <i class="fas fa-file-export"></i> CSV出力
+                                        </button>
+                                        <button type="button" class="btn-secondary btn-small" id="edit-all-used-btn-page" onclick="editAllUsedConstructNumbers()" style="padding: 6px 10px; font-size: 11px; white-space: nowrap;" title="一括編集">
+                                            <i class="fas fa-cog"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -442,6 +442,200 @@
                                                 <td colspan="3" style="text-align: center; padding: 40px; color: var(--text-tertiary);">
                                                     <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 12px; opacity: 0.3; display: block;"></i>
                                                     <span style="font-size: 13px;">運用中工事番号はありません</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 図面番号採番ページ -->
+            <div id="drawing-number-page" class="page">
+                <div class="page-title" style="flex-shrink: 0;">
+                    <h2>図面番号採番システム</h2>
+                </div>
+                <div style="padding: 24px; flex: 1; overflow: hidden; min-height: 0; display: flex; flex-direction: column; justify-content: flex-start; align-items: center;">
+                    <div style="display: flex; gap: 24px; align-items: flex-start; flex: 1; min-height: 0; max-width: calc(100vw - 600px); width: calc(100vw - 600px); justify-content: center; margin-left: 2cm;">
+                        <!-- 左側：入力フォーム -->
+                        <div style="flex: 0 0 500px; max-width: 500px; min-width: 450px; display: flex; flex-direction: column;">
+                            <div style="background: linear-gradient(135deg, rgba(74, 144, 226, 0.05) 0%, rgba(74, 144, 226, 0.02) 100%); border-radius: 16px; padding: 20px; border: 2px solid rgba(74, 144, 226, 0.1); display: flex; flex-direction: column;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-shrink: 0; justify-content: center;">
+                                    <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">図面番号採番</h4>
+                                </div>
+                                <form id="drawing-number-form-page" class="register-form" onsubmit="event.preventDefault(); if(typeof getDrawingNumberPage === 'function') { getDrawingNumberPage(); } return false;" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto;">
+                                    <div style="flex: 1; display: flex; flex-direction: column; min-height: 0; gap: 16px;">
+                                        <!-- 1行目：図面種類と機種記号 -->
+                                        <div style="display: flex; gap: 12px; flex-shrink: 0;">
+                                            <!-- 図面種類選択 -->
+                                            <div class="form-field" style="flex: 1; flex-shrink: 0;">
+                                                <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                                    図面種類 <span class="required">*</span>
+                                                </label>
+                                                <select id="drawing-type-select" class="form-input" required style="font-size: 14px; padding: 12px;">
+                                                    <option value="">選択してください</option>
+                                                    <option value="parts">部品図</option>
+                                                    <option value="unit">組図/ユニット図</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <!-- 機種記号 -->
+                                            <div class="form-field" style="flex: 1; flex-shrink: 0;">
+                                                <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                                    機種記号 <span class="required">*</span>
+                                                </label>
+                                                <input type="text" id="machine-code-input" class="form-input" required 
+                                                       placeholder="機種記号を入力" 
+                                                       style="text-transform: uppercase; font-size: 14px; padding: 12px;"
+                                                       oninput="this.value = this.value.toUpperCase();">
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 2行目：工事番号と採番者 -->
+                                        <div style="display: flex; gap: 12px; flex-shrink: 0;">
+                                            <!-- 工事番号 -->
+                                            <div class="form-field" style="flex: 1; flex-shrink: 0;">
+                                                <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                                    工事番号 <span class="required">*</span>
+                                                </label>
+                                                <input type="text" id="order-no-input" class="form-input" required 
+                                                       placeholder="工事番号を入力" 
+                                                       style="text-transform: uppercase; font-size: 14px; padding: 12px;"
+                                                       oninput="this.value = this.value.toUpperCase();">
+                                            </div>
+                                            
+                                            <!-- 採番者 -->
+                                            <div class="form-field" style="flex: 1; flex-shrink: 0;">
+                                                <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                                    採番者 <span class="required">*</span>
+                                                </label>
+                                                <select id="designer-select" class="form-input" required style="font-size: 14px; padding: 12px;">
+                                                    <option value="">読み込み中...</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 3行目：採番日と採番枚数 -->
+                                        <div style="display: flex; gap: 12px; flex-shrink: 0;">
+                                            <!-- 採番日 -->
+                                            <div class="form-field" style="flex: 1; flex-shrink: 0;">
+                                                <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                                    採番日 <span class="required">*</span>
+                                                </label>
+                                                <input type="datetime-local" id="saiban-date-input" class="form-input" required style="font-size: 14px; padding: 12px;">
+                                            </div>
+                                            
+                                            <!-- 採番枚数 -->
+                                            <div class="form-field" style="flex: 1; flex-shrink: 0;">
+                                                <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                                    採番枚数
+                                                </label>
+                                                <input type="number" id="drawing-count-input" class="form-input" 
+                                                       min="1" max="100" value="1" 
+                                                       style="font-size: 14px; padding: 12px;">
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 基準図面番号 -->
+                                        <div class="form-field form-field-full" style="flex-shrink: 0;">
+                                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                                基準図面番号 <span style="color: var(--text-secondary); font-weight: normal;">（未入力時は自動生成）</span>
+                                            </label>
+                                            <div style="display: flex; gap: 8px;">
+                                                <input type="text" id="base-drawing-no-input" class="form-input" 
+                                                       placeholder="10桁以上の図面番号を入力（未入力時は自動生成）" 
+                                                       minlength="10"
+                                                       style="font-family: monospace; font-size: 16px; letter-spacing: 2px; padding: 12px; flex: 1;">
+                                                <button type="button" class="btn-secondary" onclick="generateFirstDrawingNumber()" style="white-space: nowrap; padding: 12px 16px; font-size: 13px;">
+                                                    <i class="fas fa-magic"></i> 自動生成
+                                                </button>
+                                            </div>
+                                            <small style="display: block; margin-top: 4px; font-size: 12px; color: var(--text-secondary);">10桁以上、6桁目に「I」「O」は使用不可。未入力時は機種記号と図面種類から自動生成されます。</small>
+                                        </div>
+                                        
+                                        <!-- 品名 -->
+                                        <div class="form-field form-field-full" style="flex-shrink: 0;">
+                                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                                品名
+                                            </label>
+                                            <input type="text" id="description-input" class="form-input" 
+                                                   placeholder="品名を入力"
+                                                   style="font-size: 14px; padding: 12px;">
+                                        </div>
+                                        
+                                        <!-- 取得された図面番号 -->
+                                        <div class="form-field form-field-full" style="margin-top: 20px; flex-shrink: 0;">
+                                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px; justify-content: center;">
+                                                取得された図面番号
+                                            </label>
+                                            <div style="position: relative;">
+                                                <input type="text" id="drawing-number-result-page" class="form-input" readonly style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); font-weight: 700; font-size: 20px; text-align: center; padding: 16px; border: 3px solid var(--success); border-radius: 12px; letter-spacing: 2px; color: #2e7d32; word-break: break-all;">
+                                                <div style="position: absolute; top: 8px; right: 12px; color: var(--success); font-size: 18px; opacity: 0.6;">
+                                                    <i class="fas fa-copy" id="copy-drawing-number-page" style="cursor: pointer;" onclick="copyDrawingNumberPage()" title="コピー"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- エラーメッセージ -->
+                                        <div id="drawing-number-errors-page" style="display: none; background: rgba(255, 107, 107, 0.1); border: 2px solid var(--error); border-radius: 8px; padding: 12px; color: var(--error); font-size: 13px;">
+                                            <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
+                                            <span id="drawing-number-error-message-page"></span>
+                                        </div>
+                                        
+                                        <!-- 成功メッセージ -->
+                                        <div id="drawing-number-success-page" style="display: none; background: rgba(78, 205, 196, 0.1); border: 2px solid var(--success); border-radius: 8px; padding: 12px; color: var(--success); font-size: 13px;">
+                                            <i class="fas fa-check-circle" style="margin-right: 8px;"></i>
+                                            <span id="drawing-number-success-message-page"></span>
+                                        </div>
+                                        
+                                        <div class="form-actions" style="margin-top: 20px; gap: 10px; display: flex; flex-direction: column; flex-shrink: 0;">
+                                            <div style="display: flex; gap: 10px; justify-content: center;">
+                                                <button type="submit" class="btn-primary" style="flex: 1; min-width: 140px; max-width: 300px; font-size: 13px; padding: 10px; white-space: nowrap;">
+                                                    <i class="fas fa-magic"></i> 図面番号取得
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <!-- 右側：図面一覧 -->
+                        <div style="flex: 0 0 400px; max-width: 400px; min-width: 350px; display: flex; flex-direction: column; max-height: 100%;">
+                            <div style="background: white; border-radius: 16px; padding: 20px; border: 2px solid var(--border-light); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); display: flex; flex-direction: column; max-height: 100%; overflow: hidden;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; flex-shrink: 0;">
+                                    <div style="display: flex; align-items: center; gap: 6px; margin: 0 auto;">
+                                        <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">図面一覧</h4>
+                                    </div>
+                                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                        <button type="button" class="btn-secondary btn-small" id="refresh-drawing-list-btn" onclick="loadDrawingList()" style="padding: 6px 10px; font-size: 11px; white-space: nowrap;">
+                                            <i class="fas fa-sync-alt"></i> 更新
+                                        </button>
+                                    </div>
+                                </div>
+                                <div style="flex: 1; overflow-y: auto; overflow-x: auto; background: #fafafa; border-radius: 12px; border: 1px solid var(--border-light); min-height: 0; max-height: calc(100vh - 300px);">
+                                    <table style="width: 100%; border-collapse: collapse; min-width: 300px; margin: 0 auto;">
+                                        <thead style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); position: sticky; top: 0; z-index: 10;">
+                                            <tr>
+                                                <th style="padding: 8px 10px; text-align: center; color: white; font-size: 11px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">
+                                                    図面番号
+                                                </th>
+                                                <th style="padding: 8px 10px; text-align: center; color: white; font-size: 11px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">
+                                                    品名
+                                                </th>
+                                                <th style="padding: 8px 10px; text-align: center; color: white; font-size: 11px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">
+                                                    採番日
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="drawing-list-page">
+                                            <tr>
+                                                <td colspan="3" style="text-align: center; padding: 40px; color: var(--text-tertiary);">
+                                                    <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 12px; opacity: 0.3; display: block;"></i>
+                                                    <span style="font-size: 13px;">図面データはありません</span>
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -619,6 +813,7 @@
                     </div>
                     <div class="form-actions">
                         <button type="button" class="btn-secondary" onclick="if(typeof window.closeTaskModal === 'function') { window.closeTaskModal(); } else { const modal = document.getElementById('task-modal'); if(modal) modal.style.display = 'none'; }">キャンセル</button>
+                        <button type="button" class="btn-danger" id="task-delete-btn" onclick="if(typeof window.deleteTaskFromModal === 'function') { window.deleteTaskFromModal(); } else { console.error('deleteTaskFromModal関数が見つかりません'); }" style="display: none;">削除</button>
                         <button type="button" class="btn-primary" id="task-save-btn" onclick="if(typeof window.saveTask === 'function') { window.saveTask(); } else { console.error('saveTask関数が見つかりません'); alert('saveTask関数が見つかりません。ページをリロードしてください。'); }">保存</button>
                     </div>
                 </form>
@@ -712,6 +907,12 @@
                             <label>詳細</label>
                             <textarea id="calendar-event-description" class="form-input" rows="3" placeholder="予定の詳細"></textarea>
                         </div>
+                        <div class="form-field form-field-full">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="calendar-event-notification" style="width: 18px; height: 18px; cursor: pointer;">
+                                <span>通知を有効にする</span>
+                            </label>
+                        </div>
                         <div class="form-actions">
                             <button type="button" class="btn-secondary" onclick="closeCalendarEventFormModal()">キャンセル</button>
                             <button type="submit" class="btn-primary">保存</button>
@@ -760,6 +961,16 @@
                         <div class="settings-menu-content">
                             <h4>会社カレンダー管理</h4>
                             <p>土日以外の休日を登録・管理</p>
+                        </div>
+                        <i class="fas fa-chevron-right settings-menu-arrow"></i>
+                    </div>
+                    <div class="settings-menu-item" onclick="openSettingsPage('notification-settings')">
+                        <div class="settings-menu-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div class="settings-menu-content">
+                            <h4>通知設定</h4>
+                            <p>カレンダーイベントの通知設定</p>
                         </div>
                         <i class="fas fa-chevron-right settings-menu-arrow"></i>
                     </div>
@@ -1257,5 +1468,941 @@
     <script src="todo.js"></script>
     <script src="form-config.js"></script>
     <script src="custom-calendar.js"></script>
+    <script src="drawing-number.js"></script>
+    <script src="calendar-notification.js"></script>
+</body>
+</html>
+
+                                        </div>
+                                        
+                                        <!-- 採番日 -->
+                                        <div class="form-field form-field-full" style="flex-shrink: 0;">
+                                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                                採番日 <span class="required">*</span>
+                                            </label>
+                                            <input type="datetime-local" id="saiban-date-input" class="form-input" required style="font-size: 14px; padding: 12px;">
+                                        </div>
+                                        
+                                        <!-- 基準図面番号 -->
+                                        <div class="form-field form-field-full" style="flex-shrink: 0;">
+                                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                                基準図面番号 <span style="color: var(--text-secondary); font-weight: normal;">（未入力時は自動生成）</span>
+                                            </label>
+                                            <div style="display: flex; gap: 8px;">
+                                                <input type="text" id="base-drawing-no-input" class="form-input" 
+                                                       placeholder="10桁以上の図面番号を入力（未入力時は自動生成）" 
+                                                       minlength="10"
+                                                       style="font-family: monospace; font-size: 16px; letter-spacing: 2px; padding: 12px; flex: 1;">
+                                                <button type="button" class="btn-secondary" onclick="generateFirstDrawingNumber()" style="white-space: nowrap; padding: 12px 16px; font-size: 13px;">
+                                                    <i class="fas fa-magic"></i> 自動生成
+                                                </button>
+                                            </div>
+                                            <small style="display: block; margin-top: 4px; font-size: 12px; color: var(--text-secondary);">10桁以上、6桁目に「I」「O」は使用不可。未入力時は機種記号と図面種類から自動生成されます。</small>
+                                        </div>
+                                        
+                                        <!-- 品名 -->
+                                        <div class="form-field form-field-full" style="flex-shrink: 0;">
+                                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                                品名
+                                            </label>
+                                            <input type="text" id="description-input" class="form-input" 
+                                                   placeholder="品名を入力"
+                                                   style="font-size: 14px; padding: 12px;">
+                                        </div>
+                                        
+                                        <!-- 取得された図面番号 -->
+                                        <div class="form-field form-field-full" style="margin-top: 20px; flex-shrink: 0;">
+                                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px; justify-content: center;">
+                                                取得された図面番号
+                                            </label>
+                                            <div style="position: relative;">
+                                                <input type="text" id="drawing-number-result-page" class="form-input" readonly style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); font-weight: 700; font-size: 20px; text-align: center; padding: 16px; border: 3px solid var(--success); border-radius: 12px; letter-spacing: 2px; color: #2e7d32; word-break: break-all;">
+                                                <div style="position: absolute; top: 8px; right: 12px; color: var(--success); font-size: 18px; opacity: 0.6;">
+                                                    <i class="fas fa-copy" id="copy-drawing-number-page" style="cursor: pointer;" onclick="copyDrawingNumberPage()" title="コピー"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- エラーメッセージ -->
+                                        <div id="drawing-number-errors-page" style="display: none; background: rgba(255, 107, 107, 0.1); border: 2px solid var(--error); border-radius: 8px; padding: 12px; color: var(--error); font-size: 13px;">
+                                            <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
+                                            <span id="drawing-number-error-message-page"></span>
+                                        </div>
+                                        
+                                        <!-- 成功メッセージ -->
+                                        <div id="drawing-number-success-page" style="display: none; background: rgba(78, 205, 196, 0.1); border: 2px solid var(--success); border-radius: 8px; padding: 12px; color: var(--success); font-size: 13px;">
+                                            <i class="fas fa-check-circle" style="margin-right: 8px;"></i>
+                                            <span id="drawing-number-success-message-page"></span>
+                                        </div>
+                                        
+                                        <div class="form-actions" style="margin-top: 20px; gap: 10px; display: flex; flex-direction: column; flex-shrink: 0;">
+                                            <div style="display: flex; gap: 10px; justify-content: center;">
+                                                <button type="submit" class="btn-primary" style="flex: 1; min-width: 140px; max-width: 300px; font-size: 13px; padding: 10px; white-space: nowrap;">
+                                                    <i class="fas fa-magic"></i> 図面番号取得
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <!-- 右側：図面一覧 -->
+                        <div style="flex: 0 0 400px; max-width: 400px; min-width: 350px; display: flex; flex-direction: column; max-height: 100%;">
+                            <div style="background: white; border-radius: 16px; padding: 20px; border: 2px solid var(--border-light); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); display: flex; flex-direction: column; max-height: 100%; overflow: hidden;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; flex-shrink: 0;">
+                                    <div style="display: flex; align-items: center; gap: 6px; margin: 0 auto;">
+                                        <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">図面一覧</h4>
+                                    </div>
+                                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                        <button type="button" class="btn-secondary btn-small" id="refresh-drawing-list-btn" onclick="loadDrawingList()" style="padding: 6px 10px; font-size: 11px; white-space: nowrap;">
+                                            <i class="fas fa-sync-alt"></i> 更新
+                                        </button>
+                                    </div>
+                                </div>
+                                <div style="flex: 1; overflow-y: auto; overflow-x: auto; background: #fafafa; border-radius: 12px; border: 1px solid var(--border-light); min-height: 0; max-height: calc(100vh - 300px);">
+                                    <table style="width: 100%; border-collapse: collapse; min-width: 300px; margin: 0 auto;">
+                                        <thead style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); position: sticky; top: 0; z-index: 10;">
+                                            <tr>
+                                                <th style="padding: 8px 10px; text-align: center; color: white; font-size: 11px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">
+                                                    図面番号
+                                                </th>
+                                                <th style="padding: 8px 10px; text-align: center; color: white; font-size: 11px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">
+                                                    品名
+                                                </th>
+                                                <th style="padding: 8px 10px; text-align: center; color: white; font-size: 11px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">
+                                                    採番日
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="drawing-list-page">
+                                            <tr>
+                                                <td colspan="3" style="text-align: center; padding: 40px; color: var(--text-tertiary);">
+                                                    <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 12px; opacity: 0.3; display: block;"></i>
+                                                    <span style="font-size: 13px;">図面データはありません</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 検索ページ -->
+            <div id="search-page" class="page">
+                <div class="page-title">
+                    <h2>検索</h2>
+                </div>
+                <div class="search-buttons">
+                    <button class="search-btn">購入部品・材料・諸経費検索</button>
+                    <button class="search-btn">外注加工検索</button>
+                    <button class="search-btn">業者別発注済み外注加工</button>
+                    <button class="search-btn">納入予定カレンダー</button>
+                    <button class="search-btn">加工進捗検索</button>
+                    <button class="search-btn">機械で検索 加工進捗</button>
+                    <button class="search-btn">名称による原価検索</button>
+                    <button class="search-btn">出図・手配状況</button>
+                    <button class="search-btn">加工振り分け状況</button>
+                    <button class="search-btn">売上年月で検索 工事一覧</button>
+                </div>
+            </div>
+
+            <!-- 集計ページ -->
+            <div id="aggregate-page" class="page">
+                <div class="page-title">
+                    <h2>集計</h2>
+                </div>
+                <div class="aggregate-buttons">
+                    <button class="aggregate-btn">工事番号による原価集計</button>
+                    <button class="aggregate-btn">図面番号による原価集計</button>
+                    <button class="aggregate-btn">機械から工事番号検索</button>
+                    <button class="aggregate-btn">工事番号で検索する 部品ごとの原価集計</button>
+                    <button class="aggregate-btn">業者別該当月 納期と納入件数</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- 右サイドバー -->
+        <aside class="right-sidebar">
+            <div class="right-sidebar-section">
+                <h3>状態</h3>
+                <div class="status-box pending">
+                    <span class="status-box-label">📋 未完了</span>
+                    <span class="status-box-count" id="status-pending">0</span>
+                </div>
+                <div class="status-box in-progress">
+                    <span class="status-box-label">🔄 進行中</span>
+                    <span class="status-box-count" id="status-in-progress">0</span>
+                </div>
+                <div class="status-box completed">
+                    <span class="status-box-label">✅ 完了</span>
+                    <span class="status-box-count" id="status-completed">0</span>
+                </div>
+            </div>
+            
+            <div class="right-sidebar-section">
+                <h3>📅 今日の予定</h3>
+                <div id="today-events-list" class="sidebar-events-list">
+                    <div class="sidebar-empty">予定はありません</div>
+                </div>
+                <button id="add-today-event-btn" class="btn-primary btn-small" style="width: 100%; margin-top: 8px;">
+                    <i class="fas fa-plus"></i> 予定を追加
+                </button>
+            </div>
+            
+            <div class="right-sidebar-section">
+                <h3>⏰ 期限のタスク</h3>
+                <div id="due-tasks-list" class="sidebar-tasks-list">
+                    <div class="sidebar-empty">期限のタスクはありません</div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- メッセージ表示エリア -->
+    <div id="message-area"></div>
+
+    <!-- 詳細表示モーダル -->
+    <div id="detail-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <h3 id="detail-modal-title">詳細</h3>
+                <button class="modal-close" id="detail-modal-close">&times;</button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <div id="detail-modal-content" class="form-fields"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="close-detail-modal">閉じる</button>
+                    <button type="button" class="btn-primary" id="edit-from-detail-modal">編集</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 確認ダイアログモーダル -->
+    <div id="confirm-dialog-modal" class="modal-overlay" style="display: none; z-index: 50000 !important;">
+        <div class="modal-container" style="max-width: 500px; border-radius: 20px; background: white; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); position: relative; z-index: 50001 !important;">
+            <div class="modal-body" style="padding: 40px; text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+                <h3 id="confirm-dialog-title" style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; line-height: 1.4;"></h3>
+                <p id="confirm-dialog-message" style="font-size: 15px; color: var(--text-secondary); margin-bottom: 32px; line-height: 1.6;"></p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button type="button" id="confirm-dialog-cancel" class="btn-secondary" style="min-width: 120px; padding: 12px 24px; font-size: 15px; font-weight: 600;">キャンセル</button>
+                    <button type="button" id="confirm-dialog-ok" class="btn-primary" style="min-width: 120px; padding: 12px 24px; font-size: 15px; font-weight: 600;"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 登録・編集モーダル（中央表示） -->
+    <div id="register-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <h3 id="modal-title">新規登録</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <form id="register-form" class="register-form" novalidate>
+                    <div id="register-form-fields" class="form-fields"></div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" id="cancel-register">キャンセル</button>
+                        <button type="submit" class="btn-primary">登録</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- タスク登録・編集モーダル -->
+    <div id="task-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <h3 id="task-modal-title">新しいタスクを追加</h3>
+                <button class="modal-close" onclick="if(typeof window.closeTaskModal === 'function') { window.closeTaskModal(); } else { const modal = document.getElementById('task-modal'); if(modal) modal.style.display = 'none'; }">&times;</button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <form id="task-form" class="register-form" onsubmit="event.preventDefault(); event.stopPropagation(); if(typeof window.saveTask === 'function') { window.saveTask(); } return false;">
+                    <div class="form-field form-field-full">
+                        <label>タイトル</label>
+                        <input type="text" id="task-title" class="form-input">
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>説明</label>
+                        <textarea id="task-description" class="form-input" rows="3"></textarea>
+                    </div>
+                    <div class="form-field form-field-half">
+                        <label>期限</label>
+                        <input type="date" id="task-due-date" class="form-input">
+                    </div>
+                    <div class="form-field form-field-half">
+                        <label>優先度</label>
+                        <select id="task-priority" class="form-input">
+                            <option value="low">低</option>
+                            <option value="medium" selected>中</option>
+                            <option value="high">高</option>
+                        </select>
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>ステータス</label>
+                        <select id="task-status" class="form-input">
+                            <option value="pending">未完了</option>
+                            <option value="in-progress">進行中</option>
+                            <option value="completed">完了</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="if(typeof window.closeTaskModal === 'function') { window.closeTaskModal(); } else { const modal = document.getElementById('task-modal'); if(modal) modal.style.display = 'none'; }">キャンセル</button>
+                        <button type="button" class="btn-danger" id="task-delete-btn" onclick="if(typeof window.deleteTaskFromModal === 'function') { window.deleteTaskFromModal(); } else { console.error('deleteTaskFromModal関数が見つかりません'); }" style="display: none;">削除</button>
+                        <button type="button" class="btn-primary" id="task-save-btn" onclick="if(typeof window.saveTask === 'function') { window.saveTask(); } else { console.error('saveTask関数が見つかりません'); alert('saveTask関数が見つかりません。ページをリロードしてください。'); }">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- メッセージ表示エリア -->
+    <div id="message-area"></div>
+
+    <!-- Todo通知ポップアップ -->
+    <div id="todo-notification-popup" class="todo-notification-popup" style="display: none;">
+        <div class="todo-notification-content">
+            <div class="todo-notification-header">
+                <h4><i class="fas fa-bell"></i> Todo通知</h4>
+                <button class="todo-notification-close" onclick="closeTodoNotificationPopup()">&times;</button>
+            </div>
+            <div class="todo-notification-body">
+                <div id="todo-notification-title" class="todo-notification-title"></div>
+                <div id="todo-notification-message" class="todo-notification-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知ドロップダウン -->
+    <div id="notification-dropdown" class="notification-dropdown" style="display: none;">
+        <div class="notification-dropdown-header">
+            <h4>通知</h4>
+            <button class="notification-close" id="notification-close-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="notification-dropdown-body" id="notification-dropdown-body">
+            <!-- 動的に生成されます -->
+        </div>
+        <div class="notification-dropdown-footer">
+            <a href="#" class="notification-view-all">すべて表示</a>
+        </div>
+    </div>
+
+    <!-- カレンダー予定モーダル -->
+    <div id="calendar-event-modal" class="modal">
+        <div class="modal-content calendar-modal-content">
+            <div class="modal-header">
+                <h3 id="calendar-event-modal-title">予定</h3>
+                <button class="modal-close" onclick="closeCalendarEventModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="calendar-event-list" class="calendar-event-list"></div>
+                <button id="calendar-add-event-btn" class="btn-primary" style="width: 100%; margin-top: 12px;">
+                    <i class="fas fa-plus"></i> ✨ 予定を追加
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- カレンダー予定フォームモーダル -->
+    <div id="calendar-event-form-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <h3 id="calendar-event-form-title">予定を追加</h3>
+                <button class="modal-close" onclick="closeCalendarEventFormModal()">&times;</button>
+            </div>
+            <div class="modal-body register-modal-body" style="display: flex; gap: 20px; align-items: flex-start;">
+                <!-- 左：この日の予定（メイン表示） -->
+                <div id="calendar-event-form-events-list" class="calendar-event-form-events-list" style="flex: 1.2; min-width: 0; max-height: calc(90vh - 120px); overflow-y: auto; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div class="calendar-event-form-events-header" style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px;">📅 この日の予定</div>
+                    <div id="calendar-event-form-events-content" class="calendar-event-form-events-content">
+                        <div class="sidebar-empty" style="font-size: 13px;">予定はありません</div>
+                    </div>
+                </div>
+                
+                <!-- 右：入力フォーマット -->
+                <div style="flex: 1; min-width: 280px;">
+                    <form id="calendar-event-form" class="register-form">
+                        <div class="form-field form-field-full">
+                            <label>日付</label>
+                            <input type="text" id="calendar-event-date" class="form-input" readonly>
+                        </div>
+                        <div class="form-field form-field-full">
+                            <label>タイトル <span class="required">*</span></label>
+                            <input type="text" id="calendar-event-title" class="form-input" required placeholder="予定のタイトル">
+                        </div>
+                        <div class="form-field form-field-full">
+                            <label>時間</label>
+                            <input type="text" id="calendar-event-time" class="form-input" placeholder="例: 10:00">
+                        </div>
+                        <div class="form-field form-field-full">
+                            <label>詳細</label>
+                            <textarea id="calendar-event-description" class="form-input" rows="3" placeholder="予定の詳細"></textarea>
+                        </div>
+                        <div class="form-field form-field-full">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="calendar-event-notification" style="width: 18px; height: 18px; cursor: pointer;">
+                                <span>通知を有効にする</span>
+                            </label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="closeCalendarEventFormModal()">キャンセル</button>
+                            <button type="submit" class="btn-primary">保存</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 設定モーダル（目次） -->
+    <div id="settings-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <h3>管理者設定</h3>
+                <button class="modal-close" onclick="closeSettingsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <div class="settings-menu">
+                    <div class="settings-menu-item" onclick="openSettingsPage('permission-settings')">
+                        <div class="settings-menu-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="settings-menu-content">
+                            <h4>権限設定</h4>
+                            <p>運用中工事番号一覧の編集・削除権限を設定</p>
+                        </div>
+                        <i class="fas fa-chevron-right settings-menu-arrow"></i>
+                    </div>
+                    <div class="settings-menu-item" onclick="openSettingsPage('user-management')">
+                        <div class="settings-menu-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="settings-menu-content">
+                            <h4>ユーザー管理</h4>
+                            <p>パソコンユーザーごとのIDとパスワードを管理</p>
+                        </div>
+                        <i class="fas fa-chevron-right settings-menu-arrow"></i>
+                    </div>
+                    <div class="settings-menu-item" onclick="openSettingsPage('company-calendar')">
+                        <div class="settings-menu-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="settings-menu-content">
+                            <h4>会社カレンダー管理</h4>
+                            <p>土日以外の休日を登録・管理</p>
+                        </div>
+                        <i class="fas fa-chevron-right settings-menu-arrow"></i>
+                    </div>
+                    <div class="settings-menu-item" onclick="openSettingsPage('notification-settings')">
+                        <div class="settings-menu-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div class="settings-menu-content">
+                            <h4>通知設定</h4>
+                            <p>カレンダーイベントの通知設定</p>
+                        </div>
+                        <i class="fas fa-chevron-right settings-menu-arrow"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ユーザー管理モーダル -->
+    <div id="user-management-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <button class="modal-back-btn" onclick="closeSettingsPage('user-management')" title="戻る">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h3>ユーザー管理</h3>
+                <button class="modal-close" onclick="closeSettingsPage('user-management')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <div class="settings-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h4 class="settings-section-title">
+                            <i class="fas fa-users"></i> ユーザー一覧
+                        </h4>
+                        <button class="btn-primary btn-small" onclick="openUserFormModal()">
+                            <i class="fas fa-plus"></i> ユーザーを追加
+                        </button>
+                    </div>
+                    <div id="user-list" class="user-list">
+                        <!-- 動的に生成されます -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ユーザー追加・編集モーダル -->
+    <div id="user-form-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <h3 id="user-form-title">ユーザーを追加</h3>
+                <button class="modal-close" onclick="closeUserFormModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <form id="user-form" class="register-form" onsubmit="event.preventDefault(); saveUser(); return false;">
+                    <div class="form-field form-field-full">
+                        <label>PC名 / ユーザー名 <span class="required">*</span></label>
+                        <input type="text" id="user-pc-name" class="form-input" required placeholder="例: PC-001 または 山田太郎">
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>ログインID <span class="required">*</span></label>
+                        <input type="text" id="user-login-id" class="form-input" required placeholder="ログイン時に使用するID">
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>パスワード <span id="password-required" class="required">*</span></label>
+                        <input type="password" id="user-password" class="form-input" placeholder="パスワードを入力（4文字以上）" minlength="4">
+                        <div class="field-note" id="password-note">新規追加時は必須、編集時は変更する場合のみ入力してください</div>
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>パスワード（確認） <span id="password-confirm-required" class="required">*</span></label>
+                        <input type="password" id="user-password-confirm" class="form-input" placeholder="パスワードを再入力" minlength="4">
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>部署</label>
+                        <input type="text" id="user-department" class="form-input" placeholder="部署名を入力（任意）">
+                        <div class="field-note">部署名を入力してください（任意）</div>
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>
+                            <input type="checkbox" id="user-is-admin" style="width: auto; margin-right: 8px;">
+                            管理者権限
+                        </label>
+                        <div class="field-note">管理者は全部署の情報を閲覧・管理できます</div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="closeUserFormModal()">キャンセル</button>
+                        <button type="submit" class="btn-primary">保存</button>
+                    </div>
+                    <input type="hidden" id="user-edit-id" value="">
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 会社カレンダー管理モーダル -->
+    <div id="company-calendar-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <button class="modal-back-btn" onclick="closeSettingsPage('company-calendar')" title="戻る">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h3>会社カレンダー管理</h3>
+                <button class="modal-close" onclick="closeSettingsPage('company-calendar')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <div class="settings-section">
+                    <p class="settings-section-description">土日以外の休日を登録・管理します</p>
+                    <form id="company-calendar-form">
+                        <div class="form-field">
+                            <label>日付 <span class="required">*</span></label>
+                            <textarea id="company-calendar-dates" rows="3" required placeholder="日付をスペース区切りで入力してください&#10;例：2025/12/25 2025/12/26 2025/12/27" style="font-size: 16px; padding: 16px; line-height: 1.6;"></textarea>
+                            <div class="field-note">複数の日付を一度に登録できます。スペースで区切って入力してください（YYYY/MM/DD形式）</div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">一括登録</button>
+                        </div>
+                    </form>
+                    
+                    <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-light);">
+                        <h4 style="margin-bottom: 12px; font-size: 14px; font-weight: 600;">登録済みの会社カレンダー編集</h4>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">日付をスペース区切りで入力してください。編集後「保存」をクリックしてください。</p>
+                        <div class="form-field">
+                            <textarea id="company-calendar-edit-list" rows="3" placeholder="日付をスペース区切りで入力してください&#10;例：2025/12/25 2025/12/26 2025/12/27" style="font-size: 16px; padding: 16px; line-height: 1.6;"></textarea>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 8px;">
+                            <button class="btn-primary btn-small" onclick="saveCompanyCalendarEdit()" style="padding: 6px 16px; font-size: 13px;">
+                                <i class="fas fa-save"></i> 保存
+                            </button>
+                            <button class="btn-secondary btn-small" onclick="loadCompanyCalendarEdit()" style="padding: 6px 16px; font-size: 13px;">
+                                <i class="fas fa-undo"></i> リセット
+                            </button>
+                            <button class="btn-secondary btn-small" onclick="exportCompanyCalendarToCSV()" style="padding: 6px 16px; font-size: 13px;">
+                                <i class="fas fa-download"></i> CSV出力
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 削除確認モーダル -->
+    <div id="delete-confirm-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content delete-confirm-modal-content">
+            <div class="delete-confirm-header">
+                <div class="delete-confirm-icon">⚠️</div>
+                <h3 id="delete-confirm-title">削除の確認</h3>
+            </div>
+            <div class="delete-confirm-body">
+                <p id="delete-confirm-message">この操作は取り消せません。本当に削除しますか？</p>
+            </div>
+            <div class="delete-confirm-actions">
+                <button class="btn-secondary" id="delete-confirm-cancel">キャンセル</button>
+                <button class="btn-danger" id="delete-confirm-ok">削除する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 工事番号適用確認モーダル -->
+    <div id="construct-number-confirm-modal" class="modal-overlay" style="display: none; z-index: 10002 !important;">
+        <div class="modal-content delete-confirm-modal-content" style="max-width: 400px;">
+            <div class="delete-confirm-header">
+                <div class="delete-confirm-icon" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; font-size: 24px;">✓</div>
+                <h3>工事番号の適用</h3>
+            </div>
+            <div class="delete-confirm-body">
+                <p id="construct-number-confirm-message">工事番号「<strong id="construct-number-confirm-value"></strong>」を使用しますか？</p>
+            </div>
+            <div class="delete-confirm-actions">
+                <button class="btn-secondary" id="construct-number-confirm-cancel">キャンセル</button>
+                <button class="btn-primary" id="construct-number-confirm-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 掲示板詳細表示モーダル -->
+    <div id="bulletin-detail-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <h3 id="bulletin-detail-title">掲示板の詳細</h3>
+                <button class="modal-close" onclick="closeBulletinDetailModal()">&times;</button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <div class="bulletin-detail-content">
+                    <div class="form-field form-field-full">
+                        <label>日付</label>
+                        <div id="bulletin-detail-date" class="bulletin-detail-value"></div>
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>内容</label>
+                        <div id="bulletin-detail-text" class="bulletin-detail-value" style="white-space: pre-wrap; line-height: 1.6;"></div>
+                    </div>
+                    <div class="form-field form-field-full" id="bulletin-detail-files-container" style="display: none;">
+                        <label>添付ファイル</label>
+                        <div id="bulletin-detail-files" class="bulletin-detail-files-list"></div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeBulletinDetailModal()">閉じる</button>
+                    <button type="button" class="btn-primary" id="bulletin-detail-edit-btn">編集</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 掲示板入力モーダル -->
+    <div id="bulletin-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <h3 id="bulletin-modal-title">掲示板を追加</h3>
+                <button class="modal-close" onclick="closeBulletinModal()">&times;</button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <form id="bulletin-form" class="register-form" onsubmit="event.preventDefault(); saveBulletin(); return false;">
+                    <div class="form-field form-field-full">
+                        <label>日付</label>
+                        <input type="date" id="bulletin-date" class="form-input" required>
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>内容</label>
+                        <textarea id="bulletin-text" class="form-input" rows="3" required placeholder="掲示板の内容を入力してください"></textarea>
+                    </div>
+                    <div class="form-field form-field-full">
+                        <label>添付ファイル</label>
+                        <input type="file" id="bulletin-file" class="form-input" multiple accept="*/*">
+                        <div class="field-note">複数のファイルを選択できます（最大5MB/ファイル）</div>
+                        <div id="bulletin-file-list" class="bulletin-file-list"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="closeBulletinModal()">キャンセル</button>
+                        <button type="submit" class="btn-primary">保存</button>
+                    </div>
+                    <input type="hidden" id="bulletin-edit-id" value="">
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ファイルビューアモーダル -->
+    <div id="file-viewer-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container" style="max-width: 90%; max-height: 90vh;">
+            <div class="modal-header register-modal-header">
+                <h3 id="file-viewer-title">ファイル</h3>
+                <button class="modal-close" onclick="closeFileViewerModal()">&times;</button>
+            </div>
+            <div class="modal-body register-modal-body" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px;">
+                <div id="file-viewer-content" style="width: 100%; text-align: center;"></div>
+            </div>
+            <div style="padding: 16px 24px; border-top: 1px solid var(--border-light); background: var(--bg-secondary); display: flex; justify-content: flex-end; gap: 12px;">
+                <button type="button" class="btn-secondary" onclick="closeFileViewerModal()">閉じる</button>
+                <button type="button" class="btn-primary" id="file-viewer-download">
+                    <i class="fas fa-download"></i> ダウンロード
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI入力モーダル -->
+    <div id="kpi-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container">
+            <div class="modal-header register-modal-header">
+                <h3 id="kpi-modal-title">KPI入力</h3>
+                <button class="modal-close" onclick="closeKPIModal()">&times;</button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <form id="kpi-form" class="register-form" onsubmit="event.preventDefault(); saveKPI(); return false;">
+                    <div class="form-field form-field-full">
+                        <label id="kpi-form-label">値</label>
+                        <input type="text" id="kpi-form-input" class="form-input" placeholder="数値を入力してください">
+                        <div class="field-note" id="kpi-form-note">データベースから自動計算される予定です。現在は手動で入力できます。</div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="closeKPIModal()">キャンセル</button>
+                        <button type="submit" class="btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- カスタムカレンダーピッカー -->
+    <div id="custom-calendar-picker" class="custom-calendar-overlay" style="display: none;">
+        <div class="custom-calendar-container">
+            <div class="custom-calendar-header">
+                <button class="calendar-nav-btn prev-month" id="calendar-prev-month">‹</button>
+                <div class="calendar-month-year">
+                    <span id="calendar-display-month">12月</span>
+                    <span id="calendar-display-year">2025</span>
+                </div>
+                <button class="calendar-nav-btn next-month" id="calendar-next-month">›</button>
+            </div>
+            <div class="custom-calendar-weekdays">
+                <div class="weekday">日</div>
+                <div class="weekday">月</div>
+                <div class="weekday">火</div>
+                <div class="weekday">水</div>
+                <div class="weekday">木</div>
+                <div class="weekday">金</div>
+                <div class="weekday">土</div>
+            </div>
+            <div class="custom-calendar-days" id="calendar-days-grid">
+                <!-- 動的に生成されます -->
+            </div>
+            <div class="custom-calendar-actions">
+                <button class="calendar-action-btn clear-btn" id="calendar-clear">クリア</button>
+                <button class="calendar-action-btn today-btn" id="calendar-today">今日</button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+
+    <!-- 工事番号取得モーダル -->
+    <div id="construct-number-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container" style="max-width: 1400px; width: 95%; height: 90vh; max-height: 800px; display: flex; flex-direction: column; margin: 0;">
+            <div class="modal-header register-modal-header">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-hashtag" style="font-size: 24px;"></i>
+                    <h3>工事番号採番システム</h3>
+                </div>
+                <button class="modal-close" onclick="closeConstructNumberModal()">&times;</button>
+            </div>
+            <div class="modal-body register-modal-body" style="display: flex; gap: 24px; align-items: stretch; padding: 24px; flex: 1; overflow: hidden; height: 100%;">
+                <!-- 左側：入力フォーム -->
+                <div style="flex: 0 0 420px; max-width: 420px; min-width: 380px; display: flex; flex-direction: column; height: 100%;">
+                    <div style="background: linear-gradient(135deg, rgba(74, 144, 226, 0.05) 0%, rgba(74, 144, 226, 0.02) 100%); border-radius: 16px; padding: 20px; border: 2px solid rgba(74, 144, 226, 0.1); height: 100%; display: flex; flex-direction: column;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-shrink: 0;">
+                            <i class="fas fa-magic" style="color: var(--primary); font-size: 16px;"></i>
+                            <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">新規工事番号取得</h4>
+                        </div>
+                        <form id="construct-number-form" class="register-form" onsubmit="event.preventDefault(); getConstructNumber(); return false;" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+                            <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                                <div class="form-field form-field-full" style="flex-shrink: 0;">
+                                    <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                    <i class="fas fa-list" style="color: var(--primary);"></i>
+                                    工事番号台 <span class="required">*</span>
+                                </label>
+                                    <select id="construct-number-select" name="工事番号台" class="form-input" required style="font-size: 14px; padding: 12px;">
+                                    <option value="">選択してください</option>
+                                    <option value="1000番台">1000番台</option>
+                                    <option value="2000番台">2000番台</option>
+                                    <option value="2900番台">2900番台</option>
+                                    <option value="3000番台">3000番台</option>
+                                    <option value="3A00番台">3A00番台</option>
+                                    <option value="3B00番台">3B00番台</option>
+                                    <option value="3C00番台">3C00番台</option>
+                                    <option value="3P00番台">3P00番台</option>
+                                    <option value="3T00番台">3T00番台</option>
+                                    <option value="4000番台">4000番台</option>
+                                    <option value="4A00番台">4A00番台</option>
+                                    <option value="4B00番台">4B00番台</option>
+                                    <option value="4C00番台">4C00番台</option>
+                                    <option value="4P00番台">4P00番台</option>
+                                    <option value="4T00番台">4T00番台</option>
+                                    <option value="5000番台">5000番台</option>
+                                    <option value="5A00番台">5A00番台</option>
+                                    <option value="5B00番台">5B00番台</option>
+                                    <option value="5E00番台">5E00番台</option>
+                                    <option value="6000番台">6000番台</option>
+                                    <option value="7000番台">7000番台</option>
+                                    <option value="7P00番台">7P00番台</option>
+                                    <option value="8000番台">8000番台</option>
+                                    <option value="8A00番台">8A00番台</option>
+                                    <option value="8B00番台">8B00番台</option>
+                                    <option value="8E00番台">8E00番台</option>
+                                    <option value="9000番台">9000番台</option>
+                                    <option value="S000番台">S000番台</option>
+                                    <option value="Z000番台">Z000番台</option>
+                                    <option value="D000番台">D000番台</option>
+                                </select>
+                            </div>
+                                <div class="form-field form-field-full" style="margin-top: 20px; flex-shrink: 0;">
+                                    <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                                    取得された工事番号
+                                </label>
+                                <div style="position: relative;">
+                                        <input type="text" id="construct-number-result" class="form-input" readonly style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); font-weight: 700; font-size: 24px; text-align: center; padding: 16px; border: 3px solid var(--success); border-radius: 12px; letter-spacing: 2px; color: #2e7d32; word-break: break-all;">
+                                        <div style="position: absolute; top: 8px; right: 12px; color: var(--success); font-size: 18px; opacity: 0.6;">
+                                        <i class="fas fa-copy" id="copy-construct-number" style="cursor: pointer;" onclick="copyConstructNumber()" title="コピー"></i>
+                                    </div>
+                                </div>
+                                    <div style="margin-top: 8px; font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; line-height: 1.4;">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>この番号は自動的に使用済みとして記録されます</span>
+                                </div>
+                            </div>
+                            </div>
+                            <div class="form-actions" style="margin-top: 20px; gap: 10px; display: flex; flex-direction: column; flex-shrink: 0;">
+                                <div style="display: flex; gap: 10px;">
+                                    <button type="button" class="btn-secondary" onclick="closeConstructNumberModal()" style="flex: 1; min-width: 120px; font-size: 13px; padding: 10px; white-space: nowrap;">
+                                    <i class="fas fa-times"></i> キャンセル
+                                </button>
+                                    <button type="submit" class="btn-primary" style="flex: 1; min-width: 140px; font-size: 13px; padding: 10px; white-space: nowrap;">
+                                    <i class="fas fa-magic"></i> 工事番号取得
+                                </button>
+                                </div>
+                                <button type="button" class="btn-primary" id="apply-construct-number-btn" onclick="applyConstructNumber()" style="display: none; width: 100%; margin-top: 0; font-size: 13px; padding: 10px; white-space: nowrap;">
+                                    <i class="fas fa-check-circle"></i> この番号を使用
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- 右側：使用済み一覧 -->
+                <div style="flex: 1; min-width: 350px; display: flex; flex-direction: column; height: 100%;">
+                    <div style="background: white; border-radius: 16px; padding: 20px; border: 2px solid var(--border-light); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); height: 100%; display: flex; flex-direction: column;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-history" style="color: var(--primary); font-size: 16px;"></i>
+                                <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">使用済み工事番号一覧</h4>
+                            </div>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                <button type="button" class="btn-secondary btn-small" id="import-csv-btn" onclick="importUsedConstructNumbersCSV()" style="padding: 6px 10px; font-size: 11px; white-space: nowrap;">
+                                    <i class="fas fa-file-import"></i> CSVインポート
+                                </button>
+                                <button type="button" class="btn-secondary btn-small" onclick="exportUsedConstructNumbers()" style="padding: 6px 10px; font-size: 11px; white-space: nowrap;">
+                                    <i class="fas fa-file-export"></i> CSV出力
+                                </button>
+                                <button type="button" class="btn-secondary btn-small" id="clear-used-btn" onclick="clearUsedConstructNumbers()" style="padding: 6px 10px; font-size: 11px; display: none; white-space: nowrap;">
+                                    <i class="fas fa-trash"></i> 全削除
+                                </button>
+                            </div>
+                        </div>
+                        <div style="flex: 1; overflow-y: auto; overflow-x: auto; background: #fafafa; border-radius: 12px; border: 1px solid var(--border-light); min-height: 0;">
+                            <table style="width: 100%; border-collapse: collapse; min-width: 280px;">
+                                <thead style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); position: sticky; top: 0; z-index: 10;">
+                                    <tr>
+                                        <th style="padding: 10px 12px; text-align: left; color: white; font-size: 12px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">
+                                            <i class="fas fa-hashtag" style="margin-right: 4px;"></i>工事番号
+                                        </th>
+                                        <th style="padding: 10px 12px; text-align: center; color: white; font-size: 12px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">
+                                            <i class="fas fa-calendar" style="margin-right: 4px;"></i>日付
+                                        </th>
+                                        <th id="action-header" style="padding: 10px 12px; text-align: center; color: white; font-size: 12px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); width: 70px; display: none;">
+                                            <i class="fas fa-cog"></i>操作
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="used-construct-numbers-list-inline">
+                                    <tr>
+                                        <td colspan="3" style="text-align: center; padding: 40px; color: var(--text-tertiary);">
+                                            <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 12px; opacity: 0.3; display: block;"></i>
+                                            <span style="font-size: 13px;">使用済み工事番号はありません</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div style="margin-top: 16px; padding: 10px; background: rgba(74, 144, 226, 0.05); border-radius: 8px; font-size: 11px; color: var(--text-secondary); line-height: 1.4; flex-shrink: 0;">
+                            <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
+                            <span id="used-count-display">使用済み: 0件</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用済み工事番号一覧モーダル -->
+    <div id="used-construct-numbers-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container register-modal-container" style="max-width: 900px;">
+            <div class="modal-header register-modal-header">
+                <h3>使用済み工事番号一覧</h3>
+                <button class="modal-close" onclick="closeUsedConstructNumbersModal()">&times;</button>
+            </div>
+            <div class="modal-body register-modal-body">
+                <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <button type="button" class="btn-secondary btn-small" onclick="clearUsedConstructNumbers()">全削除</button>
+                        <button type="button" class="btn-secondary btn-small" onclick="exportUsedConstructNumbers()" style="margin-left: 8px;">CSV出力</button>
+                    </div>
+                </div>
+                <div style="max-height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px;">
+                    <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: #f0f0f0; position: sticky; top: 0;">
+                            <tr>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">工事番号</th>
+                                <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd; font-weight: 600;">日付</th>
+                            </tr>
+                        </thead>
+                        <tbody id="used-construct-numbers-list">
+                            <!-- 動的に生成されます -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeUsedConstructNumbersModal()">閉じる</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

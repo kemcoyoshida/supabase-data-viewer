@@ -1281,8 +1281,8 @@ function setupEventListeners() {
     document.querySelectorAll('.register-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const type = btn.dataset.type || e.target.closest('.register-btn')?.dataset.type;
-            // work-ticketとconstruct-numberはonclickで処理されるため、ここでは何もしない
-            if (type === 'construct-number' || type === 'work-ticket') {
+            // work-ticket、construct-number、drawing-numberはonclickで処理されるため、ここでは何もしない
+            if (type === 'construct-number' || type === 'work-ticket' || type === 'drawing-number') {
                 // onclickで処理されるため、イベントリスナーでは何もしない
                 return;
             } else {
@@ -1524,6 +1524,12 @@ function showPage(pageName) {
             console.log('initializeConstructNumberPageを呼び出します');
             initializeConstructNumberPage();
         }, 100);
+    } else if (pageName === 'drawing-number') {
+        // 図面番号採番ページを開いた時の初期化
+        console.log('図面番号採番ページを表示します');
+        setTimeout(() => {
+            initializeDrawingNumberPage();
+        }, 100);
     } else if (pageName === 'dashboard') {
         // 少し遅延してからupdateDashboardを呼ぶ（DOMが確実に更新されるまで待つ）
         setTimeout(() => {
@@ -1753,6 +1759,10 @@ async function updateDashboard() {
 
     // 最近使用したテーブル（最初の5つ）
     const recentContainer = document.getElementById('recent-tables');
+    if (!recentContainer) {
+        console.warn('recent-tables要素が見つかりません');
+        return;
+    }
     recentContainer.innerHTML = '';
     const recentTables = availableTables.slice(0, 5);
     recentTables.forEach(table => {
@@ -2845,6 +2855,9 @@ function updateDueTasks() {
     dueTasks.forEach(task => {
         const taskItem = document.createElement('div');
         taskItem.className = 'sidebar-task-item';
+        taskItem.style.display = 'flex';
+        taskItem.style.alignItems = 'flex-start';
+        taskItem.style.gap = '8px';
         
         const dueDate = new Date(task.dueDate);
         dueDate.setHours(0, 0, 0, 0);
@@ -2876,10 +2889,15 @@ function updateDueTasks() {
             <div class="sidebar-task-priority priority-${task.priority || 'medium'}">
                 ${priorityIcons[task.priority || 'medium']} ${priorityLabels[task.priority || 'medium']}
             </div>
-            <div class="sidebar-task-content">
+            <div class="sidebar-task-content" style="flex: 1;">
                 <div class="sidebar-task-title">${escapeHtml(task.title || '')}</div>
                 <div style="font-size: 11px; color: ${isOverdue ? 'var(--error)' : 'var(--text-secondary)'}; margin-top: 4px;">${dueDateLabel}</div>
                 ${task.description ? `<div class="sidebar-task-description">${escapeHtml(task.description)}</div>` : ''}
+            </div>
+            <div class="sidebar-task-actions" style="display: flex; gap: 4px; margin-left: 8px;">
+                <button class="task-action-btn delete" onclick="event.stopPropagation(); if (typeof window.deleteTask === 'function') { window.deleteTask(${task.id}); }" title="削除" style="padding: 4px 8px; font-size: 12px; background: var(--error); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
         `;
         taskItem.onclick = () => {
@@ -3249,6 +3267,11 @@ function loadCalendarEvents() {
     loadCompanyCalendarEvents();
     }
     
+    // カレンダー通知チェックを開始（通知許可がある場合）
+    if (typeof startCalendarNotificationCheck === 'function' && Notification.permission === 'granted') {
+        startCalendarNotificationCheck();
+    }
+    
     // updateCalendarはupdateDashboardから呼ばれるので、ここでは呼ばない（重複を避ける）
     // updateCalendar();
 }
@@ -3479,10 +3502,16 @@ function openCalendarEventFormModal(year, month, date, eventIndex = null) {
         }
     }
     
+    // 通知チェックボックスを取得
+    const eventNotificationInput = document.getElementById('calendar-event-notification');
+    
     // フォームをリセット
     eventTitleInput.value = '';
     eventTimeInput.value = '';
     eventDescriptionInput.value = '';
+    if (eventNotificationInput) {
+        eventNotificationInput.checked = false;
+    }
     
     // 編集モードの場合
     if (eventIndex !== null) {
@@ -3491,10 +3520,17 @@ function openCalendarEventFormModal(year, month, date, eventIndex = null) {
             eventTitleInput.value = actualEvent.title || '';
             eventTimeInput.value = actualEvent.time || '';
             eventDescriptionInput.value = actualEvent.description || '';
+            if (eventNotificationInput) {
+                eventNotificationInput.checked = actualEvent.notification !== false; // デフォルトはtrue
+            }
         }
         eventForm.setAttribute('data-event-index', eventIndex);
     } else {
         eventForm.removeAttribute('data-event-index');
+        // 新規作成時は通知をデフォルトで有効にする
+        if (eventNotificationInput) {
+            eventNotificationInput.checked = true;
+        }
     }
     
     // フォームのsubmitイベントを設定
@@ -3541,6 +3577,8 @@ function saveCalendarEvent(year, month, date, eventIndex) {
     const title = document.getElementById('calendar-event-title').value.trim();
     const time = document.getElementById('calendar-event-time').value.trim();
     const description = document.getElementById('calendar-event-description').value.trim();
+    const notificationInput = document.getElementById('calendar-event-notification');
+    const notification = notificationInput ? notificationInput.checked : false;
     const eventDateInput = document.getElementById('calendar-event-date');
     
     if (!title) {
@@ -3611,7 +3649,8 @@ function saveCalendarEvent(year, month, date, eventIndex) {
                     date: eventDateISO,
                     title,
                     time,
-                    description
+                    description,
+                    notification: notification
                 };
             }
         }
@@ -3621,7 +3660,8 @@ function saveCalendarEvent(year, month, date, eventIndex) {
             date: eventDateISO,
             title,
             time,
-            description
+            description,
+            notification: notification
         });
     }
     
@@ -3903,6 +3943,11 @@ function openSettingsPage(page) {
         if (targetModal) {
             loadCompanyCalendarEdit();
         }
+    } else if (page === 'notification-settings') {
+        targetModal = document.getElementById('notification-settings-modal');
+        if (targetModal) {
+            updateNotificationPermissionStatus();
+        }
     }
     
     if (settingsModal) settingsModal.style.display = 'none';
@@ -3920,6 +3965,8 @@ function closeSettingsPage(page) {
         targetModal = document.getElementById('user-management-modal');
     } else if (page === 'company-calendar') {
         targetModal = document.getElementById('company-calendar-modal');
+    } else if (page === 'notification-settings') {
+        targetModal = document.getElementById('notification-settings-modal');
     }
     
     if (targetModal) targetModal.style.display = 'none';
@@ -3957,6 +4004,51 @@ function savePermissionSettings() {
     closeSettingsPage('permission-settings');
 }
 
+
+// 通知許可状態を更新
+function updateNotificationPermissionStatus() {
+    const statusText = document.getElementById('permission-status-text');
+    const requestBtn = document.getElementById('request-permission-btn');
+    
+    if (!('Notification' in window)) {
+        if (statusText) {
+            statusText.textContent = 'このブラウザは通知機能をサポートしていません';
+            statusText.style.color = 'var(--error)';
+        }
+        if (requestBtn) {
+            requestBtn.disabled = true;
+            requestBtn.style.opacity = '0.5';
+        }
+        return;
+    }
+    
+    const permission = Notification.permission;
+    
+    if (statusText) {
+        if (permission === 'granted') {
+            statusText.textContent = '✅ 通知が許可されています';
+            statusText.style.color = 'var(--success)';
+        } else if (permission === 'denied') {
+            statusText.textContent = '❌ 通知が拒否されています。ブラウザの設定から許可してください。';
+            statusText.style.color = 'var(--error)';
+        } else {
+            statusText.textContent = '⚠️ 通知許可が必要です';
+            statusText.style.color = 'var(--warning)';
+        }
+    }
+    
+    if (requestBtn) {
+        if (permission === 'granted') {
+            requestBtn.disabled = true;
+            requestBtn.style.opacity = '0.5';
+            requestBtn.textContent = '通知許可済み';
+        } else {
+            requestBtn.disabled = false;
+            requestBtn.style.opacity = '1';
+            requestBtn.innerHTML = '<i class="fas fa-bell"></i> 通知許可を取得';
+        }
+    }
+}
 
 // 設定モーダルを閉じる
 function closeSettingsModal() {
@@ -5363,6 +5455,11 @@ function generateWorkTicketFormPage(container) {
 async function loadJobTypesForWorkTicket() {
     try {
         // 職種テーブルからデータを取得（テーブル名は実際のものに合わせて変更してください）
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            console.warn('Supabaseクライアントが初期化されていません');
+            return;
+        }
         const { data, error } = await supabase
             .from('職種')
             .select('*')
@@ -6148,11 +6245,15 @@ async function generateNextConstructNumber(koujibangou) {
         }
         
         // データベースから該当する工事番号の最大値を取得
-        const { data, error } = await supabase
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            console.error('Supabaseクライアントが初期化されていません');
+        }
+        const { data, error } = supabase ? await supabase
             .from(tableName)
             .select(constructNoColumn)
             .not(constructNoColumn, 'is', null)
-            .limit(10000);
+            .limit(10000) : { data: null, error: new Error('Supabaseクライアントが初期化されていません') };
         
         if (error) {
             console.error('工事番号取得エラー(Supabase):', error);
@@ -7564,11 +7665,15 @@ async function generateNextConstructNumberForModal(koujibangou, resultInputEleme
         }
         
         // データベースから該当する工事番号の最大値を取得
-        const { data, error } = await supabase
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            console.error('Supabaseクライアントが初期化されていません');
+        }
+        const { data, error } = supabase ? await supabase
             .from(tableName)
             .select(constructNoColumn)
             .not(constructNoColumn, 'is', null)
-            .limit(10000);
+            .limit(10000) : { data: null, error: new Error('Supabaseクライアントが初期化されていません') };
         
         if (error) {
             console.error('工事番号取得エラー(Supabase):', error);
@@ -7603,30 +7708,45 @@ async function generateNextConstructNumberForModal(koujibangou, resultInputEleme
         
         // 使用済み番号を追加
         console.log('工事番号採番(モーダル) - 使用済み番号:', usedNumbers);
-        console.log('工事番号採番(モーダル) - プレフィックス:', prefix || prefix1);
+        console.log('工事番号採番(モーダル) - プレフィックス:', prefix || prefix1, 'prefix:', prefix, 'prefix1:', prefix1, 'koujiValue:', koujiValue);
         usedNumbers.forEach(usedItem => {
             const usedNum = typeof usedItem === 'string' ? usedItem : usedItem.number;
             const strValue = String(usedNum).trim();
             let shouldAdd = false;
             
+            console.log('工事番号採番(モーダル) - 使用済み番号をチェック:', strValue, 'prefix:', prefix, 'prefix1:', prefix1);
+            
             if (prefix1 && /^[A-Z]$/.test(prefix1)) {
                 // 1文字アルファベット（S, T, Z, D）
                 if (strValue.startsWith(prefix1)) {
                     shouldAdd = true;
+                    console.log('工事番号採番(モーダル) - アルファベットプレフィックスでマッチ:', strValue);
                 }
             } else if (prefix) {
-                // 2文字プレフィックス（3B, 3C, 4B, 4Cなど）
+                // 2文字プレフィックス（10, 3B, 3C, 4B, 4Cなど）
                 if (strValue.startsWith(prefix)) {
                     shouldAdd = true;
+                    console.log('工事番号採番(モーダル) - 2文字プレフィックスでマッチ:', strValue, 'prefix:', prefix);
+                } else {
+                    console.log('工事番号採番(モーダル) - プレフィックスでマッチしませんでした:', strValue, 'prefix:', prefix);
+                }
+            } else if (prefix1 && !prefix) {
+                // prefixが空でprefix1のみの場合（例：1000番台でprefix1='1'の場合）
+                // 数字のみの番号の場合、prefix1で始まる番号を追加
+                if (strValue.startsWith(prefix1)) {
+                    shouldAdd = true;
+                    console.log('工事番号採番(モーダル) - prefix1でマッチ:', strValue);
                 }
             }
             
             if (shouldAdd && !allNumbers.includes(strValue)) {
                 allNumbers.push(strValue);
                 console.log('工事番号採番(モーダル) - 使用済み番号を追加:', strValue);
+            } else if (shouldAdd) {
+                console.log('工事番号採番(モーダル) - 使用済み番号は既に存在:', strValue);
             }
         });
-        console.log('工事番号採番(モーダル) - 追加後のallNumbers:', allNumbers);
+        console.log('工事番号採番(モーダル) - 追加後のallNumbers:', allNumbers, '件数:', allNumbers.length);
         
         // 最大値を計算（VB.NETのロジックに従って、使用済み番号を含めた最大値を見つける）
         if (allNumbers.length > 0) {
@@ -7681,10 +7801,42 @@ async function generateNextConstructNumberForModal(koujibangou, resultInputEleme
             console.log('工事番号採番(モーダル) - 最大値:', maxNumber, 'プレフィックス:', prefix || prefix1);
         } else {
             console.log('工事番号採番(モーダル) - 対象番号なし、デフォルト値を使用');
+            // 使用済み番号が空でも、データベースから取得した番号がある場合はそれを使用
+            if (data && data.length > 0) {
+                console.log('工事番号採番(モーダル) - データベースから取得した番号を使用');
+            }
         }
         
         // 次の番号を生成（VB.NETのロジック: retに最大値を渡して+1）
-        console.log('工事番号採番(モーダル) - calculateNextConstructNumber呼び出し前:', { koujibangou, maxNumber });
+        console.log('工事番号採番(モーダル) - calculateNextConstructNumber呼び出し前:', { koujibangou, maxNumber, prefix, prefix1, allNumbersLength: allNumbers.length });
+        
+        // maxNumberがnullの場合でも、使用済み番号から最大値を再計算
+        if (!maxNumber && usedNumbers.length > 0) {
+            console.warn('工事番号採番(モーダル) - maxNumberがnullのため、使用済み番号から最大値を再計算');
+            const filteredUsed = usedNumbers
+                .map(item => typeof item === 'string' ? item : item.number)
+                .map(num => String(num).trim())
+                .filter(num => {
+                    if (prefix1 && /^[A-Z]$/.test(prefix1)) {
+                        return num.startsWith(prefix1);
+                    } else if (prefix) {
+                        return num.startsWith(prefix);
+                    }
+                    return false;
+                });
+            
+            if (filteredUsed.length > 0) {
+                // 数値としてソートして最大値を取得
+                const sorted = filteredUsed.sort((a, b) => {
+                    const numA = parseInt(a, 10) || 0;
+                    const numB = parseInt(b, 10) || 0;
+                    return numB - numA;
+                });
+                maxNumber = sorted[0];
+                console.log('工事番号採番(モーダル) - 使用済み番号から取得した最大値:', maxNumber);
+            }
+        }
+        
         let nextNumber = calculateNextConstructNumber(koujibangou, maxNumber);
         console.log('工事番号採番(モーダル) - 生成された次の番号:', nextNumber);
         
@@ -8175,10 +8327,11 @@ async function editAllUsedConstructNumbers() {
         modalContent.style.cssText = 'background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border-radius: 24px; padding: 32px; max-width: 1200px; width: 95%; max-height: 90vh; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); display: flex; flex-direction: column;';
         
         modalContent.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 3px solid var(--primary); flex-shrink: 0;">
-                <h3 style="margin: 0; font-size: 24px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 3px solid var(--primary); flex-shrink: 0; position: relative;">
+                <div style="width: 44px;"></div>
+                <h3 style="margin: 0; font-size: 24px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 12px; justify-content: center; flex: 1;">
                     <i class="fas fa-cog" style="color: var(--primary); font-size: 28px;"></i>
-                    運用中工事番号一括編集
+                    運用中工事番号管理
                 </h3>
                 <button onclick="this.closest('#edit-all-used-modal').remove()" style="background: rgba(0, 0, 0, 0.05); border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary); width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.3s; font-weight: 600;" onmouseover="this.style.background='rgba(255, 107, 107, 0.1)'; this.style.color='var(--error)'; this.style.transform='rotate(90deg)'" onmouseout="this.style.background='rgba(0, 0, 0, 0.05)'; this.style.color='var(--text-secondary)'; this.style.transform='rotate(0deg)'">&times;</button>
             </div>
@@ -8194,37 +8347,38 @@ async function editAllUsedConstructNumbers() {
                     </div>
                 </div>
             </div>
-            <div id="edit-all-used-list" style="flex: 1; overflow-y: auto; padding-right: 8px; margin-bottom: 24px;">
-                ${usedNumbers.map((item, index) => {
-                    const num = typeof item === 'string' ? item : item.number;
-                    const date = typeof item === 'string' ? '' : (item.registerDate || item.date || '');
-                    const itemId = typeof item === 'string' ? num : (item.id || `item-${index}`);
-                    return `
-                        <div class="edit-all-item" data-number="${num}" data-date="${date}" style="display: flex; gap: 16px; align-items: center; padding: 20px; border: 2px solid var(--border-light); border-radius: 16px; margin-bottom: 16px; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden;" onmouseover="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 8px 24px rgba(74, 144, 226, 0.15)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border-light)'; this.style.boxShadow='none'; this.style.transform='translateY(0)'">
-                            <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); opacity: 0; transition: opacity 0.3s;" class="item-accent"></div>
-                            <div style="flex: 1;">
-                                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
-                                    <i class="fas fa-hashtag" style="font-size: 12px; color: var(--primary);"></i>
-                                    工事番号
-                                </label>
-                                <input type="text" data-id="${itemId}" data-index="${index}" class="edit-number-input" value="${num}" style="width: 100%; padding: 14px; border: 2px solid var(--border-light); border-radius: 10px; font-size: 15px; font-weight: 600; transition: all 0.3s; background: white;" onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 4px rgba(74, 144, 226, 0.1)'; this.closest('.edit-all-item').querySelector('.item-accent').style.opacity='1'" onblur="this.style.borderColor='var(--border-light)'; this.style.boxShadow='none'; this.closest('.edit-all-item').querySelector('.item-accent').style.opacity='0'">
-                            </div>
-                            <div style="flex: 1;">
-                                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
-                                    <i class="fas fa-calendar" style="font-size: 12px; color: var(--primary);"></i>
-                                    日付
-                                </label>
-                                <input type="date" data-id="${itemId}" data-index="${index}" class="edit-date-input" value="${date || new Date().toISOString().split('T')[0]}" style="width: 100%; padding: 14px; border: 2px solid var(--border-light); border-radius: 10px; font-size: 15px; transition: all 0.3s; background: white;" onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 4px rgba(74, 144, 226, 0.1)'; this.closest('.edit-all-item').querySelector('.item-accent').style.opacity='1'" onblur="this.style.borderColor='var(--border-light)'; this.style.boxShadow='none'; this.closest('.edit-all-item').querySelector('.item-accent').style.opacity='0'">
-                            </div>
-                            <div style="flex: 0 0 auto; display: flex; align-items: center; margin-top: 24px;">
-                                <button onclick="removeUsedConstructNumberFromEdit('${itemId}')" style="background: linear-gradient(135deg, var(--error) 0%, var(--error-dark) 100%); color: white; border: none; padding: 14px 20px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(255, 107, 107, 0.4)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(255, 107, 107, 0.3)'" title="削除">
-                                    <i class="fas fa-trash"></i>
-                                    <span>削除</span>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
+            <div id="edit-all-used-list" style="flex: 1; overflow-y: auto; padding-right: 8px; margin-bottom: 24px; background: white; border-radius: 12px; border: 1px solid var(--border-light);">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); position: sticky; top: 0; z-index: 10;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; color: white; font-size: 14px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2);">工事番号</th>
+                            <th style="padding: 12px; text-align: left; color: white; font-size: 14px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2);">日付</th>
+                            <th style="padding: 12px; text-align: center; color: white; font-size: 14px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); width: 80px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${usedNumbers.map((item, index) => {
+                            const num = typeof item === 'string' ? item : item.number;
+                            const date = typeof item === 'string' ? '' : (item.registerDate || item.date || '');
+                            const itemId = typeof item === 'string' ? num : (item.id || `item-${index}`);
+                            return `
+                                <tr class="edit-all-item" data-number="${num}" data-date="${date}" style="border-bottom: 1px solid var(--border-light); transition: background 0.2s;" onmouseover="this.style.background='rgba(74, 144, 226, 0.05)'" onmouseout="this.style.background=''">
+                                    <td style="padding: 10px 12px;">
+                                        <input type="text" data-id="${itemId}" data-index="${index}" class="edit-number-input" value="${num}" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border-light); border-radius: 6px; font-size: 14px; transition: all 0.2s; background: white;" onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 2px rgba(74, 144, 226, 0.1)'" onblur="this.style.borderColor='var(--border-light)'; this.style.boxShadow='none'">
+                                    </td>
+                                    <td style="padding: 10px 12px;">
+                                        <input type="date" data-id="${itemId}" data-index="${index}" class="edit-date-input" value="${date || new Date().toISOString().split('T')[0]}" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border-light); border-radius: 6px; font-size: 14px; transition: all 0.2s; background: white;" onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 2px rgba(74, 144, 226, 0.1)'" onblur="this.style.borderColor='var(--border-light)'; this.style.boxShadow='none'">
+                                    </td>
+                                    <td style="padding: 10px 12px; text-align: center;">
+                                        <button onclick="removeUsedConstructNumberFromEdit('${itemId}')" style="background: var(--error); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.2s;" onmouseover="this.style.background='var(--error-dark)'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='var(--error)'; this.style.transform='scale(1)'" title="削除">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
             </div>
             <div style="display: flex; gap: 12px; justify-content: flex-end; padding-top: 20px; border-top: 3px solid var(--border-light); flex-shrink: 0;">
                 <button onclick="this.closest('#edit-all-used-modal').remove()" class="btn-secondary" style="padding: 14px 28px; font-size: 15px; font-weight: 600; min-width: 140px;">キャンセル</button>
@@ -8251,7 +8405,7 @@ async function editAllUsedConstructNumbers() {
                 if (!searchTerm || 
                     number.toLowerCase().includes(searchLower) || 
                     date.includes(searchTerm)) {
-                    item.style.display = 'flex';
+                    item.style.display = item.tagName === 'TR' ? 'table-row' : 'flex';
                     visibleCount++;
                 } else {
                     item.style.display = 'none';
@@ -8288,7 +8442,7 @@ async function editAllUsedConstructNumbers() {
 function removeUsedConstructNumberFromEdit(itemId) {
     const input = document.querySelector(`input[data-id="${itemId}"]`);
     if (input) {
-        const container = input.closest('div[style*="display: flex"]');
+        const container = input.closest('tr.edit-all-item') || input.closest('div[style*="display: flex"]');
         if (container) {
             container.style.animation = 'fadeOut 0.3s ease-out';
             setTimeout(() => {
@@ -8313,7 +8467,591 @@ async function saveAllUsedConstructNumbers() {
             const date = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
             
             if (!num) {
-                errors.push(`行 ${index + 1}: 工事番号が空です`);
+                // 空の行はスキップ（削除されたものとして扱う）
+                return;
+            }
+            
+            // 日付の形式チェック
+            if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                errors.push(`行 ${index + 1}: 日付の形式が正しくありません`);
+                return;
+            }
+            
+            const itemId = numInput.getAttribute('data-id');
+            updated.push({
+                number: num,
+                date: date || new Date().toISOString().split('T')[0],
+                type: '採番',
+                id: itemId || num
+            });
+        });
+        
+        if (errors.length > 0) {
+            showMessage('エラー: ' + errors.join(', '), 'error');
+            return;
+        }
+        
+        if (updated.length === 0) {
+            showMessage('保存するデータがありません', 'warning');
+            return;
+        }
+        
+        localStorage.setItem('used_construct_numbers', JSON.stringify(updated));
+        
+        // モーダルを閉じる
+        const modal = document.getElementById('edit-all-used-modal');
+        if (modal) {
+            modal.remove();
+        }
+        
+        // 一覧を更新
+        await loadUsedConstructNumbersList();
+        const selectElement = document.getElementById('construct-number-select');
+        await loadUsedConstructNumbersListInline(selectElement ? selectElement.value : null);
+        const pageSelectElement = document.getElementById('construct-number-select-page');
+        await loadUsedConstructNumbersListPage(pageSelectElement ? pageSelectElement.value : null);
+        
+        showMessage('運用中工事番号を更新しました', 'success');
+    } catch (error) {
+        console.error('保存エラー:', error);
+        showMessage('保存に失敗しました', 'error');
+    }
+}
+
+// 工事番号をクリップボードにコピー
+function copyConstructNumber() {
+    const resultInput = document.getElementById('construct-number-result');
+    if (!resultInput || !resultInput.value) {
+        showMessage('コピーする工事番号がありません', 'warning');
+        return;
+    }
+    
+    resultInput.select();
+    document.execCommand('copy');
+    
+    const copyBtn = document.getElementById('copy-construct-number');
+    if (copyBtn) {
+        const original = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+        copyBtn.style.color = 'var(--success)';
+        setTimeout(() => {
+            copyBtn.innerHTML = original;
+            copyBtn.style.color = '';
+        }, 2000);
+    }
+    
+    showMessage('工事番号をクリップボードにコピーしました', 'success');
+}
+
+// 使用済み工事番号一覧モーダルを開く
+async function openUsedConstructNumbersModal() {
+    const modal = document.getElementById('used-construct-numbers-modal');
+    modal.style.display = 'flex';
+    
+    await loadUsedConstructNumbersList();
+}
+
+// 使用済み工事番号一覧モーダルを閉じる
+function closeUsedConstructNumbersModal() {
+    const modal = document.getElementById('used-construct-numbers-modal');
+    modal.style.display = 'none';
+}
+
+// 権限チェック関数（今後権限設定で制御可能）
+function hasEditPermission() {
+    // 権限設定をlocalStorageから取得
+    const permissionSettings = JSON.parse(localStorage.getItem('permission_settings') || '{}');
+    
+    // 権限設定が存在する場合はそれを使用、ない場合は全員が使用可能
+    if (permissionSettings.hasOwnProperty('allowAllUsers')) {
+        return permissionSettings.allowAllUsers;
+    }
+    
+    // デフォルト：全員が使用可能
+    return true;
+}
+
+// 使用済み工事番号一覧を読み込む（インライン表示用）
+async function loadUsedConstructNumbersListInline(filterPrefix = null) {
+    const tbody = document.getElementById('used-construct-numbers-list-inline');
+    if (!tbody) return;
+    
+    let usedNumbers = await getUsedConstructNumbers();
+    const canEdit = hasEditPermission();
+    
+    // フィルタリング：工事番号台が選択されている場合
+    if (filterPrefix) {
+        // プレフィックスを抽出
+        let prefix = '';
+        let prefix1 = '';
+        const koujiValue = filterPrefix.replace('番台', '').trim();
+        
+        if (koujiValue.length >= 1 && /^[A-Z]$/.test(koujiValue.substring(0, 1))) {
+            prefix1 = koujiValue.substring(0, 1);
+            prefix = '';
+        } else if (koujiValue.length >= 2) {
+            prefix = koujiValue.substring(0, 2);
+            prefix1 = koujiValue.substring(0, 1);
+        } else if (koujiValue.length === 1) {
+            prefix1 = koujiValue;
+        }
+        
+        // プレフィックスでフィルタリング
+        usedNumbers = usedNumbers.filter(item => {
+            const num = typeof item === 'string' ? item : item.number;
+            const strValue = String(num).trim();
+            
+            if (prefix1 && /^[A-Z]$/.test(prefix1)) {
+                return strValue.startsWith(prefix1);
+            } else if (prefix) {
+                return strValue.startsWith(prefix);
+            }
+            return false;
+        });
+    }
+    
+    // 権限に応じてボタンとヘッダーを表示/非表示
+    const clearBtn = document.getElementById('clear-used-btn');
+    const actionHeader = document.getElementById('action-header');
+    if (clearBtn) clearBtn.style.display = canEdit ? 'inline-block' : 'none';
+    if (actionHeader) actionHeader.style.display = canEdit ? 'table-cell' : 'none';
+    
+    // 使用件数を表示（非表示）
+    const countDisplay = document.getElementById('used-count-display');
+    if (countDisplay) {
+        countDisplay.innerHTML = '';
+    }
+    
+    if (usedNumbers.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="${canEdit ? 3 : 2}" style="text-align: center; padding: 40px; color: var(--text-tertiary);">
+                    <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 12px; opacity: 0.3; display: block;"></i>
+                                                    <span style="font-size: 13px;">${filterPrefix ? '該当する運用中工事番号はありません' : '運用中工事番号はありません'}</span>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // 工事番号でソート（連番順）
+    const sorted = usedNumbers.sort((a, b) => {
+        const numA = typeof a === 'string' ? a : a.number;
+        const numB = typeof b === 'string' ? b : b.number;
+        // 数値部分と文字列部分を分離して比較
+        const extractParts = (str) => {
+            const match = str.match(/^([A-Z]*)(\d+)$/);
+            if (match) {
+                return { prefix: match[1] || '', number: parseInt(match[2], 10) };
+            }
+            return { prefix: str, number: 0 };
+        };
+        const partsA = extractParts(String(numA).trim());
+        const partsB = extractParts(String(numB).trim());
+        
+        // プレフィックスで比較
+        if (partsA.prefix !== partsB.prefix) {
+            return partsA.prefix.localeCompare(partsB.prefix);
+        }
+        // 数値で比較
+        return partsA.number - partsB.number;
+    });
+    
+    tbody.innerHTML = sorted.map((item, index) => {
+        const num = typeof item === 'string' ? item : item.number;
+        const date = typeof item === 'string' ? '' : (item.registerDate || item.date || '');
+        const itemId = typeof item === 'string' ? num : (item.id || `item-${index}`);
+        
+        return `
+            <tr style="border-bottom: 1px solid #eee; transition: background 0.2s;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background=''">
+                <td style="padding: 8px 10px; font-weight: 600; font-size: 11px; color: var(--text-primary); word-break: break-all;">
+                    <span style="display: inline-flex; align-items: center; gap: 4px;">
+                        <span style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; white-space: nowrap;">${num}</span>
+                    </span>
+                </td>
+                <td style="padding: 8px 10px; text-align: center; font-size: 10px; color: var(--text-secondary); white-space: nowrap;">
+                    ${date ? `<i class="fas fa-calendar" style="margin-right: 4px; color: var(--primary); font-size: 9px;"></i><span style="font-size: 10px;">${date}</span>` : '<span style="color: var(--text-tertiary); font-size: 10px;">-</span>'}
+                </td>
+                ${canEdit ? `
+                <td style="padding: 8px 10px; text-align: center;">
+                    <div style="display: flex; gap: 4px; justify-content: center;">
+                        <button onclick="deleteUsedConstructNumber('${itemId}')" style="background: var(--error); color: white; border: none; padding: 3px 5px; border-radius: 4px; cursor: pointer; font-size: 9px; transition: all 0.2s;" onmouseover="this.style.background='var(--error-dark)'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='var(--error)'; this.style.transform='scale(1)'" title="削除">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+                ` : ''}
+            </tr>
+        `;
+    }).join('');
+}
+
+// 使用済み工事番号一覧を読み込む（モーダル表示用）
+async function loadUsedConstructNumbersList() {
+    const tbody = document.getElementById('used-construct-numbers-list');
+    if (!tbody) return;
+    
+    const usedNumbers = await getUsedConstructNumbers();
+    
+    if (usedNumbers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; padding: 20px;">運用中工事番号はありません</td></tr>';
+        return;
+    }
+    
+    // 日付でソート（新しい順）
+    const sorted = usedNumbers.sort((a, b) => {
+        const dateA = a.registerDate || a.date || '';
+        const dateB = b.registerDate || b.date || '';
+        return dateB.localeCompare(dateA);
+    });
+    
+    tbody.innerHTML = sorted.map(item => {
+        const num = typeof item === 'string' ? item : item.number;
+        const date = typeof item === 'string' ? '' : (item.registerDate || item.date || '');
+        
+        return `
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 12px; font-weight: 600; font-size: 14px;">${num}</td>
+                <td style="padding: 12px; text-align: center; font-size: 13px;">${date || '-'}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// 使用済み工事番号を全削除
+async function clearUsedConstructNumbers() {
+    if (confirm('運用中工事番号をすべて削除しますか？\nこの操作は取り消せません。')) {
+        localStorage.removeItem('used_construct_numbers');
+        await loadUsedConstructNumbersList();
+        const selectElement = document.getElementById('construct-number-select');
+        await loadUsedConstructNumbersListInline(selectElement ? selectElement.value : null);
+        const pageSelectElement = document.getElementById('construct-number-select-page');
+        await loadUsedConstructNumbersListPage(pageSelectElement ? pageSelectElement.value : null);
+        showMessage('運用中工事番号をすべて削除しました', 'success');
+    }
+}
+
+// 使用済み工事番号を個別削除
+async function deleteUsedConstructNumber(itemId) {
+    if (!confirm('この工事番号を削除しますか？')) {
+        return;
+    }
+    
+    try {
+        const usedNumbers = await getUsedConstructNumbers();
+        const filtered = usedNumbers.filter((item, index) => {
+            const id = typeof item === 'string' ? item : (item.id || `item-${index}`);
+            return id !== itemId;
+        });
+        
+        localStorage.setItem('used_construct_numbers', JSON.stringify(filtered));
+        await loadUsedConstructNumbersList();
+        const selectElement = document.getElementById('construct-number-select');
+        await loadUsedConstructNumbersListInline(selectElement ? selectElement.value : null);
+        // ページ版の一覧も更新
+        const pageSelectElement = document.getElementById('construct-number-select-page');
+        await loadUsedConstructNumbersListPage(pageSelectElement ? pageSelectElement.value : null);
+        showMessage('工事番号を削除しました', 'success');
+    } catch (error) {
+        console.error('削除エラー:', error);
+        showMessage('削除に失敗しました', 'error');
+    }
+}
+
+// 使用済み工事番号をCSV出力
+async function exportUsedConstructNumbers() {
+    const usedNumbers = await getUsedConstructNumbers();
+    
+    if (usedNumbers.length === 0) {
+        showMessage('出力するデータがありません', 'warning');
+        return;
+    }
+    
+    // CSVヘッダー
+    let csv = '工事番号,日付,種別\n';
+    
+    // データ
+    usedNumbers.forEach(item => {
+        const num = typeof item === 'string' ? item : item.number;
+        const date = typeof item === 'string' ? '' : (item.registerDate || item.date || '');
+        const type = typeof item === 'string' ? '採番' : (item.type || '採番');
+        
+        csv += `${num},${date},${type}\n`;
+    });
+    
+    // ダウンロード
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `運用中工事番号一覧_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showMessage('CSVファイルを出力しました', 'success');
+}
+
+// 使用済み工事番号をCSVインポート
+async function importUsedConstructNumbersCSV() {
+    
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.style.display = 'none';
+    
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        try {
+            const text = await file.text();
+            const lines = text.split('\n').filter(line => line.trim());
+            
+            if (lines.length < 2) {
+                showMessage('CSVファイルの形式が正しくありません', 'error');
+                return;
+            }
+            
+            // ヘッダーをスキップ
+            const dataLines = lines.slice(1);
+            const imported = [];
+            const errors = [];
+            
+            dataLines.forEach((line, index) => {
+                const parts = line.split(',').map(p => p.trim());
+                if (parts.length >= 1 && parts[0]) {
+                    const num = parts[0];
+                    const date = parts[1] || new Date().toISOString().split('T')[0];
+                    const type = parts[2] || '採番';
+                    
+                    // バリデーション
+                    if (num && num.length > 0) {
+                        imported.push({
+                            number: num,
+                            date: date,
+                            type: type
+                        });
+                    } else {
+                        errors.push(`行 ${index + 2}: 工事番号が空です`);
+                    }
+                }
+            });
+            
+            if (imported.length === 0) {
+                showMessage('インポートできるデータがありません', 'warning');
+                return;
+            }
+            
+            // 既存データとマージ
+            const existing = await getUsedConstructNumbers();
+            const existingNumbers = new Set(existing.map(item => {
+                const num = typeof item === 'string' ? item : item.number;
+                return num;
+            }));
+            
+            // 重複をチェック
+            const newItems = imported.filter(item => !existingNumbers.has(item.number));
+            const duplicates = imported.length - newItems.length;
+            
+            if (newItems.length === 0) {
+                showMessage(`すべてのデータが既に存在します（${duplicates}件）`, 'warning');
+                return;
+            }
+            
+            // 既存データに追加
+            const merged = [...existing, ...newItems];
+            localStorage.setItem('used_construct_numbers', JSON.stringify(merged));
+            
+            await loadUsedConstructNumbersList();
+            const selectElement = document.getElementById('construct-number-select');
+            await loadUsedConstructNumbersListInline(selectElement ? selectElement.value : null);
+            // ページ版の一覧も更新
+            const pageSelectElement = document.getElementById('construct-number-select-page');
+            await loadUsedConstructNumbersListPage(pageSelectElement ? pageSelectElement.value : null);
+            
+            let message = `${newItems.length}件のデータをインポートしました`;
+            if (duplicates > 0) {
+                message += `（${duplicates}件は既に存在するためスキップ）`;
+            }
+            if (errors.length > 0) {
+                message += `\nエラー: ${errors.length}件`;
+            }
+            
+            showMessage(message, 'success');
+        } catch (error) {
+            console.error('CSVインポートエラー:', error);
+            showMessage('CSVファイルの読み込みに失敗しました', 'error');
+        }
+        
+        document.body.removeChild(input);
+    };
+    
+    document.body.appendChild(input);
+    input.click();
+}
+
+// 運用中工事番号一覧を一括編集
+async function editAllUsedConstructNumbers() {
+    try {
+        const usedNumbers = await getUsedConstructNumbers();
+        
+        if (usedNumbers.length === 0) {
+            showMessage('編集する工事番号がありません', 'warning');
+            return;
+        }
+        
+        // 一括編集モーダルを作成
+        const modal = document.createElement('div');
+        modal.id = 'edit-all-used-modal';
+        modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 20000; backdrop-filter: blur(4px);';
+        
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = 'background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border-radius: 24px; padding: 32px; max-width: 1200px; width: 95%; max-height: 90vh; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); display: flex; flex-direction: column;';
+        
+        modalContent.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 3px solid var(--primary); flex-shrink: 0; position: relative;">
+                <div style="width: 44px;"></div>
+                <h3 style="margin: 0; font-size: 24px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 12px; justify-content: center; flex: 1;">
+                    <i class="fas fa-cog" style="color: var(--primary); font-size: 28px;"></i>
+                    運用中工事番号管理
+                </h3>
+                <button onclick="this.closest('#edit-all-used-modal').remove()" style="background: rgba(0, 0, 0, 0.05); border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary); width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.3s; font-weight: 600;" onmouseover="this.style.background='rgba(255, 107, 107, 0.1)'; this.style.color='var(--error)'; this.style.transform='rotate(90deg)'" onmouseout="this.style.background='rgba(0, 0, 0, 0.05)'; this.style.color='var(--text-secondary)'; this.style.transform='rotate(0deg)'">&times;</button>
+            </div>
+            <div style="margin-bottom: 20px; flex-shrink: 0;">
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 300px; position: relative;">
+                        <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 16px; z-index: 1;"></i>
+                        <input type="text" id="edit-all-search-input" placeholder="工事番号で検索..." style="width: 100%; padding: 14px 16px 14px 44px; border: 2px solid var(--border-light); border-radius: 12px; font-size: 15px; transition: all 0.3s; background: white;" onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 4px rgba(74, 144, 226, 0.1)'" onblur="this.style.borderColor='var(--border-light)'; this.style.boxShadow='none'" oninput="filterEditAllList(this.value)">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-secondary); white-space: nowrap;">
+                        <i class="fas fa-list" style="color: var(--primary);"></i>
+                        <span id="edit-all-count">全${usedNumbers.length}件</span>
+                    </div>
+                </div>
+            </div>
+            <div id="edit-all-used-list" style="flex: 1; overflow-y: auto; padding-right: 8px; margin-bottom: 24px; background: white; border-radius: 12px; border: 1px solid var(--border-light);">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); position: sticky; top: 0; z-index: 10;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; color: white; font-size: 14px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2);">工事番号</th>
+                            <th style="padding: 12px; text-align: left; color: white; font-size: 14px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2);">日付</th>
+                            <th style="padding: 12px; text-align: center; color: white; font-size: 14px; font-weight: 600; border-bottom: 2px solid rgba(255, 255, 255, 0.2); width: 80px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${usedNumbers.map((item, index) => {
+                            const num = typeof item === 'string' ? item : item.number;
+                            const date = typeof item === 'string' ? '' : (item.registerDate || item.date || '');
+                            const itemId = typeof item === 'string' ? num : (item.id || `item-${index}`);
+                            return `
+                                <tr class="edit-all-item" data-number="${num}" data-date="${date}" style="border-bottom: 1px solid var(--border-light); transition: background 0.2s;" onmouseover="this.style.background='rgba(74, 144, 226, 0.05)'" onmouseout="this.style.background=''">
+                                    <td style="padding: 10px 12px;">
+                                        <input type="text" data-id="${itemId}" data-index="${index}" class="edit-number-input" value="${num}" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border-light); border-radius: 6px; font-size: 14px; transition: all 0.2s; background: white;" onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 2px rgba(74, 144, 226, 0.1)'" onblur="this.style.borderColor='var(--border-light)'; this.style.boxShadow='none'">
+                                    </td>
+                                    <td style="padding: 10px 12px;">
+                                        <input type="date" data-id="${itemId}" data-index="${index}" class="edit-date-input" value="${date || new Date().toISOString().split('T')[0]}" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border-light); border-radius: 6px; font-size: 14px; transition: all 0.2s; background: white;" onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 2px rgba(74, 144, 226, 0.1)'" onblur="this.style.borderColor='var(--border-light)'; this.style.boxShadow='none'">
+                                    </td>
+                                    <td style="padding: 10px 12px; text-align: center;">
+                                        <button onclick="removeUsedConstructNumberFromEdit('${itemId}')" style="background: var(--error); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.2s;" onmouseover="this.style.background='var(--error-dark)'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='var(--error)'; this.style.transform='scale(1)'" title="削除">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; padding-top: 20px; border-top: 3px solid var(--border-light); flex-shrink: 0;">
+                <button onclick="this.closest('#edit-all-used-modal').remove()" class="btn-secondary" style="padding: 14px 28px; font-size: 15px; font-weight: 600; min-width: 140px;">キャンセル</button>
+                <button onclick="saveAllUsedConstructNumbers()" class="btn-primary" style="padding: 14px 28px; font-size: 15px; font-weight: 600; min-width: 140px;">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+            </div>
+        `;
+        
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+        
+        // 検索機能の実装
+        window.filterEditAllList = function(searchTerm) {
+            const items = modalContent.querySelectorAll('.edit-all-item');
+            const countEl = document.getElementById('edit-all-count');
+            let visibleCount = 0;
+            
+            items.forEach(item => {
+                const number = item.getAttribute('data-number') || '';
+                const date = item.getAttribute('data-date') || '';
+                const searchLower = searchTerm.toLowerCase();
+                
+                if (!searchTerm || 
+                    number.toLowerCase().includes(searchLower) || 
+                    date.includes(searchTerm)) {
+                    item.style.display = item.tagName === 'TR' ? 'table-row' : 'flex';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            if (countEl) {
+                countEl.textContent = searchTerm ? `検索結果: ${visibleCount}件 / 全${usedNumbers.length}件` : `全${usedNumbers.length}件`;
+            }
+        };
+        
+        // モーダル外をクリックで閉じる
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+                delete window.filterEditAllList;
+            }
+        });
+        
+        // モーダルが閉じられたときに検索関数を削除
+        const closeBtn = modalContent.querySelector('button[onclick*="remove"]');
+        if (closeBtn) {
+            const originalOnclick = closeBtn.getAttribute('onclick');
+            closeBtn.setAttribute('onclick', originalOnclick + '; if(typeof filterEditAllList !== "undefined") delete window.filterEditAllList;');
+        }
+        
+    } catch (error) {
+        console.error('一括編集エラー:', error);
+        showMessage('一括編集の開始に失敗しました', 'error');
+    }
+}
+
+// 一括編集から項目を削除
+function removeUsedConstructNumberFromEdit(itemId) {
+    const input = document.querySelector(`input[data-id="${itemId}"]`);
+    if (input) {
+        const container = input.closest('tr.edit-all-item') || input.closest('div[style*="display: flex"]');
+        if (container) {
+            container.style.animation = 'fadeOut 0.3s ease-out';
+            setTimeout(() => {
+                container.remove();
+            }, 300);
+        }
+    }
+}
+
+// 一括編集を保存
+async function saveAllUsedConstructNumbers() {
+    try {
+        const numberInputs = document.querySelectorAll('.edit-number-input');
+        const dateInputs = document.querySelectorAll('.edit-date-input');
+        
+        const updated = [];
+        const errors = [];
+        
+        numberInputs.forEach((numInput, index) => {
+            const num = numInput.value.trim();
+            const dateInput = dateInputs[index];
+            const date = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
+            
+            if (!num) {
+                // 空の行はスキップ（削除されたものとして扱う）
                 return;
             }
             

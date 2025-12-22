@@ -5,7 +5,9 @@
   "main": "index.html",
   "scripts": {
     "start": "live-server --port=5500",
-    "dev": "live-server --port=5500"
+    "dev": "live-server --port=5500",
+    "https": "node https-server.js",
+    "https:start": "node https-server.js"
   },
   "keywords": [
     "supabase",
@@ -23,6 +25,8 @@
     "@supabase/supabase-js": "^2.39.0"
   },
   "devDependencies": {
-    "live-server": "^1.2.2"
+    "http-server": "^14.1.1",
+    "live-server": "^1.2.2",
+    "selfsigned": "^1.10.14"
   }
 }

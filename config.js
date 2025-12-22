@@ -13,3 +13,11 @@ const ADMIN_PASSWORD = "admin123";
 // 管理者モードで編集可能になります
 const DEFAULT_EXTERNAL_LINKS = [];
 
+// 採番システムAPI設定
+// FastAPIバックエンドのベースURL
+window.SAIBAN_API_BASE_URL = window.SAIBAN_API_BASE_URL || 'http://localhost:8000';
+
+
+// FastAPIバックエンドのベースURL
+window.SAIBAN_API_BASE_URL = window.SAIBAN_API_BASE_URL || 'http://localhost:8000';
+
